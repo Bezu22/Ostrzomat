@@ -3,94 +3,134 @@ import sqlite3
 DB_NAME = 'ostrzomat.db'
 
 def get_connection():
-    """Zwraca aktywne połączenie z bazą danych."""
     return sqlite3.connect(DB_NAME)
 
-def get_unique_tool_types():
-    """Pobiera listę unikalnych typów narzędzi dla filtrów ComboBox."""
+# --- FUNKCJE DLA KOMBOBOXÓW ---
+def get_unique_tool_types(category="Wszystkie"):
+    """Pobiera typy narzędzi dla konkretnej kategorii (Frezy/Wiertła/Inne)."""
     conn = get_connection()
     cursor = conn.cursor()
-    try:
-        cursor.execute("SELECT DISTINCT tool_type FROM pricelist")
-        types = [r[0] for r in cursor.fetchall()]
-    except sqlite3.OperationalError:
-        types = []
-    finally:
-        conn.close()
+    if category == "Wszystkie":
+        cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools")
+    else:
+        cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools WHERE category=?", (category,))
+    types = [r[0] for r in cursor.fetchall()]
+    conn.close()
     return types
 
-def get_filtered_prices(tool_type=None):
-    """Pobiera dane z cennika z uwzględnieniem filtra typu."""
+def get_unique_coating_names():
     conn = get_connection()
     cursor = conn.cursor()
-    if not tool_type or tool_type == "Wszystkie":
-        cursor.execute("SELECT * FROM pricelist ORDER BY tool_type, diam_min")
-    else:
-        cursor.execute("SELECT * FROM pricelist WHERE tool_type=? ORDER BY diam_min", (tool_type,))
+    cursor.execute("SELECT DISTINCT coating_name FROM pricelist_coatings")
+    names = [r[0] for r in cursor.fetchall()]
+    conn.close()
+    return names
+
+def get_unique_service_names():
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT DISTINCT service_name FROM pricelist_services")
+    names = [r[0] for r in cursor.fetchall()]
+    conn.close()
+    return names
+
+# --- FUNKCJE POBIERANIA DANYCH ---
+def get_filtered_tools(category, tool_type):
+    conn = get_connection()
+    cursor = conn.cursor()
+    query = "SELECT * FROM pricelist_tools WHERE 1=1"
+    params = []
+    if category != "Wszystkie":
+        query += " AND category=?"
+        params.append(category)
+    if tool_type != "Wszystkie":
+        query += " AND tool_type=?"
+        params.append(tool_type)
+    query += " ORDER BY tool_type, diam_min"
+    cursor.execute(query, params)
     data = cursor.fetchall()
     conn.close()
     return data
 
-def update_price_row(row_id, vals):
-    """Aktualizuje rekord. vals to lista: [type, blades, d_min, d_max, p1, p2, p3, p4]"""
+def get_filtered_coatings(name):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''UPDATE pricelist SET tool_type=?, blades=?, diam_min=?, diam_max=?, 
-                      price_1=?, price_2_4=?, price_5_10=?, price_11_20=? WHERE id=?''', 
-                   (*vals, row_id))
+    if name == "Wszystkie":
+        cursor.execute("SELECT * FROM pricelist_coatings ORDER BY coating_name, diam_max, length")
+    else:
+        cursor.execute("SELECT * FROM pricelist_coatings WHERE coating_name=? ORDER BY diam_max, length", (name,))
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+def get_filtered_services(name):
+    conn = get_connection()
+    cursor = conn.cursor()
+    if name == "Wszystkie":
+        cursor.execute("SELECT * FROM pricelist_services ORDER BY service_name")
+    else:
+        cursor.execute("SELECT * FROM pricelist_services WHERE service_name=? ORDER BY param_min", (name,))
+    data = cursor.fetchall()
+    conn.close()
+    return data
+
+# --- USUWANIE ---
+def delete_row(table, row_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM {table} WHERE id=?", (row_id,))
     conn.commit()
     conn.close()
 
-def add_price_row(vals):
-    """Dodaje nową pozycję do bazy."""
+# --- NARZĘDZIA ---
+def update_tool_row(row_id, vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO pricelist (tool_type, blades, diam_min, diam_max, 
+    cursor.execute('''UPDATE pricelist_tools SET category=?, tool_type=?, blades=?, 
+                      diam_min=?, diam_max=?, price_1=?, price_2_4=?, price_5_10=?, price_11_20=? 
+                      WHERE id=?''', (*vals, row_id))
+    conn.commit()
+    conn.close()
+
+def add_tool_row(vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''INSERT INTO pricelist_tools (category, tool_type, blades, diam_min, diam_max, 
                       price_1, price_2_4, price_5_10, price_11_20) 
-                      VALUES (?, ?, ?, ?, ?, ?, ?, ?)''', vals)
+                      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)''', vals)
     conn.commit()
     conn.close()
 
-def delete_price_row(row_id):
-    """Trwale usuwa wiersz z cennika."""
+# --- POWŁOKI ---
+def update_coating_row(row_id, vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM pricelist WHERE id = ?", (row_id,))
+    cursor.execute('''UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? 
+                      WHERE id=?''', (*vals, row_id))
     conn.commit()
     conn.close()
 
-def find_unit_price(tool_type, input_blades, diameter, total_quantity):
-    """
-    Inteligentna logika wyceny:
-    1. Szuka konkretnej liczby ostrzy.
-    2. Szuka w zakresie '2-4'.
-    3. Szuka w kategorii 'pozostałe'.
-    """
-    if total_quantity >= 11: col = "price_11_20"
-    elif total_quantity >= 5: col = "price_5_10"
-    elif total_quantity >= 2: col = "price_2_4"
-    else: col = "price_1"
-
+def add_coating_row(vals):
     conn = get_connection()
     cursor = conn.cursor()
-    str_blades = str(input_blades)
-    
-    # Podstawowe zapytanie
-    query = f"SELECT {col} FROM pricelist WHERE tool_type=? AND blades=? AND ? > diam_min AND ? <= diam_max"
-
-    # Próba 1: Dokładne dopasowanie
-    cursor.execute(query, (tool_type, str_blades, diameter, diameter))
-    res = cursor.fetchone()
-    
-    # Próba 2: Zakres 2-4
-    if not res and 2 <= int(input_blades) <= 4:
-        cursor.execute(query, (tool_type, "2-4", diameter, diameter))
-        res = cursor.fetchone()
-
-    # Próba 3: Pozostałe
-    if not res:
-        cursor.execute(query, (tool_type, "pozostałe", diameter, diameter))
-        res = cursor.fetchone()
-
+    cursor.execute('''INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) 
+                      VALUES (?, ?, ?, ?)''', vals)
+    conn.commit()
     conn.close()
-    return float(res[0]) if res else 0.0
+
+# --- USŁUGI ---
+def update_service_row(row_id, vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? 
+                      WHERE id=?''', (*vals, row_id))
+    conn.commit()
+    conn.close()
+
+def add_service_row(vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute('''INSERT INTO pricelist_services (service_name, param_min, param_max, price) 
+                      VALUES (?, ?, ?, ?)''', vals)
+    conn.commit()
+    conn.close()
