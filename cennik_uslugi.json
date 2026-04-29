@@ -1,0 +1,38 @@
+{
+  "Polerowanie rowka": {
+    "zakres_srednicy": [
+      {
+        "zakres_srednicy": "do 12.0",
+        "cena_jednostkowa": 10.0
+      },
+      {
+        "zakres_srednicy": "od 12.0",
+        "cena_jednostkowa": 14.0
+      }
+    ]
+  },
+  "Zaniżenie średnicy": {
+    "szerokosc": [
+      {
+        "szerokosc": "≤ szer. 10 mm",
+        "cena_jednostkowa": 10.0
+      },
+      {
+        "szerokosc": "> szer. 10 mm",
+        "cena_jednostkowa": 20.0
+      }
+    ]
+  },
+  "Cięcie": {
+    "zakres_srednicy": [
+      {
+        "zakres_srednicy": "do 12.0",
+        "cena_jednostkowa": 12.0
+      },
+      {
+        "zakres_srednicy": "od 12.0",
+        "cena_jednostkowa": 16.0
+      }
+    ]
+  }
+}

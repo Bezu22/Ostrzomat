@@ -1,0 +1,652 @@
+{
+  "ALCRONA PRO/LATUMA": {
+    "zakres_srednicy": [
+      {
+        "srednica_max": 3,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 9.68 },
+          { "dlugosc": 150, "cena_jednostkowa": 11.84 },
+          { "dlugosc": 200, "cena_jednostkowa": 16.14 },
+          { "dlugosc": 300, "cena_jednostkowa": 24.76 }
+        ]
+      },
+      {
+        "srednica_max": 4,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 11.84 },
+          { "dlugosc": 150, "cena_jednostkowa": 13.99 },
+          { "dlugosc": 200, "cena_jednostkowa": 20.45 },
+          { "dlugosc": 300, "cena_jednostkowa": 30.13 }
+        ]
+      },
+      {
+        "srednica_max": 6,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 15.07 },
+          { "dlugosc": 150, "cena_jednostkowa": 17.21 },
+          { "dlugosc": 200, "cena_jednostkowa": 23.67 },
+          { "dlugosc": 300, "cena_jednostkowa": 36.59 }
+        ]
+      },
+      {
+        "srednica_max": 8,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 16.14 },
+          { "dlugosc": 150, "cena_jednostkowa": 19.38 },
+          { "dlugosc": 200, "cena_jednostkowa": 26.91 },
+          { "dlugosc": 300, "cena_jednostkowa": 40.88 }
+        ]
+      },
+      {
+        "srednica_max": 10,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 19.38 },
+          { "dlugosc": 150, "cena_jednostkowa": 22.60 },
+          { "dlugosc": 200, "cena_jednostkowa": 32.30 },
+          { "dlugosc": 300, "cena_jednostkowa": 48.44 }
+        ]
+      },
+      {
+        "srednica_max": 12,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 27.98 },
+          { "dlugosc": 150, "cena_jednostkowa": 32.30 },
+          { "dlugosc": 200, "cena_jednostkowa": 45.20 },
+          { "dlugosc": 300, "cena_jednostkowa": 67.80 }
+        ]
+      },
+      {
+        "srednica_max": 14,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 35.52 },
+          { "dlugosc": 150, "cena_jednostkowa": 41.98 },
+          { "dlugosc": 200, "cena_jednostkowa": 59.19 },
+          { "dlugosc": 300, "cena_jednostkowa": 88.25 }
+        ]
+      },
+      {
+        "srednica_max": 16,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 39.83 },
+          { "dlugosc": 150, "cena_jednostkowa": 46.27 },
+          { "dlugosc": 200, "cena_jednostkowa": 64.57 },
+          { "dlugosc": 300, "cena_jednostkowa": 96.85 }
+        ]
+      },
+      {
+        "srednica_max": 18,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 46.27 },
+          { "dlugosc": 150, "cena_jednostkowa": 54.89 },
+          { "dlugosc": 200, "cena_jednostkowa": 76.40 },
+          { "dlugosc": 300, "cena_jednostkowa": 115.16 }
+        ]
+      },
+      {
+        "srednica_max": 20,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 54.89 },
+          { "dlugosc": 150, "cena_jednostkowa": 63.50 },
+          { "dlugosc": 200, "cena_jednostkowa": 89.32 },
+          { "dlugosc": 300, "cena_jednostkowa": 134.52 }
+        ]
+      },
+      {
+        "srednica_max": 22,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 62.43 },
+          { "dlugosc": 150, "cena_jednostkowa": 73.18 },
+          { "dlugosc": 200, "cena_jednostkowa": 102.24 },
+          { "dlugosc": 300, "cena_jednostkowa": 153.89 }
+        ]
+      },
+      {
+        "srednica_max": 26,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 73.18 },
+          { "dlugosc": 150, "cena_jednostkowa": 86.10 },
+          { "dlugosc": 200, "cena_jednostkowa": 119.45 },
+          { "dlugosc": 300, "cena_jednostkowa": 179.71 }
+        ]
+      },
+      {
+        "srednica_max": 30,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 85.03 },
+          { "dlugosc": 150, "cena_jednostkowa": 100.09 },
+          { "dlugosc": 200, "cena_jednostkowa": 139.90 },
+          { "dlugosc": 300, "cena_jednostkowa": 244.31 }
+        ]
+      },
+      {
+        "srednica_max": 32,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 106.53 },
+          { "dlugosc": 150, "cena_jednostkowa": 124.84 },
+          { "dlugosc": 200, "cena_jednostkowa": 174.35 },
+          { "dlugosc": 300, "cena_jednostkowa": 290.58 }
+        ]
+      }
+    ]
+  },
+  "BALINIT TISAFLEX (AlTiN / TiSiXN)": {
+    "zakres_srednicy": [
+      {
+        "srednica_max": 3,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 12.60 },
+          { "dlugosc": 150, "cena_jednostkowa": 15.40 },
+          { "dlugosc": 200, "cena_jednostkowa": 20.98 },
+          { "dlugosc": 300, "cena_jednostkowa": 32.17 }
+        ]
+      },
+      {
+        "srednica_max": 4,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 15.40 },
+          { "dlugosc": 150, "cena_jednostkowa": 18.20 },
+          { "dlugosc": 200, "cena_jednostkowa": 26.58 },
+          { "dlugosc": 300, "cena_jednostkowa": 39.18 }
+        ]
+      },
+      {
+        "srednica_max": 6,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 19.59 },
+          { "dlugosc": 150, "cena_jednostkowa": 22.39 },
+          { "dlugosc": 200, "cena_jednostkowa": 30.78 },
+          { "dlugosc": 300, "cena_jednostkowa": 47.57 }
+        ]
+      },
+      {
+        "srednica_max": 8,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 20.98 },
+          { "dlugosc": 150, "cena_jednostkowa": 25.19 },
+          { "dlugosc": 200, "cena_jednostkowa": 34.99 },
+          { "dlugosc": 300, "cena_jednostkowa": 53.17 }
+        ]
+      },
+      {
+        "srednica_max": 10,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 25.19 },
+          { "dlugosc": 150, "cena_jednostkowa": 29.37 },
+          { "dlugosc": 200, "cena_jednostkowa": 41.98 },
+          { "dlugosc": 300, "cena_jednostkowa": 62.96 }
+        ]
+      },
+      {
+        "srednica_max": 12,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 36.38 },
+          { "dlugosc": 150, "cena_jednostkowa": 41.98 },
+          { "dlugosc": 200, "cena_jednostkowa": 58.77 },
+          { "dlugosc": 300, "cena_jednostkowa": 88.14 }
+        ]
+      },
+      {
+        "srednica_max": 14,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 46.16 },
+          { "dlugosc": 150, "cena_jednostkowa": 54.56 },
+          { "dlugosc": 200, "cena_jednostkowa": 76.95 },
+          { "dlugosc": 300, "cena_jednostkowa": 114.72 }
+        ]
+      },
+      {
+        "srednica_max": 16,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 51.76 },
+          { "dlugosc": 150, "cena_jednostkowa": 60.16 },
+          { "dlugosc": 200, "cena_jednostkowa": 83.95 },
+          { "dlugosc": 300, "cena_jednostkowa": 125.91 }
+        ]
+      },
+      {
+        "srednica_max": 18,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 60.16 },
+          { "dlugosc": 150, "cena_jednostkowa": 71.35 },
+          { "dlugosc": 200, "cena_jednostkowa": 99.33 },
+          { "dlugosc": 300, "cena_jednostkowa": 149.71 }
+        ]
+      },
+      {
+        "srednica_max": 20,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 71.35 },
+          { "dlugosc": 150, "cena_jednostkowa": 82.54 },
+          { "dlugosc": 200, "cena_jednostkowa": 116.12 },
+          { "dlugosc": 300, "cena_jednostkowa": 174.87 }
+        ]
+      },
+      {
+        "srednica_max": 22,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 81.15 },
+          { "dlugosc": 150, "cena_jednostkowa": 95.13 },
+          { "dlugosc": 200, "cena_jednostkowa": 132.92 },
+          { "dlugosc": 300, "cena_jednostkowa": 200.06 }
+        ]
+      },
+      {
+        "srednica_max": 26,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 95.13 },
+          { "dlugosc": 150, "cena_jednostkowa": 111.92 },
+          { "dlugosc": 200, "cena_jednostkowa": 155.28 },
+          { "dlugosc": 300, "cena_jednostkowa": 233.64 }
+        ]
+      },
+      {
+        "srednica_max": 30,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 110.53 },
+          { "dlugosc": 150, "cena_jednostkowa": 130.12 },
+          { "dlugosc": 200, "cena_jednostkowa": 181.88 },
+          { "dlugosc": 300, "cena_jednostkowa": 317.59 }
+        ]
+      },
+      {
+        "srednica_max": 32,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 138.49 },
+          { "dlugosc": 150, "cena_jednostkowa": 162.29 },
+          { "dlugosc": 200, "cena_jednostkowa": 226.65 },
+          { "dlugosc": 300, "cena_jednostkowa": 377.75 }
+        ]
+      }
+    ]
+  },
+  "Azotek Cyrkonu (ZrN)": {
+    "zakres_srednicy": [
+      {
+        "srednica_max": 3,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 7.20 },
+          { "dlugosc": 150, "cena_jednostkowa": 7.65 },
+          { "dlugosc": 200, "cena_jednostkowa": 8.10 },
+          { "dlugosc": 300, "cena_jednostkowa": 9.00 }
+        ]
+      },
+      {
+        "srednica_max": 4,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 8.64 },
+          { "dlugosc": 150, "cena_jednostkowa": 9.18 },
+          { "dlugosc": 200, "cena_jednostkowa": 9.72 },
+          { "dlugosc": 300, "cena_jednostkowa": 10.80 }
+        ]
+      },
+      {
+        "srednica_max": 6,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 11.36 },
+          { "dlugosc": 150, "cena_jednostkowa": 12.07 },
+          { "dlugosc": 200, "cena_jednostkowa": 12.78 },
+          { "dlugosc": 300, "cena_jednostkowa": 14.20 }
+        ]
+      },
+      {
+        "srednica_max": 8,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 15.36 },
+          { "dlugosc": 150, "cena_jednostkowa": 16.32 },
+          { "dlugosc": 200, "cena_jednostkowa": 17.28 },
+          { "dlugosc": 300, "cena_jednostkowa": 19.20 }
+        ]
+      },
+      {
+        "srednica_max": 10,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 22.24 },
+          { "dlugosc": 150, "cena_jednostkowa": 23.63 },
+          { "dlugosc": 200, "cena_jednostkowa": 25.02 },
+          { "dlugosc": 300, "cena_jednostkowa": 27.80 }
+        ]
+      },
+      {
+        "srednica_max": 12,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 26.72 },
+          { "dlugosc": 150, "cena_jednostkowa": 28.39 },
+          { "dlugosc": 200, "cena_jednostkowa": 30.06 },
+          { "dlugosc": 300, "cena_jednostkowa": 33.40 }
+        ]
+      },
+      {
+        "srednica_max": 14,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 29.44 },
+          { "dlugosc": 150, "cena_jednostkowa": 31.28 },
+          { "dlugosc": 200, "cena_jednostkowa": 33.12 },
+          { "dlugosc": 300, "cena_jednostkowa": 36.80 }
+        ]
+      },
+      {
+        "srednica_max": 16,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 33.44 },
+          { "dlugosc": 150, "cena_jednostkowa": 35.53 },
+          { "dlugosc": 200, "cena_jednostkowa": 37.62 },
+          { "dlugosc": 300, "cena_jednostkowa": 41.80 }
+        ]
+      },
+      {
+        "srednica_max": 18,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 37.76 },
+          { "dlugosc": 150, "cena_jednostkowa": 40.12 },
+          { "dlugosc": 200, "cena_jednostkowa": 42.48 },
+          { "dlugosc": 300, "cena_jednostkowa": 47.20 }
+        ]
+      },
+      {
+        "srednica_max": 20,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 41.92 },
+          { "dlugosc": 150, "cena_jednostkowa": 44.54 },
+          { "dlugosc": 200, "cena_jednostkowa": 47.16 },
+          { "dlugosc": 300, "cena_jednostkowa": 52.40 }
+        ]
+      },
+      {
+        "srednica_max": 22,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 46.24 },
+          { "dlugosc": 150, "cena_jednostkowa": 49.13 },
+          { "dlugosc": 200, "cena_jednostkowa": 52.02 },
+          { "dlugosc": 300, "cena_jednostkowa": 57.80 }
+        ]
+      },
+      {
+        "srednica_max": 26,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 52.48 },
+          { "dlugosc": 150, "cena_jednostkowa": 55.76 },
+          { "dlugosc": 200, "cena_jednostkowa": 59.04 },
+          { "dlugosc": 300, "cena_jednostkowa": 65.60 }
+        ]
+      },
+      {
+        "srednica_max": 30,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 67.36 },
+          { "dlugosc": 150, "cena_jednostkowa": 71.57 },
+          { "dlugosc": 200, "cena_jednostkowa": 75.78 },
+          { "dlugosc": 300, "cena_jednostkowa": 84.20 }
+        ]
+      },
+      {
+        "srednica_max": 32,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 67.36 },
+          { "dlugosc": 150, "cena_jednostkowa": 71.57 },
+          { "dlugosc": 200, "cena_jednostkowa": 75.78 },
+          { "dlugosc": 300, "cena_jednostkowa": 84.20 }
+        ]
+      }
+    ]
+  },
+  "TiAlN-AlTiN": {
+    "zakres_srednicy": [
+      {
+        "srednica_max": 3,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 6.69 },
+          { "dlugosc": 150, "cena_jednostkowa": 7.11 },
+          { "dlugosc": 200, "cena_jednostkowa": 7.52 },
+          { "dlugosc": 300, "cena_jednostkowa": 8.36 }
+        ]
+      },
+      {
+        "srednica_max": 4,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 8.62 },
+          { "dlugosc": 150, "cena_jednostkowa": 9.16 },
+          { "dlugosc": 200, "cena_jednostkowa": 9.70 },
+          { "dlugosc": 300, "cena_jednostkowa": 10.78 }
+        ]
+      },
+      {
+        "srednica_max": 6,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 11.44 },
+          { "dlugosc": 150, "cena_jednostkowa": 12.16 },
+          { "dlugosc": 200, "cena_jednostkowa": 12.87 },
+          { "dlugosc": 300, "cena_jednostkowa": 14.30 }
+        ]
+      },
+      {
+        "srednica_max": 8,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 15.31 },
+          { "dlugosc": 150, "cena_jednostkowa": 16.27 },
+          { "dlugosc": 200, "cena_jednostkowa": 17.23 },
+          { "dlugosc": 300, "cena_jednostkowa": 19.14 }
+        ]
+      },
+      {
+        "srednica_max": 10,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 19.18 },
+          { "dlugosc": 150, "cena_jednostkowa": 20.38 },
+          { "dlugosc": 200, "cena_jednostkowa": 21.58 },
+          { "dlugosc": 300, "cena_jednostkowa": 23.98 }
+        ]
+      },
+      {
+        "srednica_max": 12,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 22.88 },
+          { "dlugosc": 150, "cena_jednostkowa": 24.31 },
+          { "dlugosc": 200, "cena_jednostkowa": 25.74 },
+          { "dlugosc": 300, "cena_jednostkowa": 28.60 }
+        ]
+      },
+      {
+        "srednica_max": 14,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 25.34 },
+          { "dlugosc": 150, "cena_jednostkowa": 26.93 },
+          { "dlugosc": 200, "cena_jednostkowa": 28.51 },
+          { "dlugosc": 300, "cena_jednostkowa": 31.68 }
+        ]
+      },
+      {
+        "srednica_max": 16,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 28.86 },
+          { "dlugosc": 150, "cena_jednostkowa": 30.67 },
+          { "dlugosc": 200, "cena_jednostkowa": 32.47 },
+          { "dlugosc": 300, "cena_jednostkowa": 36.08 }
+        ]
+      },
+      {
+        "srednica_max": 18,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 32.38 },
+          { "dlugosc": 150, "cena_jednostkowa": 34.41 },
+          { "dlugosc": 200, "cena_jednostkowa": 36.43 },
+          { "dlugosc": 300, "cena_jednostkowa": 40.48 }
+        ]
+      },
+      {
+        "srednica_max": 20,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 36.08 },
+          { "dlugosc": 150, "cena_jednostkowa": 38.34 },
+          { "dlugosc": 200, "cena_jednostkowa": 40.59 },
+          { "dlugosc": 300, "cena_jednostkowa": 45.10 }
+        ]
+      },
+      {
+        "srednica_max": 22,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 39.60 },
+          { "dlugosc": 150, "cena_jednostkowa": 42.08 },
+          { "dlugosc": 200, "cena_jednostkowa": 44.55 },
+          { "dlugosc": 300, "cena_jednostkowa": 49.50 }
+        ]
+      },
+      {
+        "srednica_max": 26,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 45.06 },
+          { "dlugosc": 150, "cena_jednostkowa": 47.87 },
+          { "dlugosc": 200, "cena_jednostkowa": 50.69 },
+          { "dlugosc": 300, "cena_jednostkowa": 56.32 }
+        ]
+      },
+      {
+        "srednica_max": 30,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 57.73 },
+          { "dlugosc": 150, "cena_jednostkowa": 61.34 },
+          { "dlugosc": 200, "cena_jednostkowa": 64.94 },
+          { "dlugosc": 300, "cena_jednostkowa": 72.16 }
+        ]
+      },
+      {
+        "srednica_max": 32,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 57.73 },
+          { "dlugosc": 150, "cena_jednostkowa": 61.34 },
+          { "dlugosc": 200, "cena_jednostkowa": 64.94 },
+          { "dlugosc": 300, "cena_jednostkowa": 72.16 }
+        ]
+      }
+    ]
+  },
+  "TRIPLE COATING Cr (CrAlSiN/TiAlN)": {
+    "zakres_srednicy": [
+      {
+        "srednica_max": 3,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 10.38 },
+          { "dlugosc": 150, "cena_jednostkowa": 11.03 },
+          { "dlugosc": 200, "cena_jednostkowa": 11.68 },
+          { "dlugosc": 300, "cena_jednostkowa": 12.98 }
+        ]
+      },
+      {
+        "srednica_max": 4,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 13.38 },
+          { "dlugosc": 150, "cena_jednostkowa": 14.21 },
+          { "dlugosc": 200, "cena_jednostkowa": 15.05 },
+          { "dlugosc": 300, "cena_jednostkowa": 16.72 }
+        ]
+      },
+      {
+        "srednica_max": 6,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 18.66 },
+          { "dlugosc": 150, "cena_jednostkowa": 19.82 },
+          { "dlugosc": 200, "cena_jednostkowa": 20.99 },
+          { "dlugosc": 300, "cena_jednostkowa": 23.32 }
+        ]
+      },
+      {
+        "srednica_max": 8,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 24.82 },
+          { "dlugosc": 150, "cena_jednostkowa": 26.37 },
+          { "dlugosc": 200, "cena_jednostkowa": 27.92 },
+          { "dlugosc": 300, "cena_jednostkowa": 31.02 }
+        ]
+      },
+      {
+        "srednica_max": 10,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 30.80 },
+          { "dlugosc": 150, "cena_jednostkowa": 32.73 },
+          { "dlugosc": 200, "cena_jednostkowa": 34.65 },
+          { "dlugosc": 300, "cena_jednostkowa": 38.50 }
+        ]
+      },
+      {
+        "srednica_max": 12,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 36.96 },
+          { "dlugosc": 150, "cena_jednostkowa": 39.27 },
+          { "dlugosc": 200, "cena_jednostkowa": 41.58 },
+          { "dlugosc": 300, "cena_jednostkowa": 46.20 }
+        ]
+      },
+      {
+        "srednica_max": 14,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 40.83 },
+          { "dlugosc": 150, "cena_jednostkowa": 43.38 },
+          { "dlugosc": 200, "cena_jednostkowa": 45.94 },
+          { "dlugosc": 300, "cena_jednostkowa": 51.04 }
+        ]
+      },
+      {
+        "srednica_max": 16,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 46.46 },
+          { "dlugosc": 150, "cena_jednostkowa": 49.37 },
+          { "dlugosc": 200, "cena_jednostkowa": 52.27 },
+          { "dlugosc": 300, "cena_jednostkowa": 58.08 }
+        ]
+      },
+      {
+        "srednica_max": 18,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 52.45 },
+          { "dlugosc": 150, "cena_jednostkowa": 55.73 },
+          { "dlugosc": 200, "cena_jednostkowa": 59.00 },
+          { "dlugosc": 300, "cena_jednostkowa": 65.56 }
+        ]
+      },
+      {
+        "srednica_max": 20,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 58.43 },
+          { "dlugosc": 150, "cena_jednostkowa": 62.08 },
+          { "dlugosc": 200, "cena_jednostkowa": 65.74 },
+          { "dlugosc": 300, "cena_jednostkowa": 73.04 }
+        ]
+      },
+      {
+        "srednica_max": 22,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 63.89 },
+          { "dlugosc": 150, "cena_jednostkowa": 67.88 },
+          { "dlugosc": 200, "cena_jednostkowa": 71.87 },
+          { "dlugosc": 300, "cena_jednostkowa": 79.86 }
+        ]
+      },
+      {
+        "srednica_max": 26,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 72.86 },
+          { "dlugosc": 150, "cena_jednostkowa": 77.42 },
+          { "dlugosc": 200, "cena_jednostkowa": 81.97 },
+          { "dlugosc": 300, "cena_jednostkowa": 91.08 }
+        ]
+      },
+      {
+        "srednica_max": 30,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 93.28 },
+          { "dlugosc": 150, "cena_jednostkowa": 99.11 },
+          { "dlugosc": 200, "cena_jednostkowa": 104.94 },
+          { "dlugosc": 300, "cena_jednostkowa": 116.60 }
+        ]
+      },
+      {
+        "srednica_max": 32,
+        "dlugosc_calkowita": [
+          { "dlugosc": 100, "cena_jednostkowa": 93.28 },
+          { "dlugosc": 150, "cena_jednostkowa": 99.11 },
+          { "dlugosc": 200, "cena_jednostkowa": 104.94 },
+          { "dlugosc": 300, "cena_jednostkowa": 116.60 }
+        ]
+      }
+    ]
+  }
+}
