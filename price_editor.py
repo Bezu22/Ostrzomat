@@ -1,131 +1,157 @@
 import customtkinter as ctk
-import sqlite3
 from tkinter import messagebox
+import database  # Importujemy moduł obsługi bazy
 
 class PriceEditor(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
-        self.title("Panel Zarządzania Cennikiem")
-        self.geometry("1100x700")
+        self.title("Zarządzanie Cennikiem - Tryb Edycji")
+        self.geometry("1100x750")
+        self.attributes("-topmost", True)
         
+        # Zmienne stanu
         self.selected_row_data = None
         self.selected_frame = None
-        self.all_rows = []
 
-        # --- PANEL STEROWANIA ---
-        self.top_panel = ctk.CTkFrame(self)
-        self.top_panel.pack(fill="x", padx=10, pady=10)
-        
-        ctk.CTkButton(self.top_panel, text="Dodaj Nowy", fg_color="green", width=120,
-                      command=self.add_new).pack(side="left", padx=5)
-        
-        self.edit_btn = ctk.CTkButton(self.top_panel, text="Edytuj Zaznaczone", state="disabled",
-                                      command=self.open_edit_form)
-        self.edit_btn.pack(side="left", padx=5)
-        
-        ctk.CTkButton(self.top_panel, text="Usuń", fg_color="#922", width=100,
-                      command=self.delete_selected).pack(side="right", padx=5)
+        # --- PANEL GÓRNY (FILTRY I AKCJE) ---
+        self.top_bar = ctk.CTkFrame(self)
+        self.top_bar.pack(fill="x", padx=10, pady=10)
 
-        # --- NAGŁÓWKI TABELI ---
+        # Filtrowanie
+        ctk.CTkLabel(self.top_bar, text="Filtruj typ:").pack(side="left", padx=10)
+        
+        # Pobieramy typy dynamicznie z bazy
+        tool_types = ["Wszystkie"] + database.get_unique_tool_types()
+        self.combo_filter = ctk.CTkComboBox(self.top_bar, 
+                                           values=tool_types, 
+                                           command=self.refresh_list)
+        self.combo_filter.set("Wszystkie")
+        self.combo_filter.pack(side="left", padx=5)
+
+        # Przyciski akcji
+        self.btn_edit = ctk.CTkButton(self.top_bar, text="EDYTUJ ZAZNACZONE", state="disabled", 
+                                      fg_color="#1f538d", command=self.open_edit_form)
+        self.btn_edit.pack(side="left", padx=20)
+
+        ctk.CTkButton(self.top_bar, text="+ DODAJ NOWE", fg_color="#28a745", hover_color="#218838",
+                      command=lambda: self.open_edit_form(None)).pack(side="right", padx=10)
+
+        # --- NAGŁÓWKI ---
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.pack(fill="x", padx=20)
-        headers = ["Typ", "Ostrza", "Zakres Ø", "1 szt", "2-4 szt", "5-10 szt", "11-20 szt"]
-        for i, h in enumerate(headers):
-            ctk.CTkLabel(self.header_frame, text=h, font=("Arial", 12, "bold"), width=140).grid(row=0, column=i, padx=2)
-
-        # --- LISTA DANYCH (Scrollable) ---
-        self.table_container = ctk.CTkScrollableFrame(self, fg_color="#222")
-        self.table_container.pack(fill="both", expand=True, padx=10, pady=5)
+        self.header_frame.pack(fill="x", padx=20, pady=(10, 0))
+        headers = [("Typ", 180), ("Ostrza", 100), ("Ø Min", 80), ("Ø Max", 80), 
+                   ("1 szt", 80), ("2-4 szt", 80), ("5-10 szt", 80), ("11+ szt", 80)]
         
-        self.refresh_table()
+        for text, width in headers:
+            ctk.CTkLabel(self.header_frame, text=text, font=("Arial", 12, "bold"), width=width, anchor="w").pack(side="left", padx=5)
 
-    def refresh_table(self):
-        """Czyści i ładuje dane z bazy jako klikalne wiersze."""
-        for child in self.table_container.winfo_children():
+        # --- LISTA (SCROLL) ---
+        # TO JEST TWÓJ KONTENER
+        self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="#1a1a1a")
+        self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
+        
+        self.refresh_list()
+
+    def refresh_list(self, _=None):
+        """Pobiera dane z database.py i renderuje listę, resetując stan zaznaczenia."""
+        
+        # 1. RESET STANU
+        self.selected_row_data = None
+        self.selected_frame = None
+        self.btn_edit.configure(state="disabled")
+        
+        # 2. CZYŚCIMY KONTENER (używając poprawnej nazwy self.scroll_frame)
+        for child in list(self.scroll_frame.winfo_children()):
             child.destroy()
-        self.all_rows = []
         
-        conn = sqlite3.connect('ostrzomat.db')
-        cursor = conn.cursor()
-        cursor.execute("SELECT * FROM pricelist")
+        # 3. POBIERAMY DANE
+        selected_type = self.combo_filter.get()
+        data = database.get_filtered_prices(selected_type)
         
-        for idx, data in enumerate(cursor.fetchall()):
-            row_frame = ctk.CTkFrame(self.table_container, fg_color="transparent", corner_radius=0)
-            row_frame.pack(fill="x", pady=1)
-            
-            # Tworzymy widok wiersza (Labels zamiast Entries)
-            # data[0] to ID, reszta to wartości
-            for i, val in enumerate(data[1:]):
-                lbl = ctk.CTkLabel(row_frame, text=str(val), width=140)
-                lbl.grid(row=0, column=i, padx=2)
-                # Bindowanie kliknięcia do każdego elementu wiersza
-                lbl.bind("<Button-1>", lambda e, d=data, f=row_frame: self.select_row(d, f))
+        # 4. RENDERUJEMY NOWE WIERSZE
+        for index, row in enumerate(data):
+            is_even = index % 2 == 0
+            self.render_row_item(row, is_even)
 
-            row_frame.bind("<Button-1>", lambda e, d=data, f=row_frame: self.select_row(d, f))
-            self.all_rows.append((row_frame, data))
-            
-        conn.close()
-
-    def select_row(self, data, frame):
-        """Podświetla wybrany wiersz i aktywuje przyciski."""
-        if self.selected_frame:
-            self.selected_frame.configure(fg_color="transparent")
+    def render_row_item(self, row, is_even):
+        """Tworzy klikalny wiersz z alternatywnym tłem."""
+        bg_color = "transparent" if is_even else "#2b2b2b"
         
-        self.selected_row_data = data
+        row_frame = ctk.CTkFrame(self.scroll_frame, fg_color=bg_color, corner_radius=0)
+        row_frame.pack(fill="x", pady=0, padx=5)
+
+        widths = [180, 100, 80, 80, 80, 80, 80, 80]
+        for i, val in enumerate(row[1:]):
+            lbl = ctk.CTkLabel(row_frame, text=str(val), width=widths[i], anchor="w")
+            lbl.pack(side="left", padx=5, pady=4)
+            
+            # Bindowanie kliknięcia do każdego labela
+            lbl.bind("<Button-1>", lambda e, r=row, f=row_frame: self.on_row_select(r, f))
+
+        row_frame.bind("<Button-1>", lambda e, r=row, f=row_frame: self.on_row_select(r, f))
+        row_frame.original_bg = bg_color
+
+    def on_row_select(self, row_data, frame):
+        """Obsługa zaznaczania."""
+        try:
+            if self.selected_frame and self.selected_frame.winfo_exists():
+                self.selected_frame.configure(fg_color=self.selected_frame.original_bg)
+        except Exception:
+            pass
+        
+        self.selected_row_data = row_data
         self.selected_frame = frame
-        self.selected_frame.configure(fg_color="#3b3b3b") # Kolor zaznaczenia
         
-        self.edit_btn.configure(state="normal")
+        if self.selected_frame.winfo_exists():
+            self.selected_frame.configure(fg_color="#1f538d") 
+            self.btn_edit.configure(state="normal")
 
-    def open_edit_form(self):
-        """Otwiera małe okno z formularzem edycji dla JEDNEGO wiersza."""
-        if not self.selected_row_data: return
+    def open_edit_form(self, existing_data=None):
+        """Otwiera formularz dla wybranego wiersza lub nowy."""
+        data = existing_data if existing_data else self.selected_row_data
         
         form = ctk.CTkToplevel(self)
-        form.title("Edycja pozycji")
-        form.geometry("400x550")
+        form.title("Edycja pozycji" if data else "Nowa pozycja")
+        form.geometry("400x650")
         form.attributes("-topmost", True)
+        form.grab_set()
 
-        fields = ["Typ", "Ostrza", "Zakres", "Cena 1", "Cena 2-4", "Cena 5-10", "Cena 11-20"]
+        labels = ["Typ narzędzia", "Ilość ostrzy", "Średnica MIN", "Średnica MAX", 
+                  "Cena (1)", "Cena (2-4)", "Cena (5-10)", "Cena (11-20)"]
         entries = []
 
-        for i, label_text in enumerate(fields):
-            ctk.CTkLabel(form, text=label_text).pack(pady=(10, 0))
+        for i, txt in enumerate(labels):
+            ctk.CTkLabel(form, text=txt).pack(pady=(10, 0))
             e = ctk.CTkEntry(form, width=250)
-            e.insert(0, str(self.selected_row_data[i+1]))
+            if data:
+                # data[i+1] bo omijamy ID które jest na data[0]
+                e.insert(0, str(data[i+1]))
             e.pack(pady=5)
             entries.append(e)
 
-        def save_and_close():
+        def save_action():
             try:
-                new_vals = [e.get() for e in entries]
-                # Tu dodalibyśmy walidację (float)
-                conn = sqlite3.connect('ostrzomat.db')
-                cursor = conn.cursor()
-                cursor.execute('''UPDATE pricelist SET 
-                                  tool_type=?, blades=?, diam_range=?, 
-                                  price_1=?, price_2_4=?, price_5_10=?, price_11_20=? 
-                                  WHERE id=?''', (*new_vals, self.selected_row_data[0]))
-                conn.commit()
-                conn.close()
+                new_vals = [e.get().replace(',', '.') for e in entries]
+                if data:
+                    database.update_price_row(data[0], new_vals)
+                else:
+                    # DODAWANIE NOWEJ POZYCJI
+                    database.add_price_row(new_vals)
+                
                 form.destroy()
-                self.refresh_table()
-            except Exception as e:
-                messagebox.showerror("Błąd", str(e))
+                self.refresh_list()
+                messagebox.showinfo("Sukces", "Dane zostały zapisane.")
+            except Exception as ex:
+                messagebox.showerror("Błąd zapisu", f"Szczegóły: {ex}")
 
-        ctk.CTkButton(form, text="Zapisz", fg_color="green", command=save_and_close).pack(pady=20)
+        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color="green", command=save_action).pack(pady=20)
+        
+        if data:
+            ctk.CTkButton(form, text="USUŃ POZYCJĘ", fg_color="#922", 
+                          command=lambda: self.delete_action(data[0], form)).pack(pady=5)
 
-    def delete_selected(self):
-        if not self.selected_row_data: return
-        if messagebox.askyesno("Potwierdzenie", "Czy na pewno usunąć ten wiersz?"):
-            conn = sqlite3.connect('ostrzomat.db')
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM pricelist WHERE id=?", (self.selected_row_data[0],))
-            conn.commit()
-            conn.close()
-            self.refresh_table()
-
-    def add_new(self):
-        # Logika dodawania nowego rekordu (pusty formularz)
-        # Podobna do open_edit_form, ale z INSERT zamiast UPDATE
-        pass
+    def delete_action(self, row_id, window):
+        if messagebox.askyesno("Potwierdzenie", "Czy na pewno chcesz usunąć tę pozycję?"):
+            database.delete_price_row(row_id)
+            window.destroy()
+            self.refresh_list()
