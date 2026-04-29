@@ -1,12 +1,12 @@
 import customtkinter as ctk
 from tkinter import messagebox
-import database  # Importujemy moduł obsługi bazy
+import database  # Upewnij się, że plik database.py jest w tym samym folderze
 
 class PriceEditor(ctk.CTkToplevel):
     def __init__(self, parent):
         super().__init__(parent)
         self.title("Zarządzanie Cennikiem - Tryb Edycji")
-        self.geometry("1100x750")
+        self.geometry("1150x750")
         self.attributes("-topmost", True)
         
         # Zmienne stanu
@@ -20,19 +20,30 @@ class PriceEditor(ctk.CTkToplevel):
         # Filtrowanie
         ctk.CTkLabel(self.top_bar, text="Filtruj typ:").pack(side="left", padx=10)
         
-        # Pobieramy typy dynamicznie z bazy
-        tool_types = ["Wszystkie"] + database.get_unique_tool_types()
+        # Pobieramy typy z bazy
+        try:
+            tool_types = ["Wszystkie"] + database.get_unique_tool_types()
+        except:
+            tool_types = ["Wszystkie"]
+
         self.combo_filter = ctk.CTkComboBox(self.top_bar, 
                                            values=tool_types, 
                                            command=self.refresh_list)
         self.combo_filter.set("Wszystkie")
         self.combo_filter.pack(side="left", padx=5)
 
-        # Przyciski akcji
-        self.btn_edit = ctk.CTkButton(self.top_bar, text="EDYTUJ ZAZNACZONE", state="disabled", 
-                                      fg_color="#1f538d", command=self.open_edit_form)
-        self.btn_edit.pack(side="left", padx=20)
+        # Przycisk EDYTUJ
+        self.btn_edit = ctk.CTkButton(self.top_bar, text="EDYTUJ", state="disabled", 
+                                      width=100, fg_color="#1f538d", command=self.open_edit_form)
+        self.btn_edit.pack(side="left", padx=10)
 
+        # Przycisk USUŃ
+        self.btn_delete = ctk.CTkButton(self.top_bar, text="USUŃ", state="disabled", 
+                                        width=100, fg_color="#dc3545", hover_color="#c82333",
+                                        command=self.delete_top_action)
+        self.btn_delete.pack(side="left", padx=10)
+
+        # Przycisk DODAJ
         ctk.CTkButton(self.top_bar, text="+ DODAJ NOWE", fg_color="#28a745", hover_color="#218838",
                       command=lambda: self.open_edit_form(None)).pack(side="right", padx=10)
 
@@ -43,60 +54,60 @@ class PriceEditor(ctk.CTkToplevel):
                    ("1 szt", 80), ("2-4 szt", 80), ("5-10 szt", 80), ("11+ szt", 80)]
         
         for text, width in headers:
-            ctk.CTkLabel(self.header_frame, text=text, font=("Arial", 12, "bold"), width=width, anchor="w").pack(side="left", padx=5)
+            ctk.CTkLabel(self.header_frame, text=text, font=("Arial", 12, "bold"), 
+                         width=width, anchor="w").pack(side="left", padx=5)
 
         # --- LISTA (SCROLL) ---
-        # TO JEST TWÓJ KONTENER
         self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="#1a1a1a")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
+        # Pierwsze ładowanie listy
         self.refresh_list()
 
     def refresh_list(self, _=None):
-        """Pobiera dane z database.py i renderuje listę, resetując stan zaznaczenia."""
-        
-        # 1. RESET STANU
+        """Pobiera dane i renderuje listę z efektem zebry."""
+        # Reset stanu zaznaczenia przed czyszczeniem
         self.selected_row_data = None
         self.selected_frame = None
         self.btn_edit.configure(state="disabled")
-        
-        # 2. CZYŚCIMY KONTENER (używając poprawnej nazwy self.scroll_frame)
+        self.btn_delete.configure(state="disabled")
+
+        # Czyszczenie listy
         for child in list(self.scroll_frame.winfo_children()):
             child.destroy()
         
-        # 3. POBIERAMY DANE
+        # Pobieranie danych z bazy
         selected_type = self.combo_filter.get()
         data = database.get_filtered_prices(selected_type)
         
-        # 4. RENDERUJEMY NOWE WIERSZE
+        # Renderowanie wierszy
         for index, row in enumerate(data):
             is_even = index % 2 == 0
             self.render_row_item(row, is_even)
 
     def render_row_item(self, row, is_even):
-        """Tworzy klikalny wiersz z alternatywnym tłem."""
+        """Tworzy wiersz z naprzemiennym tłem."""
         bg_color = "transparent" if is_even else "#2b2b2b"
         
         row_frame = ctk.CTkFrame(self.scroll_frame, fg_color=bg_color, corner_radius=0)
         row_frame.pack(fill="x", pady=0, padx=5)
+        row_frame.original_bg = bg_color
 
         widths = [180, 100, 80, 80, 80, 80, 80, 80]
+        # row[1:] pomija ID przy wyświetlaniu
         for i, val in enumerate(row[1:]):
             lbl = ctk.CTkLabel(row_frame, text=str(val), width=widths[i], anchor="w")
             lbl.pack(side="left", padx=5, pady=4)
-            
-            # Bindowanie kliknięcia do każdego labela
             lbl.bind("<Button-1>", lambda e, r=row, f=row_frame: self.on_row_select(r, f))
 
         row_frame.bind("<Button-1>", lambda e, r=row, f=row_frame: self.on_row_select(r, f))
-        row_frame.original_bg = bg_color
 
     def on_row_select(self, row_data, frame):
-        """Obsługa zaznaczania."""
+        """Podświetla wiersz i aktywuje przyciski."""
         try:
             if self.selected_frame and self.selected_frame.winfo_exists():
                 self.selected_frame.configure(fg_color=self.selected_frame.original_bg)
-        except Exception:
+        except:
             pass
         
         self.selected_row_data = row_data
@@ -105,14 +116,24 @@ class PriceEditor(ctk.CTkToplevel):
         if self.selected_frame.winfo_exists():
             self.selected_frame.configure(fg_color="#1f538d") 
             self.btn_edit.configure(state="normal")
+            self.btn_delete.configure(state="normal")
+
+    def delete_top_action(self):
+        """Usuwanie z głównego panelu."""
+        if self.selected_row_data:
+            msg = f"Czy na pewno chcesz usunąć:\n{self.selected_row_data[1]} (Ø{self.selected_row_data[3]}-{self.selected_row_data[4]})?"
+            if messagebox.askyesno("Potwierdzenie", msg):
+                database.delete_price_row(self.selected_row_data[0])
+                self.refresh_list()
+                messagebox.showinfo("Sukces", "Pozycja została usunięta.")
 
     def open_edit_form(self, existing_data=None):
-        """Otwiera formularz dla wybranego wiersza lub nowy."""
+        """Otwiera wysoki formularz edycji."""
         data = existing_data if existing_data else self.selected_row_data
         
         form = ctk.CTkToplevel(self)
-        form.title("Edycja pozycji" if data else "Nowa pozycja")
-        form.geometry("400x650")
+        form.title("Edycja" if data else "Nowa Pozycja")
+        form.geometry("450x750")
         form.attributes("-topmost", True)
         form.grab_set()
 
@@ -121,10 +142,13 @@ class PriceEditor(ctk.CTkToplevel):
         entries = []
 
         for i, txt in enumerate(labels):
-            ctk.CTkLabel(form, text=txt).pack(pady=(10, 0))
-            e = ctk.CTkEntry(form, width=250)
+            ctk.CTkLabel(form, text=txt, font=("Arial", 12, "bold")).pack(pady=(15, 0))
+            if txt == "Ilość ostrzy":
+                ctk.CTkLabel(form, text="(np. '2-4', '6' lub 'pozostałe')", 
+                            font=("Arial", 10), text_color="gray").pack()
+            
+            e = ctk.CTkEntry(form, width=300)
             if data:
-                # data[i+1] bo omijamy ID które jest na data[0]
                 e.insert(0, str(data[i+1]))
             e.pack(pady=5)
             entries.append(e)
@@ -135,23 +159,12 @@ class PriceEditor(ctk.CTkToplevel):
                 if data:
                     database.update_price_row(data[0], new_vals)
                 else:
-                    # DODAWANIE NOWEJ POZYCJI
                     database.add_price_row(new_vals)
-                
                 form.destroy()
                 self.refresh_list()
-                messagebox.showinfo("Sukces", "Dane zostały zapisane.")
+                messagebox.showinfo("Sukces", "Zapisano pomyślnie.")
             except Exception as ex:
-                messagebox.showerror("Błąd zapisu", f"Szczegóły: {ex}")
+                messagebox.showerror("Błąd", f"Błąd zapisu: {ex}")
 
-        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color="green", command=save_action).pack(pady=20)
-        
-        if data:
-            ctk.CTkButton(form, text="USUŃ POZYCJĘ", fg_color="#922", 
-                          command=lambda: self.delete_action(data[0], form)).pack(pady=5)
-
-    def delete_action(self, row_id, window):
-        if messagebox.askyesno("Potwierdzenie", "Czy na pewno chcesz usunąć tę pozycję?"):
-            database.delete_price_row(row_id)
-            window.destroy()
-            self.refresh_list()
+        ctk.CTkButton(form, text="ZAPISZ I ZAMKNIJ", fg_color="#28a745", height=45,
+                      command=save_action).pack(pady=40)
