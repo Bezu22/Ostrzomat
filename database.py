@@ -5,9 +5,8 @@ DB_NAME = 'ostrzomat.db'
 def get_connection():
     return sqlite3.connect(DB_NAME)
 
-# --- FUNKCJE DLA KOMBOBOXÓW ---
+# --- POBIERANIE UNIKALNYCH WARTOŚCI DLA FILTRÓW ---
 def get_unique_tool_types(category="Wszystkie"):
-    """Pobiera typy narzędzi dla konkretnej kategorii (Frezy/Wiertła/Inne)."""
     conn = get_connection()
     cursor = conn.cursor()
     if category == "Wszystkie":
@@ -34,7 +33,7 @@ def get_unique_service_names():
     conn.close()
     return names
 
-# --- FUNKCJE POBIERANIA DANYCH ---
+# --- POBIERANIE DANYCH ---
 def get_filtered_tools(category, tool_type):
     conn = get_connection()
     cursor = conn.cursor()
@@ -74,15 +73,7 @@ def get_filtered_services(name):
     conn.close()
     return data
 
-# --- USUWANIE ---
-def delete_row(table, row_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"DELETE FROM {table} WHERE id=?", (row_id,))
-    conn.commit()
-    conn.close()
-
-# --- NARZĘDZIA ---
+# --- ZAPIS I USUWANIĘ ---
 def update_tool_row(row_id, vals):
     conn = get_connection()
     cursor = conn.cursor()
@@ -101,36 +92,37 @@ def add_tool_row(vals):
     conn.commit()
     conn.close()
 
-# --- POWŁOKI ---
 def update_coating_row(row_id, vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? 
-                      WHERE id=?''', (*vals, row_id))
+    cursor.execute('UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? WHERE id=?', (*vals, row_id))
     conn.commit()
     conn.close()
 
 def add_coating_row(vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) 
-                      VALUES (?, ?, ?, ?)''', vals)
+    cursor.execute('INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) VALUES (?, ?, ?, ?)', vals)
     conn.commit()
     conn.close()
 
-# --- USŁUGI ---
 def update_service_row(row_id, vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? 
-                      WHERE id=?''', (*vals, row_id))
+    cursor.execute('UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? WHERE id=?', (*vals, row_id))
     conn.commit()
     conn.close()
 
 def add_service_row(vals):
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute('''INSERT INTO pricelist_services (service_name, param_min, param_max, price) 
-                      VALUES (?, ?, ?, ?)''', vals)
+    cursor.execute('INSERT INTO pricelist_services (service_name, param_min, param_max, price) VALUES (?, ?, ?, ?)', vals)
+    conn.commit()
+    conn.close()
+
+def delete_row(table, row_id):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(f"DELETE FROM {table} WHERE id=?", (row_id,))
     conn.commit()
     conn.close()
