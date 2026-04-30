@@ -5,6 +5,48 @@ DB_NAME = 'ostrzomat.db'
 def get_connection():
     return sqlite3.connect(DB_NAME)
 
+def find_unit_price(category, tool_type, input_blades, diameter, total_quantity):
+    """
+    Ujednolicona funkcja wyceny.
+    input_blades: liczba przekazana z interfejsu (np. int lub string)
+    """
+    # Wybór kolumny ceny na podstawie ilości
+    if total_quantity >= 11: col = "price_11_20"
+    elif total_quantity >= 5: col = "price_5_10"
+    elif total_quantity >= 2: col = "price_2_4"
+    else: col = "price_1"
+
+    # Mapowanie wejścia na klucze bazy danych
+    search_blades = str(input_blades)
+    
+    # Logika ujednolicona:
+    try:
+        val = int(input_blades)
+        if val == 2:
+            search_blades = "2"
+        elif 2 < val <= 4:
+            search_blades = "2-4"
+        elif val > 4:
+            search_blades = "pozostałe" # Tutaj musi być polski znak!
+    except ValueError:
+        # Jeśli wpisano tekst (np. "pozostałe"), zostawiamy jak jest
+        pass
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    query = f"""
+        SELECT {col} FROM pricelist_tools 
+        WHERE category=? AND tool_type=? AND blades=? 
+        AND ? > diam_min AND ? <= diam_max
+    """
+    
+    cursor.execute(query, (category, tool_type, search_blades, diameter, diameter))
+    result = cursor.fetchone()
+    conn.close()
+    
+    return float(result[0]) if result else 0.0
+
 # --- POBIERANIE UNIKALNYCH WARTOŚCI DLA FILTRÓW ---
 def get_unique_tool_types(category="Wszystkie"):
     conn = get_connection()
