@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Frez prosty Ø10.0 + (Opuszczenie)",
+        "qty": "3",
+        "tool_unit": "44.20 zł",
+        "coat_unit": "19.38 zł",
+        "extra_unit": "10.00 zł",
+        "total_tool": "132.60 zł",
+        "total_coat": "58.14 zł",
+        "total_extra": "30.00 zł"
+    },
+    {
+        "name": "Frez kulisty Ø5 + (Cięcie)",
+        "qty": "5",
+        "tool_unit": "48.80 zł",
+        "coat_unit": "0.00 zł",
+        "extra_unit": "12.00 zł",
+        "total_tool": "244.00 zł",
+        "total_coat": "0.00 zł",
+        "total_extra": "60.00 zł"
+    }
+]

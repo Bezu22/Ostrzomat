@@ -1,87 +1,202 @@
 import customtkinter as ctk
+from tkinter import messagebox,filedialog
 import database
 import sys, os
 from ui.price_editor import PriceEditor
 from ui.calc_window import ToolCalcWindow
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
         super().__init__()
         self.title("Ostrzomat 2.0")
-        self.geometry("1200x720")
+        self.geometry("1250x800")
 
         # Inicjalizacja listy koszyka
         self.basket_items = []
 
         # --- MONITOROWANIE BAZY ---
-        self.is_monitoring = False
         self.error_bar = ctk.CTkFrame(self, fg_color="#b22222", height=40)
         self.error_label = ctk.CTkLabel(self.error_bar, text="BRAK BAZY DANYCH! Sprawdź folder 'data'.", text_color="white")
         self.error_label.pack(pady=5)
+        self.is_monitoring = False
         
-        # --- SIDEBAR (Z Twojego kodu) ---
-        self.sidebar_frame = ctk.CTkFrame(self, width=250)
+        # --- UKŁAD GŁÓWNY ---
+        # Sidebar
+        self.sidebar_frame = ctk.CTkFrame(self, width=200)
         self.sidebar_frame.pack(side="left", fill="y", padx=10, pady=10)
 
-        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="FREZ", command=lambda: self.open_calc("Frezy"))
-        self.btn_frez.pack(pady=20) # lub grid
+        # Main Content Area
+        self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.content_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
 
-        # Przycisk Edycji na dole sidebaru
+        # --- 1. GÓRA: KLIENT ---
+        self.client_frame = ctk.CTkFrame(self.content_frame, height=60)
+        self.client_frame.pack(fill="x", pady=(0, 10))
+        self.client_title = ctk.CTkLabel(self.client_frame, text="KLIENT: ", font=("Arial", 16, "bold"))
+        self.client_title.pack(side="left", padx=20, pady=15)
+        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony (kliknij, aby edytować)", font=("Arial", 16), text_color="gray")
+        self.client_name.pack(side="left", pady=15)
+
+        # --- 2. ŚRODEK: TABELA KOSZYKA ---
+        self.basket_frame = ctk.CTkFrame(self.content_frame)
+        self.basket_frame.pack(fill="both", expand=True)
+
+        self.setup_table_headers()
+
+        self.items_scroll_frame = ctk.CTkScrollableFrame(self.basket_frame, fg_color="transparent")
+        self.items_scroll_frame.pack(fill="both", expand=True, padx=5, pady=5)
+
+        # --- 3. DÓŁ: PODSUMOWANIE I AKCJE ---
+        self.footer_frame = ctk.CTkFrame(self.content_frame, height=150) # Zwiększona wysokość na 3 przyciski
+        self.footer_frame.pack(fill="x", pady=(10, 0))
+
+        # Suma po prawej
+        self.total_label = ctk.CTkLabel(self.footer_frame, text="ŁĄCZNIE DO ZAPŁATY: 0.00 zł", font=("Arial", 22, "bold"), text_color="#28a745")
+        self.total_label.pack(side="right", padx=40, pady=20)
+
+        # Kontener na przyciski po lewej
+        self.actions_container = ctk.CTkFrame(self.footer_frame, fg_color="transparent")
+        self.actions_container.pack(side="left", padx=20, pady=10)
+        
+        # Przyciski jeden pod drugim (pack bez side="left" układa pionowo)
+        self.btn_save_project = ctk.CTkButton(self.actions_container, text="ZAPISZ KOSZYK", 
+                                             fg_color="#1f538d", command=self.manual_save_basket)
+        self.btn_save_project.pack(pady=5, fill="x")
+
+        self.btn_load_project = ctk.CTkButton(self.actions_container, text="WCZYTAJ KOSZYK", 
+                                             fg_color="#444", command=self.manual_load_basket)
+        self.btn_load_project.pack(pady=5, fill="x")
+
+        self.btn_clear = ctk.CTkButton(self.actions_container, text="WYCZYŚĆ KOSZYK", 
+                                       fg_color="#c0392b", hover_color="#a93226", command=self.clear_basket)
+        self.btn_clear.pack(pady=5, fill="x")
+
+        # --- SIDEBAR BUTTONS ---
+        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="➕ DODAJ FREZ", command=lambda: self.open_calc("Frezy"))
+        self.btn_frez.pack(pady=20, padx=20, fill="x")
+
+        self.btn_oferta = ctk.CTkButton(self.sidebar_frame, text="📄 GENERUJ OFERTĘ", fg_color="#28a745")
+        self.btn_oferta.pack(pady=10, padx=20, fill="x")
+
         self.edit_price_btn = ctk.CTkButton(self.sidebar_frame, text="⚙ USTAWIENIA CENNIKA", 
                                              fg_color="#444", hover_color="#666",
                                              command=self.open_price_editor)
         self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
 
+        # --- LOGIKA STARTOWA ---
+        # Wczytanie cache i odświeżenie UI
+        client_cache, items_cache = database.load_basket_from_file()
+        self.basket_items = items_cache
+        self.client_name.configure(text=client_cache)
+        self.refresh_basket_ui()
 
-        # Sprawdzamy bazę na starcie
         self.check_initial_connection()
 
+    def setup_table_headers(self):
+        """Tworzy pasek nagłówkowy tabeli."""
+        h_frame = ctk.CTkFrame(self.basket_frame, fg_color="#333", height=35, corner_radius=0)
+        h_frame.pack(fill="x")
+        
+        cols = [("NAZWA POZYCJI", 350), ("SZT.", 60), ("OSTRZENIE", 110), 
+                ("POWŁOKA", 110), ("USŁUGI", 110), ("SUMA", 130)]
+        
+        for text, width in cols:
+            lbl = ctk.CTkLabel(h_frame, text=text, width=width, font=("Arial", 12, "bold"), anchor="w" if "NAZWA" in text else "center")
+            lbl.pack(side="left", padx=10)
+
+    def add_item_to_basket(self, item):
+        """Odbiera dane, odświeża UI i aktualizuje cache."""
+        self.basket_items.append(item)
+        self.refresh_basket_ui()
+        database.save_basket_to_file(self.basket_items) # Auto-save
+
+    def clear_basket(self):
+        if messagebox.askyesno("Czyszczenie", "Czy na pewno wyczyścić cały koszyk?"):
+            self.basket_items = []
+            self.refresh_basket_ui()
+            database.save_basket_to_file(self.basket_items) # Czyści też cache
+
+    def manual_save_basket(self):
+        """Ręczny zapis do pliku wybranego przez usera."""
+        path = filedialog.asksaveasfilename(
+            defaultextension=".json",
+            filetypes=[("Pliki wyceny", "*.json")],
+            initialdir="data",
+            title="Zapisz wycenę jako..."
+        )
+        if path:
+            database.save_basket_to_file(self.basket_items, path)
+            messagebox.showinfo("Sukces", "Koszyk został zapisany.")
+
+    def manual_load_basket(self):
+        """Ręczny odczyt z pliku wybranego przez usera."""
+        path = filedialog.askopenfilename(
+            filetypes=[("Pliki wyceny", "*.json")],
+            initialdir="data"
+        )
+        if path:
+            loaded_data = database.load_basket_from_file(path)
+            if loaded_data:
+                self.basket_items = loaded_data
+                self.refresh_basket_ui()
+                database.save_basket_to_file(self.basket_items) # Aktualizuje cache bieżący      
+
+    def refresh_basket_ui(self):
+        """Odświeża widok tabeli koszyka."""
+        # Czyścimy obecne wiersze
+        for widget in self.items_scroll_frame.winfo_children():
+            widget.destroy()
+
+        grand_total = 0.0
+
+        for idx, item in enumerate(self.basket_items):
+            # Naprzemienne tło dla lepszej czytelności
+            bg_color = "#2b2b2b" if idx % 2 == 0 else "#333"
+            row = ctk.CTkFrame(self.items_scroll_frame, fg_color=bg_color, height=40, corner_radius=5)
+            row.pack(fill="x", pady=2)
+
+            # Konwersja tekstów na liczby do sumowania końcowego
+            def to_float(val):
+                try: return float(val.replace(' zł', '').replace(',', '.'))
+                except: return 0.0
+
+            line_total = to_float(item["total_tool"]) + to_float(item["total_coat"]) + to_float(item["total_extra"])
+            grand_total += line_total
+
+            # Renderowanie komórek
+            ctk.CTkLabel(row, text=item["name"], width=350, anchor="w").pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=item["qty"], width=60).pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=item["tool_unit"], width=110).pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=item["coat_unit"], width=110).pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=item["extra_unit"], width=110).pack(side="left", padx=10)
+            ctk.CTkLabel(row, text=f"{line_total:.2f} zł", width=130, font=("Arial", 13, "bold"), text_color="#3498db").pack(side="left", padx=10)
+
+        self.total_label.configure(text=f"ŁĄCZNIE DO ZAPŁATY: {grand_total:.2f} zł")
+
+    # --- Pozostałe metody (monitoring bazy itp.) pozostają bez zmian ---
     def check_initial_connection(self):
-        """Sprawdza połączenie przy uruchomieniu."""
-        if not database.is_db_accessible():
-            self.show_connection_error()
+        if not database.is_db_accessible(): self.show_connection_error()
 
     def show_connection_error(self):
-        """Uruchamia pasek błędu i pętlę sprawdzającą."""
         if not self.is_monitoring:
             self.error_bar.pack(fill="x", side="top")
             self.is_monitoring = True
             self.check_loop()
 
     def check_loop(self):
-        """Pętla 5-sekundowa działająca tylko w błędzie."""
         if database.is_db_accessible():
             self.error_bar.pack_forget()
             self.is_monitoring = False
-            print("Połączenie przywrócone.")
         else:
             self.after(5000, self.check_loop)
 
     def open_price_editor(self):
-        """Otwiera okno edytora cen."""
         try:
-            # Próba połączenia przed otwarciem edytora
             database.get_connection().close()
             if not hasattr(self, "editor_window") or not self.editor_window.winfo_exists():
                 self.editor_window = PriceEditor(self)
-            else:
-                self.editor_window.focus()
-        except (FileNotFoundError, Exception):
-            self.show_connection_error()
+            else: self.editor_window.focus()
+        except: self.show_connection_error()
 
     def open_calc(self, category):
-        """Otwiera okno parametrów dla danej kategorii."""
         ToolCalcWindow(self, category)
-
-    def add_item_to_basket(self, item):
-        """Odbiera dane z okna obliczeń i aktualizuje widok koszyka."""
-        self.basket_items.append(item)
-        print(f"Dodano do koszyka: {item['name']}")
-        self.refresh_basket_ui()
-
-    def refresh_basket_ui(self):
-        """Tutaj dodamy logikę wyświetlania pozycji na głównej planszy."""
-        # Na razie tylko podgląd w konsoli
-        for i in self.basket_items:
-            print(f"- {i['qty']}x {i['name']} | Ostrzenie: {i['unit_price']} | Powłoka: {i['coating_name']} ({i['coating_price']})")

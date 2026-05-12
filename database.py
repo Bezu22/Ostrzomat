@@ -5,6 +5,7 @@ import json
 # Ścieżka do bazy w folderze data/
 DB_PATH = os.path.join('data', 'ostrzomat.db')
 SETTINGS_PATH = os.path.join('data', 'user_settings.json')
+BASKET_CACHE_PATH = os.path.join('data', 'basket_cache.json')
 
 def is_db_accessible():
     """Sprawdza czy plik bazy istnieje."""
@@ -245,3 +246,36 @@ def get_service_price_refined(service_name, param_value):
     
     # Jeśli nie ma ceny w bazie, zwracamy 0.0, aby nie psuć sumowania
     return float(res[0]) if res and res[0] is not None else 0.0
+
+def save_basket_to_file(basket_items, path=BASKET_CACHE_PATH):
+    """Zapisuje listę elementów koszyka do wskazanego pliku JSON."""
+    try:
+        if not os.path.exists('data'):
+            os.makedirs('data')
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump(basket_items, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Błąd zapisu koszyka: {e}")
+
+def load_basket_from_file(path=BASKET_CACHE_PATH):
+    """Wczytuje projekt. ZAWSZE zwraca krotkę (client_name, items)."""
+    if not os.path.exists(path):
+        return "Nieokreślony", []
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            data = json.load(f)
+            
+            # Jeśli dane to słownik (nowy format z kluczem 'client')
+            if isinstance(data, dict):
+                client = data.get("client", "Nieokreślony")
+                items = data.get("items", [])
+                return client, items
+            
+            # Jeśli dane to lista (stary format cache)
+            elif isinstance(data, list):
+                return "Nieokreślony", data
+            
+            return "Nieokreślony", []
+    except Exception as e:
+        print(f"Błąd odczytu koszyka: {e}")
+        return "Nieokreślony", []
