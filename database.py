@@ -229,3 +229,19 @@ def get_coating_price_refined(coating_name, diameter, length):
     res = cursor.fetchone()
     conn.close()
     return float(res[0]) if res else 0.0
+
+def get_service_price_refined(service_name, param_value):
+    """Pobiera cenę usługi na podstawie nazwy i średnicy."""
+    if not is_db_accessible(): return 0.0
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Szukamy przedziału: param_min < x <= param_max
+    cursor.execute("""SELECT price FROM pricelist_services 
+                      WHERE service_name=? AND ? > param_min AND ? <= param_max 
+                      LIMIT 1""", 
+                   (service_name, param_value, param_value))
+    res = cursor.fetchone()
+    conn.close()
+    
+    # Jeśli nie ma ceny w bazie, zwracamy 0.0, aby nie psuć sumowania
+    return float(res[0]) if res and res[0] is not None else 0.0
