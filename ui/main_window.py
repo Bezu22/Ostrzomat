@@ -2,6 +2,7 @@ import customtkinter as ctk
 import database
 import sys, os
 from ui.price_editor import PriceEditor
+from ui.calc_window import ToolCalcWindow
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 class OstrzomatApp(ctk.CTk):
@@ -9,6 +10,9 @@ class OstrzomatApp(ctk.CTk):
         super().__init__()
         self.title("Ostrzomat 2.0")
         self.geometry("1200x720")
+
+        # Inicjalizacja listy koszyka
+        self.basket_items = []
 
         # --- MONITOROWANIE BAZY ---
         self.is_monitoring = False
@@ -20,11 +24,15 @@ class OstrzomatApp(ctk.CTk):
         self.sidebar_frame = ctk.CTkFrame(self, width=250)
         self.sidebar_frame.pack(side="left", fill="y", padx=10, pady=10)
 
+        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="FREZ", command=lambda: self.open_calc("Frezy"))
+        self.btn_frez.pack(pady=20) # lub grid
+
         # Przycisk Edycji na dole sidebaru
         self.edit_price_btn = ctk.CTkButton(self.sidebar_frame, text="⚙ USTAWIENIA CENNIKA", 
                                              fg_color="#444", hover_color="#666",
                                              command=self.open_price_editor)
         self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
+
 
         # Sprawdzamy bazę na starcie
         self.check_initial_connection()
@@ -61,3 +69,19 @@ class OstrzomatApp(ctk.CTk):
                 self.editor_window.focus()
         except (FileNotFoundError, Exception):
             self.show_connection_error()
+
+    def open_calc(self, category):
+        """Otwiera okno parametrów dla danej kategorii."""
+        ToolCalcWindow(self, category)
+
+    def add_item_to_basket(self, item):
+        """Odbiera dane z okna obliczeń i aktualizuje widok koszyka."""
+        self.basket_items.append(item)
+        print(f"Dodano do koszyka: {item['name']}")
+        self.refresh_basket_ui()
+
+    def refresh_basket_ui(self):
+        """Tutaj dodamy logikę wyświetlania pozycji na głównej planszy."""
+        # Na razie tylko podgląd w konsoli
+        for i in self.basket_items:
+            print(f"- {i['qty']}x {i['name']} | Ostrzenie: {i['unit_price']} | Powłoka: {i['coating_name']} ({i['coating_price']})")

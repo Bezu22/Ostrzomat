@@ -1,8 +1,10 @@
 import sqlite3
 import os
+import json
 
 # Ścieżka do bazy w folderze data/
 DB_PATH = os.path.join('data', 'ostrzomat.db')
+SETTINGS_PATH = os.path.join('data', 'user_settings.json')
 
 def is_db_accessible():
     """Sprawdza czy plik bazy istnieje."""
@@ -131,3 +133,99 @@ def delete_row(table, row_id):
     cursor.execute(f"DELETE FROM {table} WHERE id=?", (row_id,))
     conn.commit()
     conn.close()
+
+def get_tool_price(tool_type, blades, diameter, quantity):
+    if not is_db_accessible(): return 0.0
+    
+    # Wybór kolumny
+    if quantity >= 11: col = "price_11_20"
+    elif quantity >= 5: col = "price_5_10"
+    elif quantity >= 2: col = "price_2_4"
+    else: col = "price_1"
+
+    conn = get_connection()
+    cursor = conn.cursor()
+    
+    # KROK 1: Szukamy idealnego dopasowania
+    query = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? AND ? > diam_min AND ? <= diam_max"
+    cursor.execute(query, (tool_type, blades, diameter, diameter))
+    res = cursor.fetchone()
+    
+    # KROK 2: Jeśli nie znaleziono (średnica za duża), bierzemy ostatni rekord (najdroższy)
+    if not res:
+        query_max = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? ORDER BY diam_max DESC LIMIT 1"
+        cursor.execute(query_max, (tool_type, blades))
+        res = cursor.fetchone()
+        
+    conn.close()
+    return float(res[0]) if res else 0.0
+
+def get_coating_price(coating_name, diameter):
+    """Pobiera cenę powłoki dla danej średnicy."""
+    if not is_db_accessible() or coating_name == "Brak": return 0.0
+    
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Szukamy ceny dla danej powłoki, gdzie średnica <= diam_max
+    cursor.execute("SELECT price FROM pricelist_coatings WHERE coating_name=? AND ? <= diam_max ORDER BY diam_max ASC LIMIT 1", 
+                   (coating_name, diameter))
+    res = cursor.fetchone()
+    conn.close()
+    
+    return float(res[0]) if res else 0.0
+
+def get_user_settings():
+    """Wczytuje ustawienia z pliku JSON. Jeśli brak pliku, zwraca wartości domyślne."""
+    defaults = {
+        "last_tool_type": "Frez prosty",
+        "last_blades": "4",
+        "last_diam": "10.0"
+    }
+    if not os.path.exists(SETTINGS_PATH):
+        return defaults
+    
+    try:
+        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return defaults
+
+def save_user_settings(tool_type, blades, diam):
+    """Zapisuje aktualne ustawienia do pliku."""
+    settings = {
+        "last_tool_type": tool_type,
+        "last_blades": blades,
+        "last_diam": diam
+    }
+    try:
+        if not os.path.exists('data'):
+            os.makedirs('data')
+        with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Błąd zapisu ustawień: {e}")
+
+def get_coating_lengths(coating_name):
+    """Pobiera dostępne progi długości dla konkretnej powłoki."""
+    if not is_db_accessible() or coating_name == "Brak": return ["100"]
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Zmieniono length_max na length
+    cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
+    res = [str(r[0]) for r in cursor.fetchall()]
+    conn.close()
+    return res if res else ["100"]
+
+def get_coating_price_refined(coating_name, diameter, length):
+    """Pobiera cenę powłoki uwzględniając średnicę i wybraną długość."""
+    if not is_db_accessible() or coating_name == "Brak": return 0.0
+    conn = get_connection()
+    cursor = conn.cursor()
+    # Zmieniono length_max na length oraz diam_max na diam_max (zgodnie z tabelą)
+    cursor.execute("""SELECT price FROM pricelist_coatings 
+                      WHERE coating_name=? AND ? <= diam_max AND ? <= length 
+                      ORDER BY diam_max ASC, length ASC LIMIT 1""", 
+                   (coating_name, diameter, length))
+    res = cursor.fetchone()
+    conn.close()
+    return float(res[0]) if res else 0.0
