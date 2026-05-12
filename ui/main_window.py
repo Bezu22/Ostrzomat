@@ -8,8 +8,8 @@ from ui.calc_window import ToolCalcWindow
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.title("Ostrzomat 2.0")
-        self.geometry("1250x800")
+        self.title("Ostrzomat 0.2")
+        self.geometry("1450x850")
 
         # Inicjalizacja listy koszyka
         self.basket_items = []
@@ -93,16 +93,21 @@ class OstrzomatApp(ctk.CTk):
         self.check_initial_connection()
 
     def setup_table_headers(self):
-        """Tworzy pasek nagłówkowy tabeli."""
+        """Nowe nagłówki z uwzględnieniem parametrów technicznych."""
         h_frame = ctk.CTkFrame(self.basket_frame, fg_color="#333", height=35, corner_radius=0)
         h_frame.pack(fill="x")
         
-        cols = [("NAZWA POZYCJI", 350), ("SZT.", 60), ("OSTRZENIE", 110), 
-                ("POWŁOKA", 110), ("USŁUGI", 110), ("SUMA", 130)]
+        # Definicja kolumn: (Nazwa, Szerokość)
+        # Z = Liczba ostrzy
+        cols = [
+            ("TYP NARZĘDZIA", 220), ("Ø", 60), ("Z", 40), ("SZT.", 50), 
+            ("OSTRZENIE", 100), ("POWŁOKA", 120), ("L [mm]", 70), 
+            ("POWŁ. JEDN.", 100), ("POWŁ. SUMA", 100), ("USŁUGI", 100), ("SUMA", 120)
+        ]
         
         for text, width in cols:
-            lbl = ctk.CTkLabel(h_frame, text=text, width=width, font=("Arial", 12, "bold"), anchor="w" if "NAZWA" in text else "center")
-            lbl.pack(side="left", padx=10)
+            lbl = ctk.CTkLabel(h_frame, text=text, width=width, font=("Arial", 11, "bold"))
+            lbl.pack(side="left", padx=5)
 
     def add_item_to_basket(self, item):
         """Odbiera dane, odświeża UI i aktualizuje cache."""
@@ -142,38 +147,60 @@ class OstrzomatApp(ctk.CTk):
                 database.save_basket_to_file(self.basket_items) # Aktualizuje cache bieżący      
 
     def refresh_basket_ui(self):
-        """Odświeża widok tabeli koszyka."""
-        # Czyścimy obecne wiersze
+        """Odświeża widok tabeli koszyka z wycentrowanymi danymi i czystszą powłoką."""
         for widget in self.items_scroll_frame.winfo_children():
             widget.destroy()
 
         grand_total = 0.0
 
         for idx, item in enumerate(self.basket_items):
-            # Naprzemienne tło dla lepszej czytelności
             bg_color = "#2b2b2b" if idx % 2 == 0 else "#333"
             row = ctk.CTkFrame(self.items_scroll_frame, fg_color=bg_color, height=40, corner_radius=5)
             row.pack(fill="x", pady=2)
 
-            # Konwersja tekstów na liczby do sumowania końcowego
+            # Pomocnicza funkcja do sumowania
             def to_float(val):
-                try: return float(val.replace(' zł', '').replace(',', '.'))
+                if not val: return 0.0
+                try: return float(str(val).replace(' zł', '').replace(',', '.').strip())
                 except: return 0.0
 
             line_total = to_float(item["total_tool"]) + to_float(item["total_coat"]) + to_float(item["total_extra"])
             grand_total += line_total
 
-            # Renderowanie komórek
-            ctk.CTkLabel(row, text=item["name"], width=350, anchor="w").pack(side="left", padx=10)
-            ctk.CTkLabel(row, text=item["qty"], width=60).pack(side="left", padx=10)
-            ctk.CTkLabel(row, text=item["tool_unit"], width=110).pack(side="left", padx=10)
-            ctk.CTkLabel(row, text=item["coat_unit"], width=110).pack(side="left", padx=10)
-            ctk.CTkLabel(row, text=item["extra_unit"], width=110).pack(side="left", padx=10)
-            ctk.CTkLabel(row, text=f"{line_total:.2f} zł", width=130, font=("Arial", 13, "bold"), text_color="#3498db").pack(side="left", padx=10)
+            # Przygotowanie tekstów dla powłoki (zamiana 0.00 zł na myslnik)
+            has_coating = item.get("coat_name") != "Brak"
+            c_unit = item.get("coat_unit", "-") if has_coating and to_float(item.get("coat_unit")) > 0 else "-"
+            c_total = item.get("total_coat", "-") if has_coating and to_float(item.get("total_coat")) > 0 else "-"
+            c_len = item.get("coat_len", "-") if has_coating else "-"
+
+            # --- RENDEROWANIE KOLUMN ---
+            # 1. Typ Narzędzia (wyrównany do lewej dla czytelności)
+            ctk.CTkLabel(row, text=item.get("type", "-"), width=220, anchor="w").pack(side="left", padx=5)
+            
+            # 2. Parametry techniczne (Centrowanie: anchor="center")
+            ctk.CTkLabel(row, text=item.get("diam", "-"), width=60, anchor="center").pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=item.get("z", "-"), width=40, anchor="center").pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=item.get("qty", "-"), width=50, anchor="center").pack(side="left", padx=5)
+            
+            # 3. Ceny ostrzenia
+            ctk.CTkLabel(row, text=item.get("tool_unit", "-"), width=100, anchor="center").pack(side="left", padx=5)
+            
+            # 4. Dane powłoki (z myślnikami zamiast zer)
+            ctk.CTkLabel(row, text=item.get("coat_name", "Brak"), width=120, anchor="center").pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=c_len, width=70, anchor="center").pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=c_unit, width=100, anchor="center").pack(side="left", padx=5)
+            ctk.CTkLabel(row, text=c_total, width=100, anchor="center").pack(side="left", padx=5)
+            
+            # 5. Usługi i suma końcowa
+            ctk.CTkLabel(row, text=item.get("extra_unit", "-") if to_float(item.get("extra_unit")) > 0 else "-", 
+                         width=100, anchor="center").pack(side="left", padx=5)
+            
+            ctk.CTkLabel(row, text=f"{line_total:.2f} zł", width=120, font=("Arial", 12, "bold"), 
+                         text_color="#3498db", anchor="center").pack(side="left", padx=5)
 
         self.total_label.configure(text=f"ŁĄCZNIE DO ZAPŁATY: {grand_total:.2f} zł")
 
-    # --- Pozostałe metody (monitoring bazy itp.) pozostają bez zmian ---
+    
     def check_initial_connection(self):
         if not database.is_db_accessible(): self.show_connection_error()
 

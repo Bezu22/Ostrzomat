@@ -234,22 +234,24 @@ class ToolCalcWindow(ctk.CTkToplevel):
 
     def add_to_cart(self):
         if not self.validate_inputs():
-            messagebox.showerror("Błąd", "Wprowadź poprawne liczby przed dodaniem do koszyka!")
+            messagebox.showerror("Błąd", "Wprowadź poprawne liczby!")
             return
             
-        database.save_user_settings(self.type_combo.get(), self.blades_entry.get(), self.diam_entry.get())
-        
-        extras = [info['label'] for key, info in self.extra_services.items() if self.service_vars[key].get()]
-        extra_str = f" + ({', '.join(extras)})" if extras else ""
-        
+        # Pobieramy surowe dane
+        coating_type = self.coating_combo.get()
+        # Przygotowujemy obiekt z rozbiciem na parametry
         item = {
-            "name": f"{self.type_combo.get()} Ø{self.diam_entry.get()}{extra_str}",
+            "type": self.type_combo.get(),
+            "diam": self.diam_entry.get().replace(',', '.'),
+            "z": self.blades_entry.get(),
             "qty": self.qty_entry.get(),
-            "tool_unit": self.unit_tool_label.cget("text").split(": ")[1],
+            "tool_unit": self.unit_tool_label.cget("text").split(": ")[1] if ":" in self.unit_tool_label.cget("text") else "0.00 zł",
+            "coat_name": coating_type,
+            "coat_len": self.length_combo.get() if coating_type != "Brak" else "-",
             "coat_unit": self.unit_coat_label.cget("text").split(": ")[1] if self.unit_coat_label.cget("text") else "0.00 zł",
+            "total_coat": self.total_coat_label.cget("text").split(": ")[1] if self.total_coat_label.cget("text") else "0.00 zł",
             "extra_unit": self.unit_extra_label.cget("text").split(": ")[1] if self.unit_extra_label.cget("text") else "0.00 zł",
             "total_tool": self.total_tool_label.cget("text").split(": ")[1],
-            "total_coat": self.total_coat_label.cget("text").split(": ")[1] if self.total_coat_label.cget("text") else "0.00 zł",
             "total_extra": self.total_extra_label.cget("text").split(": ")[1] if self.total_extra_label.cget("text") else "0.00 zł"
         }
         self.parent.add_item_to_basket(item)

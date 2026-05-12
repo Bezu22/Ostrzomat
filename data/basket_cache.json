@@ -1,12 +1,30 @@
 [
     {
-        "name": "Frez stozkowy Ø2 + (Cięcie)",
-        "qty": "5",
-        "tool_unit": "47.50 zł",
-        "coat_unit": "9.68 zł",
-        "extra_unit": "12.00 zł",
-        "total_tool": "237.50 zł",
-        "total_coat": "48.40 zł",
-        "total_extra": "60.00 zł"
+        "type": "Frez stozkowy",
+        "diam": "2",
+        "z": "4",
+        "qty": "1",
+        "tool_unit": "78.90 zł",
+        "coat_name": "BALINIT TISAFLEX (AlTiN / TiSiXN)",
+        "coat_len": "100.0",
+        "coat_unit": "12.60 zł",
+        "total_coat": "12.60 zł",
+        "extra_unit": "10.00 zł",
+        "total_tool": "78.90 zł",
+        "total_extra": "10.00 zł"
+    },
+    {
+        "type": "Frez stozkowy",
+        "diam": "2",
+        "z": "4",
+        "qty": "1",
+        "tool_unit": "78.90 zł",
+        "coat_name": "Brak",
+        "coat_len": "-",
+        "coat_unit": "0.00 zł",
+        "total_coat": "0.00 zł",
+        "extra_unit": "10.00 zł",
+        "total_tool": "78.90 zł",
+        "total_extra": "10.00 zł"
     }
 ]
