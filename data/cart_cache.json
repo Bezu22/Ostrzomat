@@ -3,41 +3,22 @@
     "items": [
         {
             "type": "Frez prosty",
-            "diam": "20",
-            "z": "4",
-            "qty": "5",
-            "tool_unit": "72.30 zł",
-            "total_tool": "361.50 zł",
-            "coat_name": "ALCRONA PRO/LATUMA",
-            "coat_len": "150.0",
-            "coat_unit": "63.50 zł",
-            "total_coat": "317.50 zł",
-            "services_status": {
-                "ciecie": true,
-                "opuszczenie": false,
-                "polerowanie": false
-            },
-            "extra_unit": "16.00 zł",
-            "total_extra": "80.00 zł"
-        },
-        {
-            "type": "Frez prosty",
             "diam": "12",
-            "z": "4",
+            "z": "2",
             "qty": "1",
-            "tool_unit": "62.40 zł",
-            "total_tool": "62.40 zł",
-            "coat_name": "Brak",
-            "coat_len": "-",
-            "coat_unit": "0.00 zł",
-            "total_coat": "0.00 zł",
+            "tool_unit": 62.4,
+            "total_tool": 62.4,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "200.0",
+            "coat_unit": 45.2,
+            "total_coat": 45.2,
             "services_status": {
                 "ciecie": false,
                 "opuszczenie": false,
                 "polerowanie": false
             },
-            "extra_unit": "0.00 zł",
-            "total_extra": "0.00 zł"
+            "extra_unit": 0.0,
+            "total_extra": 0.0
         }
     ]
 }

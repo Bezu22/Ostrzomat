@@ -1,16 +1,21 @@
 import database as database
 
 def calculate_tool_price(t_type, blades, diam, qty):
-    """Logika obliczania ostrzenia z obsługą klucza ostrzy."""
+    """Logika obliczania ostrzenia - JEDYNE miejsce walidacji."""
     try:
+        # Konwersja surowych danych na typy liczbowe
         b_val = int(blades)
-        b_key = "2-4" if 2 <= b_val <= 4 else "pozostałe"
         d_val = float(str(diam).replace(',', '.'))
         q_val = int(qty)
         
+        # Logika biznesowa (progi ostrzy)
+        b_key = "2-4" if 2 <= b_val <= 4 else "pozostałe"
+        
+        # Zapytanie do bazy
         p_unit = database.get_tool_price(t_type, b_key, d_val, q_val)
         return p_unit, p_unit * q_val
-    except:
+    except Exception as e:
+        print(f"Błąd logiki ostrzenia: {e}")
         return 0.0, 0.0
 
 def calculate_extra_services(service_vars, diam, qty):

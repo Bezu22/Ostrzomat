@@ -64,24 +64,34 @@ def get_tool_price(tool_type, blades_key, diam, qty):
     """Zwraca cenę jednostkową ostrzenia na podstawie typu, ostrzy, średnicy i ilości."""
     if not is_db_accessible(): return 0.0
     try:
+        # Upewniamy się, że operujemy na liczbach
+        d_val = float(diam)
+        q_val = int(qty)
+        
         conn = get_connection()
         cursor = conn.cursor()
         
         # Wybór kolumny ceny na podstawie ilości
-        price_col = "price_1"
-        if 2 <= qty <= 4: price_col = "price_2_4"
-        elif 5 <= qty <= 10: price_col = "price_5_10"
-        elif qty >= 11: price_col = "price_11_20"
+        if q_val >= 11: price_col = "price_11_20"
+        elif q_val >= 5: price_col = "price_5_10"
+        elif q_val >= 2: price_col = "price_2_4"
+        else: price_col = "price_1"
 
-        cursor.execute(f"""
+        # Zmieniony operator diam_min na < aby uniknąć duplikatów na granicach przedziałów
+        query = f"""
             SELECT {price_col} FROM pricelist_tools 
-            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
-        """, (tool_type, blades_key, diam, diam))
+            WHERE tool_type=? AND blades=? AND diam_min < ? AND diam_max >= ?
+        """
+        cursor.execute(query, (tool_type, blades_key, d_val, d_val))
         
         res = cursor.fetchone()
         conn.close()
-        return float(res[0]) if res else 0.0
-    except: return 0.0
+        
+        # Jeśli res istnieje, zwróć cenę, w przeciwnym razie 0.0
+        return float(res[0]) if (res and res[0] is not None) else 0.0
+    except Exception as e:
+        print(f"Błąd bazy (get_tool_price): {e}")
+        return 0.0
 
 def get_unique_coating_lengths(coating_name):
     """Pobiera dostępne długości dla konkretnej powłoki."""
