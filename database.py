@@ -2,10 +2,10 @@ import sqlite3
 import os
 import json
 
-# Ścieżka do bazy w folderze data/
+# --- ŚCIEŻKI ---
 DB_PATH = os.path.join('data', 'ostrzomat.db')
 SETTINGS_PATH = os.path.join('data', 'user_settings.json')
-BASKET_CACHE_PATH = os.path.join('data', 'basket_cache.json')
+CART_CACHE_PATH = os.path.join('data', 'cart_cache.json') # Zmiana z basket na cart
 
 def is_db_accessible():
     """Sprawdza czy plik bazy istnieje."""
@@ -33,7 +33,7 @@ def get_unique_tool_types(category="Wszystkie"):
     return types
 
 def get_unique_coating_names():
-    """Pobiera unikalne nazwy powłok - TEGO BRAKOWAŁO."""
+    """Pobiera unikalne nazwy powłok."""
     if not is_db_accessible(): return []
     conn = get_connection()
     cursor = conn.cursor()
@@ -42,103 +42,13 @@ def get_unique_coating_names():
     conn.close()
     return names
 
-def get_unique_service_names():
-    """Pobiera unikalne nazwy usług - TEGO BRAKOWAŁO."""
-    if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT service_name FROM pricelist_services")
-    names = [r[0] for r in cursor.fetchall()]
-    conn.close()
-    return names
+# --- POBIERANIE CEN (LOGIKA SILNIKA) ---
 
-# --- POWŁOKI ---
-def update_coating_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? WHERE id=?', (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_coating_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) VALUES (?, ?, ?, ?)', vals)
-    conn.commit()
-    conn.close()
-
-# --- USŁUGI ---
-def update_service_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? WHERE id=?', (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_service_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute('INSERT INTO pricelist_services (service_name, param_min, param_max, price) VALUES (?, ?, ?, ?)', vals)
-    conn.commit()
-    conn.close()
-
-# --- FUNKCJE POBIERANIA DANYCH DO LISTY ---
-
-def get_filtered_tools(category, tool_type):
-    if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    query = "SELECT * FROM pricelist_tools WHERE 1=1"
-    params = []
-    if category != "Wszystkie":
-        query += " AND category=?"
-        params.append(category)
-    if tool_type != "Wszystkie":
-        query += " AND tool_type=?"
-        params.append(tool_type)
-    query += " ORDER BY tool_type, diam_min"
-    cursor.execute(query, params)
-    data = cursor.fetchall()
-    conn.close()
-    return data
-
-def get_filtered_coatings(name):
-    if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    if name == "Wszystkie":
-        cursor.execute("SELECT * FROM pricelist_coatings ORDER BY coating_name, diam_max, length")
-    else:
-        cursor.execute("SELECT * FROM pricelist_coatings WHERE coating_name=? ORDER BY diam_max, length", (name,))
-    data = cursor.fetchall()
-    conn.close()
-    return data
-
-def get_filtered_services(name):
-    if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    if name == "Wszystkie":
-        cursor.execute("SELECT * FROM pricelist_services ORDER BY service_name")
-    else:
-        cursor.execute("SELECT * FROM pricelist_services WHERE service_name=? ORDER BY param_min", (name,))
-    data = cursor.fetchall()
-    conn.close()
-    return data
-
-# --- USUWANIE REKORDÓW ---
-def delete_row(table, row_id):
-    if not is_db_accessible(): return
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute(f"DELETE FROM {table} WHERE id=?", (row_id,))
-    conn.commit()
-    conn.close()
-
-def get_tool_price(tool_type, blades, diameter, quantity):
+def get_tool_price(tool_type, blades_key, diameter, quantity):
+    """Pobiera cenę ostrzenia na podstawie typu, klucza ostrzy, średnicy i ilości."""
     if not is_db_accessible(): return 0.0
     
-    # Wybór kolumny
+    # Wybór kolumny cenowej na podstawie ilości
     if quantity >= 11: col = "price_11_20"
     elif quantity >= 5: col = "price_5_10"
     elif quantity >= 2: col = "price_2_4"
@@ -147,71 +57,25 @@ def get_tool_price(tool_type, blades, diameter, quantity):
     conn = get_connection()
     cursor = conn.cursor()
     
-    # KROK 1: Szukamy idealnego dopasowania
+    # Szukamy przedziału średnic dla konkretnego typu i liczby ostrzy (blades_key: '2-4' lub 'pozostałe')
     query = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? AND ? > diam_min AND ? <= diam_max"
-    cursor.execute(query, (tool_type, blades, diameter, diameter))
+    cursor.execute(query, (tool_type, blades_key, diameter, diameter))
     res = cursor.fetchone()
     
-    # KROK 2: Jeśli nie znaleziono (średnica za duża), bierzemy ostatni rekord (najdroższy)
+    # Jeśli średnica wykracza poza zakres, bierzemy najwyższą dostępną dla tego typu
     if not res:
         query_max = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? ORDER BY diam_max DESC LIMIT 1"
-        cursor.execute(query_max, (tool_type, blades))
+        cursor.execute(query_max, (tool_type, blades_key))
         res = cursor.fetchone()
         
     conn.close()
     return float(res[0]) if res else 0.0
-
-def get_coating_price(coating_name, diameter):
-    """Pobiera cenę powłoki dla danej średnicy."""
-    if not is_db_accessible() or coating_name == "Brak": return 0.0
-    
-    conn = get_connection()
-    cursor = conn.cursor()
-    # Szukamy ceny dla danej powłoki, gdzie średnica <= diam_max
-    cursor.execute("SELECT price FROM pricelist_coatings WHERE coating_name=? AND ? <= diam_max ORDER BY diam_max ASC LIMIT 1", 
-                   (coating_name, diameter))
-    res = cursor.fetchone()
-    conn.close()
-    
-    return float(res[0]) if res else 0.0
-
-def get_user_settings():
-    """Wczytuje ustawienia z pliku JSON. Jeśli brak pliku, zwraca wartości domyślne."""
-    defaults = {
-        "last_tool_type": "Frez prosty",
-        "last_blades": "4",
-        "last_diam": "10.0"
-    }
-    if not os.path.exists(SETTINGS_PATH):
-        return defaults
-    
-    try:
-        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except:
-        return defaults
-
-def save_user_settings(tool_type, blades, diam):
-    """Zapisuje aktualne ustawienia do pliku."""
-    settings = {
-        "last_tool_type": tool_type,
-        "last_blades": blades,
-        "last_diam": diam
-    }
-    try:
-        if not os.path.exists('data'):
-            os.makedirs('data')
-        with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
-            json.dump(settings, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Błąd zapisu ustawień: {e}")
 
 def get_coating_lengths(coating_name):
     """Pobiera dostępne progi długości dla konkretnej powłoki."""
     if not is_db_accessible() or coating_name == "Brak": return ["100"]
     conn = get_connection()
     cursor = conn.cursor()
-    # Zmieniono length_max na length
     cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
     res = [str(r[0]) for r in cursor.fetchall()]
     conn.close()
@@ -222,7 +86,6 @@ def get_coating_price_refined(coating_name, diameter, length):
     if not is_db_accessible() or coating_name == "Brak": return 0.0
     conn = get_connection()
     cursor = conn.cursor()
-    # Zmieniono length_max na length oraz diam_max na diam_max (zgodnie z tabelą)
     cursor.execute("""SELECT price FROM pricelist_coatings 
                       WHERE coating_name=? AND ? <= diam_max AND ? <= length 
                       ORDER BY diam_max ASC, length ASC LIMIT 1""", 
@@ -232,49 +95,73 @@ def get_coating_price_refined(coating_name, diameter, length):
     return float(res[0]) if res else 0.0
 
 def get_service_price_refined(service_name, param_value):
-    """Pobiera cenę usługi na podstawie nazwy i średnicy."""
+    """Pobiera cenę usługi na podstawie nazwy i średnicy roboczej."""
     if not is_db_accessible(): return 0.0
     conn = get_connection()
     cursor = conn.cursor()
-    # Szukamy przedziału: param_min < x <= param_max
     cursor.execute("""SELECT price FROM pricelist_services 
                       WHERE service_name=? AND ? > param_min AND ? <= param_max 
                       LIMIT 1""", 
                    (service_name, param_value, param_value))
     res = cursor.fetchone()
     conn.close()
-    
-    # Jeśli nie ma ceny w bazie, zwracamy 0.0, aby nie psuć sumowania
     return float(res[0]) if res and res[0] is not None else 0.0
 
-def save_basket_to_file(basket_items, path=BASKET_CACHE_PATH):
-    """Zapisuje listę elementów koszyka do wskazanego pliku JSON."""
+# --- ZARZĄDZANIE USTAWIEŃAMI (CACHE) ---
+
+def get_user_settings():
+    """Wczytuje ostatnio używane parametry."""
+    defaults = {
+        "last_tool_type": "Frez prosty",
+        "last_blades": "4",
+        "last_diam": "10.0",
+        "last_shank": "10.0"
+    }
+    if not os.path.exists(SETTINGS_PATH):
+        return defaults
     try:
-        if not os.path.exists('data'):
-            os.makedirs('data')
+        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
+            return json.load(f)
+    except:
+        return defaults
+
+def save_user_settings(new_settings):
+    """Zapisuje słownik ustawień do pliku, nadpisując tylko zmienione klucze."""
+    settings = get_user_settings()
+    settings.update(new_settings)
+    try:
+        if not os.path.exists('data'): os.makedirs('data')
+        with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
+            json.dump(settings, f, indent=4, ensure_ascii=False)
+    except Exception as e:
+        print(f"Błąd zapisu ustawień: {e}")
+
+# --- ZARZĄDZANIE KOSZYKIEM (CART) ---
+
+def save_cart_to_file(cart_items, client_name="Nieokreślony", path=CART_CACHE_PATH):
+    """Zapisuje koszyk i klienta do JSON."""
+    data = {
+        "client": client_name,
+        "items": cart_items
+    }
+    try:
+        if not os.path.exists('data'): os.makedirs('data')
         with open(path, 'w', encoding='utf-8') as f:
-            json.dump(basket_items, f, indent=4, ensure_ascii=False)
+            json.dump(data, f, indent=4, ensure_ascii=False)
     except Exception as e:
         print(f"Błąd zapisu koszyka: {e}")
 
-def load_basket_from_file(path=BASKET_CACHE_PATH):
-    """Wczytuje projekt. ZAWSZE zwraca krotkę (client_name, items)."""
+def load_cart_from_file(path=CART_CACHE_PATH):
+    """Wczytuje koszyk. Zawsze zwraca (client_name, items)."""
     if not os.path.exists(path):
         return "Nieokreślony", []
     try:
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            
-            # Jeśli dane to słownik (nowy format z kluczem 'client')
             if isinstance(data, dict):
-                client = data.get("client", "Nieokreślony")
-                items = data.get("items", [])
-                return client, items
-            
-            # Jeśli dane to lista (stary format cache)
+                return data.get("client", "Nieokreślony"), data.get("items", [])
             elif isinstance(data, list):
                 return "Nieokreślony", data
-            
             return "Nieokreślony", []
     except Exception as e:
         print(f"Błąd odczytu koszyka: {e}")

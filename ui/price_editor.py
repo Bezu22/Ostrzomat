@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from tkinter import messagebox
-import database
+import database as database
+from logic import db_editor_logic  # Import nowej logiki
 
 class PriceEditor(ctk.CTkToplevel):
     def __init__(self, parent):
@@ -31,24 +32,20 @@ class PriceEditor(ctk.CTkToplevel):
         self.btn_delete = ctk.CTkButton(self.top_bar, text="USUŃ", state="disabled", fg_color="#dc3545", width=100, command=self.delete_action)
         self.btn_delete.pack(side="left", padx=5)
 
-        # Powiadomienie statusu na froncie
         self.status_label = ctk.CTkLabel(self.top_bar, text="", font=("Arial", 12, "bold"))
         self.status_label.pack(side="right", padx=20)
 
         ctk.CTkButton(self.top_bar, text="+ DODAJ", fg_color="#28a745", width=100, command=lambda: self.open_edit_form(is_new=True)).pack(side="right", padx=10)
 
-        # --- NAGŁÓWKI ---
+        # Nagłówki i Lista
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.header_frame.pack(fill="x", padx=20, pady=5)
-
-        # --- LISTA (SCROLLABLE) ---
         self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="#1a1a1a")
         self.scroll_frame.pack(fill="both", expand=True, padx=10, pady=5)
         
         self.on_main_cat_change()
 
     def show_status(self, message, color="#28a745"):
-        """Wyświetla krótki komunikat na froncie i ukrywa go po 3s."""
         self.status_label.configure(text=message, text_color=color)
         self.after(3000, lambda: self.status_label.configure(text=""))
 
@@ -70,54 +67,42 @@ class PriceEditor(ctk.CTkToplevel):
         for child in self.header_frame.winfo_children(): child.destroy()
         for text, width in self.headers:
             ctk.CTkLabel(self.header_frame, text=text, font=("Arial", 12, "bold"), width=width, anchor="w").pack(side="left", padx=5)
-            
         self.refresh_list()
 
     def refresh_list(self, _=None):
-        """Bezpiecznie odświeża listę rekordów."""
         self.selected_row_data = None
         self.btn_edit.configure(state="disabled")
         self.btn_delete.configure(state="disabled")
         
-        self.scroll_frame.update_idletasks()
-        for child in self.scroll_frame.winfo_children():
-            child.pack_forget()
-            child.destroy()
+        for child in self.scroll_frame.winfo_children(): child.destroy()
         
-        # Resetowanie pozycji przewijania
-        canvas = getattr(self.scroll_frame, "_parent_canvas", None)
-        if canvas: canvas.yview_moveto(0)
-
         cat = self.main_cat_combo.get()
         filt = self.sub_filter_combo.get()
 
         if cat == "Narzędzia":
             data = database.get_filtered_tools(filt, "Wszystkie")
-            col_widths, d_slice = [180, 100, 80, 80, 80, 80, 80, 80], slice(2, 10)
+            widths, d_slice = [180, 100, 80, 80, 80, 80, 80, 80], slice(2, 10)
         elif cat == "Powłoki":
             data = database.get_filtered_coatings(filt)
-            col_widths, d_slice = [250, 120, 120, 120], slice(1, 5)
+            widths, d_slice = [250, 120, 120, 120], slice(1, 5)
         else:
             data = database.get_filtered_services(filt)
-            col_widths, d_slice = [250, 150, 150, 120], slice(1, 5)
+            widths, d_slice = [250, 150, 150, 120], slice(1, 5)
 
         for index, row in enumerate(data):
-            self.render_row_item(row, index % 2 == 0, col_widths, d_slice)
+            self.render_row_item(row, index % 2 == 0, widths, d_slice)
 
     def render_row_item(self, row, is_even, widths, d_slice):
         bg = "transparent" if is_even else "#2b2b2b"
         f = ctk.CTkFrame(self.scroll_frame, fg_color=bg, corner_radius=0)
         f.pack(fill="x", pady=0, padx=5)
         f.original_bg = bg
-
+        
         display_data = row[d_slice]
-        limit = min(len(display_data), len(widths))
-
-        for i in range(limit):
+        for i in range(len(widths)):
             lbl = ctk.CTkLabel(f, text=str(display_data[i]), width=widths[i], anchor="w")
             lbl.pack(side="left", padx=5, pady=4)
             lbl.bind("<Button-1>", lambda e: self.on_row_select(row, f))
-        
         f.bind("<Button-1>", lambda e: self.on_row_select(row, f))
 
     def on_row_select(self, data, frame):
@@ -130,10 +115,8 @@ class PriceEditor(ctk.CTkToplevel):
         self.btn_delete.configure(state="normal")
 
     def delete_action(self):
-        cat = self.main_cat_combo.get()
-        table = "pricelist_tools" if cat == "Narzędzia" else "pricelist_coatings" if cat == "Powłoki" else "pricelist_services"
         if messagebox.askyesno("Usuń", "Na pewno usunąć wybrany rekord?"):
-            database.delete_row(table, self.selected_row_data[0])
+            db_editor_logic.delete_record(self.main_cat_combo.get(), self.selected_row_data[0])
             self.refresh_list()
             self.show_status("REKORD USUNIĘTY", color="#dc3545")
 
@@ -142,14 +125,13 @@ class PriceEditor(ctk.CTkToplevel):
         data = self.selected_row_data if (is_new or self.selected_row_data) else None
         
         form = ctk.CTkToplevel(self)
-        mode = "Nowy (na wzór)" if is_new and data else "Nowy" if is_new else "Edycja"
-        form.title(f"{cat} - {mode}")
-        form.geometry("500x850")
+        form.title(f"{cat} - {'Nowy' if is_new else 'Edycja'}")
+        form.geometry("500x700")
         form.attributes("-topmost", True)
         form.grab_set()
 
         if cat == "Narzędzia":
-            labels = ["Kategoria", "Typ narzędzia", "Ostrza", "Ø MIN", "Ø MAX", "Cena 1", "Cena 2-4", "Cena 5-10", "Cena 11+"]
+            labels = ["Kategoria (np. Frezy)", "Typ narzędzia", "Ostrza (2-4 / pozostałe)", "Ø MIN", "Ø MAX", "Cena 1", "Cena 2-4", "Cena 5-10", "Cena 11+"]
             db_slice = slice(1, 10)
         elif cat == "Powłoki":
             labels = ["Nazwa powłoki", "Ø MAX", "Długość", "Cena"]
@@ -162,30 +144,21 @@ class PriceEditor(ctk.CTkToplevel):
         for i, txt in enumerate(labels):
             ctk.CTkLabel(form, text=txt, font=("Arial", 12, "bold")).pack(pady=(10, 0))
             e = ctk.CTkEntry(form, width=350)
-            if data:
-                try:
-                    e.insert(0, str(data[db_slice][i]))
-                except IndexError: pass
+            if data and not (is_new and self.selected_row_data is None):
+                try: e.insert(0, str(data[db_slice][i]))
+                except: pass
             e.pack(pady=5)
             entries.append(e)
 
         def save_action():
             try:
                 vals = [e.get().strip().replace(',', '.') for e in entries]
-                if cat == "Narzędzia":
-                    if is_new: database.add_tool_row(vals)
-                    else: database.update_tool_row(data[0], vals)
-                elif cat == "Powłoki":
-                    if is_new: database.add_coating_row(vals)
-                    else: database.update_coating_row(data[0], vals)
-                else:
-                    if is_new: database.add_service_row(vals)
-                    else: database.update_service_row(data[0], vals)
-                
+                row_id = 0 if is_new else data[0]
+                db_editor_logic.save_record(cat, is_new, row_id, vals)
                 form.destroy()
                 self.refresh_list()
                 self.show_status("ZAPISANO POMYŚLNIE!")
             except Exception as ex:
                 self.show_status(f"BŁĄD: {ex}", color="#dc3545")
 
-        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color="#28a745", height=40, font=("Arial", 13, "bold"), command=save_action).pack(pady=30, padx=20, fill="x")
+        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color="#28a745", height=40, command=save_action).pack(pady=30, padx=20, fill="x")
