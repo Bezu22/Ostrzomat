@@ -15,7 +15,7 @@ class OstrzomatApp(ctk.CTk):
         self.minsize(1450, 800)
         self.after(0, lambda: self.state('zoomed'))
 
-        # Dane aplikacji (Cart zastępuje Basket)
+        # Dane aplikacji
         self.cart_items = []
 
         # --- UKŁAD GŁÓWNY ---
@@ -78,28 +78,28 @@ class OstrzomatApp(ctk.CTk):
         """Publiczna metoda dla okien potomnych (np. CalcWindow)."""
         self.cart_items.append(item)
         self.refresh_cart_ui()
-        database.save_basket_to_file(self.cart_items, self.client_name.cget("text"))
+        database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
 
     def manual_save_cart(self):
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
-            database.save_basket_to_file(self.cart_items, self.client_name.cget("text"), path)
+            database.save_cart_to_file(self.cart_items, self.client_name.cget("text"), path)
             messagebox.showinfo("Zapis", "Projekt zapisany pomyślnie.")
 
     def manual_load_cart(self):
         path = filedialog.askopenfilename(filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
-            client, items = database.load_basket_from_file(path)
+            client, items = database.load_cart_from_file(path)
             self.cart_items = items
             self.client_name.configure(text=client)
             self.refresh_cart_ui()
-            database.save_basket_to_file(items, client)
+            database.save_cart_to_file(items, client)
 
     def clear_cart(self):
         if messagebox.askyesno("Czyszczenie", "Czy na pewno wyczyścić cały koszyk?"):
             self.cart_items = []
             self.refresh_cart_ui()
-            database.save_basket_to_file([], "Nieokreślony klient")
+            database.save_cart_to_file([], "Nieokreślony klient")
 
     def open_price_editor(self):
         if not hasattr(self, "editor_window") or not self.editor_window.winfo_exists():
