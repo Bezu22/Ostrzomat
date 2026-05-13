@@ -5,7 +5,7 @@ import json
 # --- ŚCIEŻKI ---
 DB_PATH = os.path.join('data', 'ostrzomat.db')
 SETTINGS_PATH = os.path.join('data', 'user_settings.json')
-CART_CACHE_PATH = os.path.join('data', 'cart_cache.json') # Zmiana z basket na cart
+CART_CACHE_PATH = os.path.join('data', 'cart_cache.json')
 
 def is_db_accessible():
     """Sprawdza czy plik bazy istnieje."""
@@ -22,111 +22,237 @@ def get_connection():
 def get_unique_tool_types(category="Wszystkie"):
     """Pobiera typy dla Narzędzi."""
     if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    if category == "Wszystkie":
-        cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools")
-    else:
-        cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools WHERE category=?", (category,))
-    types = [r[0] for r in cursor.fetchall()]
-    conn.close()
-    return types
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        if category == "Wszystkie":
+            cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools")
+        else:
+            cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools WHERE category=?", (category,))
+        types = [r[0] for r in cursor.fetchall()]
+        conn.close()
+        return types
+    except: return []
 
 def get_unique_coating_names():
     """Pobiera unikalne nazwy powłok."""
     if not is_db_accessible(): return []
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT coating_name FROM pricelist_coatings")
-    names = [r[0] for r in cursor.fetchall()]
-    conn.close()
-    return names
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT coating_name FROM pricelist_coatings")
+        names = [r[0] for r in cursor.fetchall()]
+        conn.close()
+        return names
+    except: return []
 
-# --- POBIERANIE CEN (LOGIKA SILNIKA) ---
+def get_unique_service_names():
+    """Pobiera unikalne nazwy usług dla filtrów edytora."""
+    if not is_db_accessible(): return []
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT service_name FROM pricelist_services")
+        names = [r[0] for r in cursor.fetchall()]
+        conn.close()
+        return names
+    except: return []
 
-def get_tool_price(tool_type, blades_key, diameter, quantity):
-    """Pobiera cenę ostrzenia na podstawie typu, klucza ostrzy, średnicy i ilości."""
+# --- POBIERANIE CEN (LOGIKA KALKULATORA) ---
+
+def get_tool_price(tool_type, blades_key, diam, qty):
+    """Zwraca cenę jednostkową ostrzenia na podstawie typu, ostrzy, średnicy i ilości."""
     if not is_db_accessible(): return 0.0
-    
-    # Wybór kolumny cenowej na podstawie ilości
-    if quantity >= 11: col = "price_11_20"
-    elif quantity >= 5: col = "price_5_10"
-    elif quantity >= 2: col = "price_2_4"
-    else: col = "price_1"
-
-    conn = get_connection()
-    cursor = conn.cursor()
-    
-    # Szukamy przedziału średnic dla konkretnego typu i liczby ostrzy (blades_key: '2-4' lub 'pozostałe')
-    query = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? AND ? > diam_min AND ? <= diam_max"
-    cursor.execute(query, (tool_type, blades_key, diameter, diameter))
-    res = cursor.fetchone()
-    
-    # Jeśli średnica wykracza poza zakres, bierzemy najwyższą dostępną dla tego typu
-    if not res:
-        query_max = f"SELECT {col} FROM pricelist_tools WHERE tool_type=? AND blades=? ORDER BY diam_max DESC LIMIT 1"
-        cursor.execute(query_max, (tool_type, blades_key))
-        res = cursor.fetchone()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
         
-    conn.close()
-    return float(res[0]) if res else 0.0
+        # Wybór kolumny ceny na podstawie ilości
+        price_col = "price_1"
+        if 2 <= qty <= 4: price_col = "price_2_4"
+        elif 5 <= qty <= 10: price_col = "price_5_10"
+        elif qty >= 11: price_col = "price_11_20"
 
-def get_coating_lengths(coating_name):
-    """Pobiera dostępne progi długości dla konkretnej powłoki."""
-    if not is_db_accessible() or coating_name == "Brak": return ["100"]
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
-    res = [str(r[0]) for r in cursor.fetchall()]
-    conn.close()
-    return res if res else ["100"]
+        cursor.execute(f"""
+            SELECT {price_col} FROM pricelist_tools 
+            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
+        """, (tool_type, blades_key, diam, diam))
+        
+        res = cursor.fetchone()
+        conn.close()
+        return float(res[0]) if res else 0.0
+    except: return 0.0
 
-def get_coating_price_refined(coating_name, diameter, length):
-    """Pobiera cenę powłoki uwzględniając średnicę i wybraną długość."""
-    if not is_db_accessible() or coating_name == "Brak": return 0.0
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""SELECT price FROM pricelist_coatings 
-                      WHERE coating_name=? AND ? <= diam_max AND ? <= length 
-                      ORDER BY diam_max ASC, length ASC LIMIT 1""", 
-                   (coating_name, diameter, length))
-    res = cursor.fetchone()
-    conn.close()
-    return float(res[0]) if res else 0.0
+def get_unique_coating_lengths(coating_name):
+    """Pobiera dostępne długości dla konkretnej powłoki."""
+    if not is_db_accessible() or coating_name == "Brak": return []
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
+        lengths = [str(r[0]) for r in cursor.fetchall()]
+        conn.close()
+        return lengths
+    except: return []
 
-def get_service_price_refined(service_name, param_value):
-    """Pobiera cenę usługi na podstawie nazwy i średnicy roboczej."""
+def get_coating_price(name, diam, length):
+    if not is_db_accessible() or name == "Brak": return 0.0
+    try:
+        d_val = float(str(diam).replace(',', '.'))
+        l_val = float(str(length).replace(',', '.'))
+        
+        # DEBUG: To powie nam, co program wysyła do bazy
+        print(f"DEBUG: Szukam powłoki: {name}, Fi <= {d_val}, L <= {l_val}")
+
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT price, diam_max, length FROM pricelist_coatings 
+            WHERE coating_name=? AND diam_max >= ? AND length >= ?
+            ORDER BY diam_max ASC, length ASC LIMIT 1
+        """, (name, d_val, l_val))
+        
+        res = cursor.fetchone()
+        conn.close()
+
+        if res:
+            print(f"DEBUG: Znaleziono! Cena: {res[0]} (Dopasowano do progu Fi: {res[1]}, L: {res[2]})")
+            return float(res[0])
+        else:
+            print(f"DEBUG: BRAK DOPASOWANIA w bazie dla {name} przy Fi {d_val} i L {l_val}")
+            return 0.0
+    except Exception as e:
+        print(f"Błąd bazy (coating): {e}")
+        return 0.0
+
+def get_service_price_refined(name, param_val):
+    """Zwraca cenę usługi dodatkowej na podstawie parametru (np. średnicy)."""
     if not is_db_accessible(): return 0.0
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute("""
+            SELECT price FROM pricelist_services 
+            WHERE service_name=? AND param_min <= ? AND param_max >= ?
+        """, (name, param_val, param_val))
+        res = cursor.fetchone()
+        conn.close()
+        return float(res[0]) if res else 0.0
+    except: return 0.0
+
+# --- FUNKCJE DLA EDYTORA (FILTROWANIE LISTY) ---
+
+def get_filtered_tools(tool_type="Wszystkie", category="Wszystkie"):
+    if not is_db_accessible(): return []
     conn = get_connection()
     cursor = conn.cursor()
-    cursor.execute("""SELECT price FROM pricelist_services 
-                      WHERE service_name=? AND ? > param_min AND ? <= param_max 
-                      LIMIT 1""", 
-                   (service_name, param_value, param_value))
-    res = cursor.fetchone()
+    query = "SELECT * FROM pricelist_tools WHERE 1=1"
+    params = []
+    if tool_type != "Wszystkie":
+        query += " AND tool_type=?"
+        params.append(tool_type)
+    if category != "Wszystkie":
+        query += " AND category=?"
+        params.append(category)
+    cursor.execute(query, params)
+    res = cursor.fetchall()
     conn.close()
-    return float(res[0]) if res and res[0] is not None else 0.0
+    return res
 
-# --- ZARZĄDZANIE USTAWIEŃAMI (CACHE) ---
+def get_filtered_coatings(name="Wszystkie"):
+    if not is_db_accessible(): return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    if name == "Wszystkie":
+        cursor.execute("SELECT * FROM pricelist_coatings")
+    else:
+        cursor.execute("SELECT * FROM pricelist_coatings WHERE coating_name=?", (name,))
+    res = cursor.fetchall()
+    conn.close()
+    return res
+
+def get_filtered_services(name="Wszystkie"):
+    if not is_db_accessible(): return []
+    conn = get_connection()
+    cursor = conn.cursor()
+    if name == "Wszystkie":
+        cursor.execute("SELECT * FROM pricelist_services")
+    else:
+        cursor.execute("SELECT * FROM pricelist_services WHERE service_name=?", (name,))
+    res = cursor.fetchall()
+    conn.close()
+    return res
+
+# --- OPERACJE CRUD (DODAWANIE / EDYCJA / USUWANIE) ---
+
+def delete_row(table_name, row_id):
+    """Usuwa rekord z bazy."""
+    try:
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(f"DELETE FROM {table_name} WHERE id=?", (row_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Błąd usuwania: {e}")
+
+def add_tool_row(vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""INSERT INTO pricelist_tools 
+        (category, tool_type, blades, diam_min, diam_max, price_1, price_2_4, price_5_10, price_11_20) 
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", vals)
+    conn.commit()
+    conn.close()
+
+def update_tool_row(row_id, vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""UPDATE pricelist_tools SET 
+        category=?, tool_type=?, blades=?, diam_min=?, diam_max=?, 
+        price_1=?, price_2_4=?, price_5_10=?, price_11_20=? WHERE id=?""", (*vals, row_id))
+    conn.commit()
+    conn.close()
+
+def add_coating_row(vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) VALUES (?, ?, ?, ?)", vals)
+    conn.commit()
+    conn.close()
+
+def update_coating_row(row_id, vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? WHERE id=?", (*vals, row_id))
+    conn.commit()
+    conn.close()
+
+def add_service_row(vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("INSERT INTO pricelist_services (service_name, param_min, param_max, price) VALUES (?, ?, ?, ?)", vals)
+    conn.commit()
+    conn.close()
+
+def update_service_row(row_id, vals):
+    conn = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? WHERE id=?", (*vals, row_id))
+    conn.commit()
+    conn.close()
+
+# --- ZARZĄDZANIE USTAWIENIAMI (JSON) ---
 
 def get_user_settings():
-    """Wczytuje ostatnio używane parametry."""
-    defaults = {
-        "last_tool_type": "Frez prosty",
-        "last_blades": "4",
-        "last_diam": "10.0",
-        "last_shank": "10.0"
-    }
     if not os.path.exists(SETTINGS_PATH):
-        return defaults
+        return {}
     try:
         with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
             return json.load(f)
-    except:
-        return defaults
+    except: return {}
 
 def save_user_settings(new_settings):
-    """Zapisuje słownik ustawień do pliku, nadpisując tylko zmienione klucze."""
     settings = get_user_settings()
     settings.update(new_settings)
     try:
@@ -158,11 +284,6 @@ def load_cart_from_file(path=CART_CACHE_PATH):
     try:
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            if isinstance(data, dict):
-                return data.get("client", "Nieokreślony"), data.get("items", [])
-            elif isinstance(data, list):
-                return "Nieokreślony", data
-            return "Nieokreślony", []
-    except Exception as e:
-        print(f"Błąd odczytu koszyka: {e}")
+            return data.get("client", "Nieokreślony"), data.get("items", [])
+    except:
         return "Nieokreślony", []

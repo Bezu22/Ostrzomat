@@ -39,16 +39,16 @@ def calculate_extra_services(service_vars, diam, qty):
         return 0.0, 0.0, []
 
 def calculate_coating_price(coating, diam, length, qty):
-    """Logika obliczania powłoki."""
+    """Oblicza cenę powłoki, przyjmując 4 wymagane argumenty."""
     try:
         if coating == "Brak" or not coating:
             return 0.0, 0.0
         
-        d_val = float(str(diam).replace(',', '.'))
-        l_val = float(str(length).replace(',', '.'))
-        q_val = int(qty)
+        # Wywołanie funkcji z database.py (tej z Twoimi printami)
+        p_unit = database.get_coating_price(coating, diam, length)
         
-        p_unit = database.get_coating_price_refined(coating, d_val, l_val)
+        q_val = int(qty)
         return p_unit, p_unit * q_val
-    except:
+    except Exception as e:
+        print(f"Błąd w cart_logic (coating): {e}") # Dodaj ten print!
         return 0.0, 0.0
