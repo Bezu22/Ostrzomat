@@ -57,6 +57,7 @@ class OstrzomatApp(ctk.CTk):
     def load_initial_data(self):
         """Ładowanie danych z ostatniej sesji."""
         client_cache, items_cache = database.load_cart_from_file() 
+        self.cart_items = items_cache 
         self.client_name.configure(text=client_cache)
         self.refresh_cart_ui()
 

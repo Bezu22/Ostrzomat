@@ -3,22 +3,41 @@
     "items": [
         {
             "type": "Frez prosty",
-            "diam": "12",
-            "z": "2",
-            "qty": "1",
-            "tool_unit": 62.4,
-            "total_tool": 62.4,
-            "coat_name": "ALCRONA PRO/LATUMA",
-            "coat_len": "200.0",
-            "coat_unit": 45.2,
-            "total_coat": 45.2,
+            "diam": "12.0",
+            "z": "4",
+            "qty": "10",
+            "tool_unit": 35.5,
+            "total_tool": 355.0,
+            "coat_name": "AlTiN",
+            "coat_len": "100.0",
+            "coat_unit": 12.0,
+            "total_coat": 120.0,
+            "services_status": {
+                "ciecie": true,
+                "opuszczenie": false,
+                "polerowanie": true
+            },
+            "extra_unit": 15.0,
+            "total_extra": 150.0
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "14",
+            "z": "4",
+            "qty": "12",
+            "tool_unit": 56.7,
+            "total_tool": 680.4000000000001,
+            "coat_name": "BALINIT TISAFLEX (AlTiN / TiSiXN)",
+            "coat_len": "150.0",
+            "coat_unit": 54.56,
+            "total_coat": 654.72,
             "services_status": {
                 "ciecie": false,
                 "opuszczenie": false,
-                "polerowanie": false
+                "polerowanie": true
             },
-            "extra_unit": 0.0,
-            "total_extra": 0.0
+            "extra_unit": 14.0,
+            "total_extra": 168.0
         }
     ]
 }
