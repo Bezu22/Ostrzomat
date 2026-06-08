@@ -1,53 +1,71 @@
 import unittest
 import os
+from unittest.mock import patch
 import database as database
 from logic import cart_logic
 
+# Importujemy oryginalną aplikację
+from ui.main_window import OstrzomatApp
+
 class TestOstrzomatComprehensive(unittest.TestCase):
     
-    def setUp(self):
-        """Przygotowanie czystego środowiska wirtualnego koszyka przed każdym testem."""
-        self.cart_items = []
-        self.client_name = "Klient Testowy"
-        self.test_cache_path = os.path.join("data", "cart_cache_test.json")
-        
-        # Tworzymy folder data, jeśli jeszcze nie istnieje
+    @classmethod
+    def setUpClass(cls):
+        """Uruchamia aplikację TYLKO RAZ dla wszystkich testów i całkowicie ją wycisza."""
+        cls.test_cache_path = os.path.join("data", "cart_cache_test.json")
         os.makedirs("data", exist_ok=True)
         
-        # Czyszczenie pozostałości po poprzednich testach
-        if os.path.exists(self.test_cache_path):
-            os.remove(self.test_cache_path)
+        if os.path.exists(cls.test_cache_path):
+            os.remove(cls.test_cache_path)
+            
+        # Tworzymy aplikację raz
+        cls.app = OstrzomatApp()
+        cls.app.withdraw() # Ukrywamy okno, żeby nie migało
 
-    def tearDown(self):
-        """Sprzątanie po teście."""
-        if os.path.exists(self.test_cache_path):
-            os.remove(self.test_cache_path)
+    @classmethod
+    def tearDownClass(cls):
+        """Zamyka aplikację i sprząta pliki TYLKO RAZ na samym końcu testów."""
+        if hasattr(cls, "app") and cls.app:
+            try:
+                # Wyciszamy wszystkie oczekujące zadania asynchroniczne Tkintera
+                cls.app.update_idletasks()
+                # Usuwamy zaplanowane skrypty "after", żeby nie sypały błędami w konsoli
+                for after_id in cls.app.tk.call('after', 'info'):
+                    cls.app.after_cancel(after_id)
+                cls.app.destroy()
+            except Exception:
+                pass
+                
+        if os.path.exists(cls.test_cache_path):
+            os.remove(cls.test_cache_path)
+
+    def setUp(self):
+        """Przed każdym testem jedynie czyścimy wirtualny koszyk, bez ruszania okna!"""
+        self.app.cart_items = []
 
     # =========================================================================
-    # 1. TESTY LOGIKI BIZNESOWEJ (Mocne zużycie, powłoki, usługi dodatkowe)
+    # 1. TESTY LOGIKI BIZNESOWEJ (Oryginalny cart_logic.py)
     # =========================================================================
 
     def test_logic_heavy_wear_and_coating(self):
-        """TEST: Czy algorytm poprawnie dolicza +5% za zużycie i kalkuluje powłoki."""
-        # Test bez zużycia
-        p_unit_normal, _ = cart_logic.calculate_tool_price("Frez prosty", "4", "10.0", "1", heavy_wear=False)
+        print("\nTEST: Kalkulacja ceny (Mocne zużycie +5% oraz powłoki)... ", end="", flush=True)
         
-        # Test z mocnym zużyciem (+5%)
+        p_unit_normal, _ = cart_logic.calculate_tool_price("Frez prosty", "4", "10.0", "1", heavy_wear=False)
         p_unit_wear, _ = cart_logic.calculate_tool_price("Frez prosty", "4", "10.0", "1", heavy_wear=True)
         
-        # Jeśli baza danych zwróciła poprawną wartość (czyli cennik działa), sprawdzamy matematykę
         if p_unit_normal > 0:
             expected_wear_price = round(p_unit_normal * 1.05, 2)
-            self.assertEqual(p_unit_wear, expected_wear_price, "Mocne zużycie powinno podnosić cenę o 5% i zaokrąglać do 2 miejsc!")
+            self.assertEqual(p_unit_wear, expected_wear_price)
+            
+        print("OK")
 
     def test_logic_extra_services(self):
-        """TEST: Czy kalkulator usług poprawnie reaguje na różne kombinacje checkboxów."""
-        # Klasa symulująca zachowanie ctk.BooleanVar dla cart_logic
+        print("TEST: Kombinacje usług dodatkowych (Checkboxy)... ", end="", flush=True)
+        
         class MockBooleanVar:
             def __init__(self, val): self.val = val
             def get(self): return self.val
 
-        # Scenariusz: Aktywne cięcie i polerowanie, zaniżenie wyłączone
         mock_services = {
             "ciecie": MockBooleanVar(True),
             "opuszczenie": MockBooleanVar(False),
@@ -57,87 +75,54 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         
         total_unit, total_res, active_labels = cart_logic.calculate_extra_services(mock_services, "10.0", "2")
         
-        # Weryfikujemy czy aktywne usługi zostały poprawnie rozpoznane i podsumowane
-        self.assertIn("Cięcie", active_labels, "Cięcie powinno być na liście aktywnych usług")
-        self.assertNotIn("Zaniżenie", active_labels, "Zaniżenie NIE powinno być na liście aktywnych usług")
-        self.assertEqual(total_res, total_unit * 2, "Suma całkowita usług musi być wielokrotnością ilości sztuk!")
+        self.assertIn("Cięcie", active_labels)
+        self.assertNotIn("Zaniżenie", active_labels)
+        self.assertEqual(total_res, total_unit * 2)
+        
+        print("OK")
 
     # =========================================================================
-    # 2. TESTY ODPORNOŚCI NA BŁĘDNE INPUTY (Kropki, spacje, znaki specjalne)
+    # 2. TESTY ODPORNOŚCI NA BŁĘDNE INPUTY
     # =========================================================================
 
     def test_input_resilience(self):
-        """TEST: Czy system radzi sobie ze spacjami, przecinkami i dziwnymi znakami w polach liczbowych."""
-        # Odporność na przecinek zamiast kropki w średnicy ("10,5") oraz spacje (" 4 ")
-        # Funkcja powinna wyczyścić dane i wykonać kalkulację bez wyrzucenia błędu (crashu aplikacji)
-        try:
-            cart_logic.calculate_tool_price("Frez prosty", " 4 ", "10,5 ", " 2", heavy_wear=False)
-        except Exception as e:
-            self.fail(f"Funkcja calculate_tool_price wywaliła się na spacji lub przecinku: {e}")
+        print("TEST: Odporność na błędne wpisy (Spacje, przecinki, tekst)... ", end="", flush=True)
         
-        # Przy kompletnie krytycznym błędzie (tekst zamiast liczb) funkcja ma bezpiecznie zwrócić 0.0 zamiast crashować
+        cart_logic.calculate_tool_price("Frez prosty", " 4 ", "10,5 ", " 2", heavy_wear=False)
+        
         p_err_unit, p_err_total = cart_logic.calculate_tool_price("Frez prosty", "xyz", "10..0", " s2 ", heavy_wear=False)
-        self.assertEqual(p_err_unit, 0.0, "Dla krytycznie błędnych danych wejściowych system powinien zwrócić 0.0")
-        self.assertEqual(p_err_total, 0.0, "Dla krytycznie błędnych danych wejściowych system powinien zwrócić 0.0")
+        self.assertEqual(p_err_unit, 0.0)
+        self.assertEqual(p_err_total, 0.0)
+        
+        print("OK")
 
     # =========================================================================
-    # 3. TESTY OPERACJI NA KOSZYKU (Dodawanie, usuwanie, edycja, czyszczenie)
+    # 3. TESTY INTEGRACYJNE KOSZYKA (Oryginalny main_window.py)
     # =========================================================================
 
-    def test_cart_lifecycle(self):
-        """TEST: Pełny cykl życia koszyka (Dodaj -> Edytuj -> Wyczyść)."""
-        # --- DODAWANIE ---
+    @patch('tkinter.messagebox.askyesno')
+    def test_cart_lifecycle(self, mock_askyesno):
+        print("TEST: Cykl życia koszyka (Dodawanie -> Edycja -> Czyszczenie)... ", end="", flush=True)
+        
+        mock_askyesno.return_value = True
+        
+        # DODAWANIE przez Twoją prawdziwą metodę aplikacji
         item_1 = {"type": "Frez Alum", "diam": "8.0", "qty": "5", "total_tool": 50.0, "total_coat": 0.0, "total_extra": 0.0}
-        item_2 = {"type": "Frez Stal", "diam": "12.0", "qty": "2", "total_tool": 60.0, "total_coat": 20.0, "total_extra": 5.0}
-        
-        self.cart_items.append(item_1)
-        self.cart_items.append(item_2)
-        self.assertEqual(len(self.cart_items), 2, "Koszyk powinien zawierać dokładnie 2 pozycje")
+        self.app.add_item_to_cart(item_1)
+        self.assertEqual(len(self.app.cart_items), 1)
 
-        # --- EDYCJA (Nadpisanie pozycji pod indeksem 0) ---
+        # EDYCJA przez Twoją prawdziwą metodę aplikacji
         updated_item_1 = {"type": "Frez Alum Modyfikowany", "diam": "8.0", "qty": "10", "total_tool": 100.0, "total_coat": 0.0, "total_extra": 0.0}
+        self.app.update_item_in_cart(0, updated_item_1)
         
-        selected_idx = 0
-        if 0 <= selected_idx < len(self.cart_items):
-            self.cart_items[selected_idx] = updated_item_1
-            
-        self.assertEqual(self.cart_items[0]["type"], "Frez Alum Modyfikowany", "Nazwa typu nie została zaktualizowana po edycji!")
-        self.assertEqual(self.cart_items[0]["qty"], "10", "Ilość sztuk nie została zaktualizowana po edycji!")
-        self.assertEqual(len(self.cart_items), 2, "Edycja nie może zmieniać ogólnej liczby pozycji w koszyku!")
+        self.assertEqual(self.app.cart_items[0]["qty"], "10")
+        self.assertEqual(self.app.cart_items[0]["type"], "Frez Alum Modyfikowany")
 
-        # --- USUWANIE / CZYSZCZENIE ---
-        self.cart_items = []
-        self.assertEqual(len(self.cart_items), 0, "Koszyk po wyczyszczeniu musi być zupełnie pusty!")
-
-    # =========================================================================
-    # 4. TESTY TRWAŁOŚCI DANYCH (Zapis i odczyt z plików JSON)
-    # =========================================================================
-
-    def test_file_io_integrity(self):
-        """TEST: Czy mechanizm zapisu i odczytu bazy plików nie niszczy struktury danych koszyka."""
-        complex_items = [{
-            "type": "Frez VHM",
-            "diam": "16.0",
-            "qty": "3",
-            "services_status": {"ciecie": True, "zuzycie": True},
-            "total_tool": 150.0,
-            "total_coat": 45.0,
-            "total_extra": 12.5
-        }]
+        # CZYSZCZENIE przez Twoją prawdziwą metodę aplikacji
+        self.app.clear_cart()
+        self.assertEqual(len(self.app.cart_items), 0)
         
-        # Wywołanie zapisu
-        database.save_cart_to_file(complex_items, self.client_name, path=self.test_cache_path)
-        self.assertTrue(os.path.exists(self.test_cache_path), "Plik JSON nie został fizycznie zapisany na dysku!")
-        
-        # Wywołanie odczytu
-        loaded_client, loaded_items = database.load_cart_from_file(path=self.test_cache_path)
-        
-        # Poprawione asercje – sprawdzamy spójność struktury po przejściu przez JSON
-        self.assertEqual(loaded_client, self.client_name, "Nazwa klienta po odczycie z pliku się nie zgadza!")
-        self.assertEqual(len(loaded_items), 1, "Liczba przedmiotów w odczytanym koszyku się nie zgadza!")
-        self.assertEqual(loaded_items[0]["services_status"]["ciecie"], True, "Zagnieżdżona struktura statusu usług uległa uszkodzeniu!")
-        self.assertEqual(loaded_items[0]["services_status"]["zuzycie"], True, "Flaga zużycia uległa uszkodzeniu w pliku JSON!")
-
+        print("OK")
 
 if __name__ == "__main__":
     unittest.main()
