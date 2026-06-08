@@ -59,19 +59,21 @@ class FrezModule(ctk.CTkFrame):
         self.len_combo = ctk.CTkComboBox(self, width=300, values=[], command=self.update_callback)
         self.len_combo.configure(state="readonly")
 
-        # --- 5. USŁUGI DODATKOWE (Pionowo z cenami obok) ---
+        # --- 5. USŁUGI DODATKOWE (Rozbudowane o zużycie) ---
         self.add_label("Usługi dodatkowe:", f_bold)
         self.service_vars = {
             "ciecie": ctk.BooleanVar(),
             "opuszczenie": ctk.BooleanVar(),
-            "polerowanie": ctk.BooleanVar()
+            "polerowanie": ctk.BooleanVar(),
+            "zuzycie": ctk.BooleanVar()  # <--- NOWA ZMIENNA
         }
         self.service_price_labels = {}
         
         service_names = {
             "ciecie": "Cięcie",
             "opuszczenie": "Zaniżenie",
-            "polerowanie": "Polerowanie"
+            "polerowanie": "Polerowanie",
+            "zuzycie": "Mocne zużycie (+5% do ostrzenia)"  # <--- NOWY CHECKBOX
         }
 
         for key, label_text in service_names.items():
@@ -110,17 +112,14 @@ class FrezModule(ctk.CTkFrame):
 
     def toggle_shank(self):
         if self.shank_override.get():
-            # Aktywny - jasne tło
             self.shank_entry.configure(state="normal", fg_color=["#F9F9FA", "#343638"], border_color="#1f538d")
         else:
-            # Nieaktywny - wyraźnie ciemniejsze/inne tło
             self.shank_entry.configure(state="disabled", fg_color=["#D1D1D1", "#1A1A1A"], border_color="#444")
             self.on_diam_change()
         self.update_callback()
 
     def on_coating_change(self, _=None):
         selected = self.coat_combo.get()
-        # Ukrywamy, aby zresetować pozycję
         self.len_label.pack_forget()
         self.len_combo.pack_forget()
         
@@ -129,27 +128,23 @@ class FrezModule(ctk.CTkFrame):
             if lengths:
                 self.len_combo.configure(values=lengths)
                 self.len_combo.set(lengths[0])
-                
-                # Używamy parametru 'after', aby wstawić elementy dokładnie pod listę powłok
                 self.len_label.pack(pady=(5,0), padx=20, anchor="w", after=self.coat_combo)
                 self.len_combo.pack(pady=(0,10), padx=20, anchor="w", after=self.len_label)
         
         self.update_callback()
 
     def validate_all(self, diam, z, qty):
-        """Sprawdza dane i wyrzuca popup tylko gdy jest to wymagane."""
         try:
             float(diam)
             if not z.isdigit() or not qty.isdigit():
                 raise ValueError()
             return True
         except ValueError:
-            # Importujemy lokalnie, żeby uniknąć problemów z cyklicznym importem
             from ui.calc_window import OstrzomatPopup
             OstrzomatPopup(self.master, title="Błąd", message="Sprawdź wartości liczbowe!", type="error")
             return False
     
-    def get_full_item_data(self,run_validation=False):
+    def get_full_item_data(self, run_validation=False):
         try:
             diam = self.diam_entry.get().replace(',', '.')
             qty = self.qty_entry.get() or "1" 
@@ -158,18 +153,27 @@ class FrezModule(ctk.CTkFrame):
             coat = self.coat_combo.get()
             coat_len = self.len_combo.get() if (coat != "Brak" and hasattr(self, 'len_combo')) else "100"
 
-            # WALIDACJA: Odpala się TYLKO gdy run_validation=True (czyli przy dodawaniu do koszyka)
             if run_validation:
                 if not self.validate_all(diam, blades, qty):
-                    return None  # Przerywa, jeśli walidacja nie przeszła
+                    return None
             
-            # Obliczenia w cart_logic
-            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, diam, qty)
+            # Odczytujemy flagę zużycia i przekazujemy do logic
+            heavy_wear_active = self.service_vars["zuzycie"].get()
+            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, diam, qty, heavy_wear=heavy_wear_active)
+            
             c_j, c_r = cart_logic.calculate_coating_price(coat, diam, coat_len, qty)
             e_j_total, e_r_total, _ = cart_logic.calculate_extra_services(self.service_vars, diam, qty)
 
             # --- AKTUALIZACJA CEN JEDNOSTKOWYCH PRZY CHECKBOXACH ---
             for key in self.service_vars:
+                if key == "zuzycie":
+                    # Zużycie to procent od ceny bazowej, nie szukamy go w bazie usług dodatkowych
+                    if self.service_vars[key].get():
+                        self.service_price_labels[key].configure(text="+5% do ostrz.")
+                    else:
+                        self.service_price_labels[key].configure(text="")
+                    continue
+
                 if self.service_vars[key].get():
                     db_name = "Cięcie" if key=="ciecie" else "Zaniżenie średnicy" if key=="opuszczenie" else "Polerowanie rowka"
                     price = database.get_service_price_refined(db_name, float(diam))
