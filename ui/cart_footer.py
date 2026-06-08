@@ -1,7 +1,7 @@
 import customtkinter as ctk
 
 class CartFooter(ctk.CTkFrame):
-    def __init__(self, parent, on_save, on_load, on_clear):
+    def __init__(self, parent, on_save, on_load, on_clear, on_edit):
         super().__init__(parent, height=140)
         
         # Prawa strona: Suma całkowita
@@ -34,6 +34,17 @@ class CartFooter(ctk.CTkFrame):
             width=150
         )
         self.btn_load.pack(side="left", padx=10)
+        
+        # --- NOWY PRZYCISK: EDYCJA POZYCJI ---
+        self.btn_edit = ctk.CTkButton(
+            self.actions_container, 
+            text="EDYTUJ POZYCJĘ", 
+            command=on_edit, 
+            fg_color="#e67e22", 
+            hover_color="#d35400",
+            width=140
+        )
+        self.btn_edit.pack(side="left", padx=10)
         
         self.btn_clear = ctk.CTkButton(
             self.actions_container, 

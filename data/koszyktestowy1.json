@@ -55,13 +55,11 @@
             "services_status": {
                 "ciecie": true,
                 "opuszczenie": false,
-                "polerowanie": true,
+                "polerowanie": false,
                 "zuzycie": false
             },
-            "extra_unit": 22.0,
-            "total_extra": 66.0,
-            "tool_category": "Frezy",
-            "shank_diam": "10"
+            "extra_unit": 12.0,
+            "total_extra": 36.0
         }
     ]
 }

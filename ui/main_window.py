@@ -31,16 +31,17 @@ class OstrzomatApp(ctk.CTk):
         self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=("Arial", 16, "bold"))
         self.client_name.pack(side="left", padx=20, pady=15)
 
-        # 2. Tabela (Nowy komponent)
+        # 2. Tabela 
         self.cart_table = CartTable(self.content_frame)
         self.cart_table.pack(fill="both", expand=True)
 
-        # 3. Stopka (Nowy komponent - przekazujemy funkcje do przycisków)
+        # 3. Stopka (Przekazujemy self.edit_selected_item jako on_edit)
         self.cart_footer = CartFooter(
             self.content_frame, 
             on_save=self.manual_save_cart, 
             on_load=self.manual_load_cart, 
-            on_clear=self.clear_cart
+            on_clear=self.clear_cart,
+            on_edit=self.edit_selected_item
         )
         self.cart_footer.pack(fill="x", pady=(10, 0))
 
@@ -80,6 +81,33 @@ class OstrzomatApp(ctk.CTk):
         self.cart_items.append(item)
         self.refresh_cart_ui()
         database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
+
+    def edit_selected_item(self):
+        """Sprawdza czy wybrano pozycję z tabeli i otwiera kalkulator w trybie edycji."""
+        selected_idx = self.cart_table.get_selected_index()
+        
+        if selected_idx is None:
+            messagebox.showwarning("Edycja", "Proszę najpierw zaznaczyć pozycję w tabeli (klikając na nią).")
+            return
+            
+        # Wyciągamy słownik edytowanej pozycji z pamięci
+        item_data = self.cart_items[selected_idx]
+        
+        # Otwieramy ToolCalcWindow podając parametry edycyjne
+        ToolCalcWindow(
+            self, 
+            tool_category=self.cart_items[selected_idx].get("tool_category", "Frezy"), 
+            edit_mode=True, 
+            item_data=item_data, 
+            item_index=selected_idx
+        )
+
+    def update_item_in_cart(self, idx, updated_item):
+        """Aktualizuje istniejącą pozycję w koszyku pod konkretnym indeksem."""
+        if 0 <= idx < len(self.cart_items):
+            self.cart_items[idx] = updated_item
+            self.refresh_cart_ui()
+            database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
 
     def manual_save_cart(self):
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
