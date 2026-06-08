@@ -184,6 +184,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
             # Zapisujemy kategorię do słownika, żeby przy edycji wiedzieć jaki moduł załadować
             item_data["tool_category"] = self.tool_category
             item_data["shank_diam"] = self.tool_module.shank_entry.get()
+            item_data["notes"] = ""
             
             self.parent.add_item_to_cart(item_data)
             OstrzomatPopup(
@@ -192,7 +193,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 message=f"Narzędzie {item_data['type']} Ø{item_data['diam']} zostało dodane do koszyka!",
                 type="info"
             )
-            self.destroy()
+            
 
     def save_changes(self):
         """Zapisuje zaktualizowane dane pod istniejący indeks (Tryb Edycji)."""

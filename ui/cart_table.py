@@ -167,7 +167,12 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(14, f"{coat_unit:.2f}" if has_coat else "-", self.font_normal)
             create_cell_label(15, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, "#3498db" if has_coat else None)
             create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
-            create_cell_label(17, "", self.font_normal)
+            
+            notes_text = item.get("notes", "")
+            
+            lbl_notes = ctk.CTkLabel(row, text=notes_text, anchor="center", wraplength=self.cols[17][1]-5, justify="center", text_color="#888", font=self.font_normal)
+            lbl_notes.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
+            lbl_notes.grid(row=0, column=17, padx=2, pady=5, sticky="ew")
 
         # Na koniec upewniamy się, że nowo wyrenderowany zaznaczony wiersz zachowa kolor
         self.update_row_backgrounds()

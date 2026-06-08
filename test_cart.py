@@ -11,25 +11,39 @@ class TestOstrzomatComprehensive(unittest.TestCase):
     
     @classmethod
     def setUpClass(cls):
-        """Uruchamia aplikację TYLKO RAZ dla wszystkich testów i całkowicie ją wycisza."""
+        """Uruchamia aplikację i BEZWZGLĘDNIE izoluje ją od prawdziwych plików danych."""
         cls.test_cache_path = os.path.join("data", "cart_cache_test.json")
         os.makedirs("data", exist_ok=True)
         
         if os.path.exists(cls.test_cache_path):
             os.remove(cls.test_cache_path)
             
-        # Tworzymy aplikację raz
+        # =====================================================================
+        # PANCERNA BLOKADA: Podmieniamy funkcje zapisu i odczytu w module database!
+        # Niezależnie od tego, co wywoła aplikacja, zawsze użyje pliku testowego.
+        # =====================================================================
+        cls.original_save = database.save_cart_to_file
+        cls.original_load = database.load_cart_from_file
+        
+        # Tworzymy bezpieczne "nakładki", które wymuszają ścieżkę testową
+        database.save_cart_to_file = lambda items, client, path=cls.test_cache_path: cls.original_save(items, client, path)
+        database.load_cart_from_file = lambda path=cls.test_cache_path: cls.original_load(path)
+        # =====================================================================
+
+        # Teraz uruchomienie aplikacji jest w pełni bezpieczne dla Twoich danych
         cls.app = OstrzomatApp()
-        cls.app.withdraw() # Ukrywamy okno, żeby nie migało
+        cls.app.withdraw()
 
     @classmethod
     def tearDownClass(cls):
-        """Zamyka aplikację i sprząta pliki TYLKO RAZ na samym końcu testów."""
+        """Przywraca oryginalne funkcje bazy danych i sprząta po testach."""
+        # Przywracamy porządek w module database, żeby program działał normalnie poza testami
+        database.save_cart_to_file = cls.original_save
+        database.load_cart_from_file = cls.original_load
+
         if hasattr(cls, "app") and cls.app:
             try:
-                # Wyciszamy wszystkie oczekujące zadania asynchroniczne Tkintera
                 cls.app.update_idletasks()
-                # Usuwamy zaplanowane skrypty "after", żeby nie sypały błędami w konsoli
                 for after_id in cls.app.tk.call('after', 'info'):
                     cls.app.after_cancel(after_id)
                 cls.app.destroy()
@@ -40,7 +54,7 @@ class TestOstrzomatComprehensive(unittest.TestCase):
             os.remove(cls.test_cache_path)
 
     def setUp(self):
-        """Przed każdym testem jedynie czyścimy wirtualny koszyk, bez ruszania okna!"""
+        """Przed każdym testem jedynie czyścimy wirtualny koszyk aplikacji."""
         self.app.cart_items = []
 
     # =========================================================================
@@ -97,7 +111,7 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         print("OK")
 
     # =========================================================================
-    # 3. TESTY INTEGRACYJNE KOSZYKA (Oryginalny main_window.py)
+    # 3. TESTY INTEGRACYJNE KOSZYKA (Oryginalny main_window.py - TERAZ BEZPIECZNY)
     # =========================================================================
 
     @patch('tkinter.messagebox.askyesno')
@@ -106,19 +120,19 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         
         mock_askyesno.return_value = True
         
-        # DODAWANIE przez Twoją prawdziwą metodę aplikacji
-        item_1 = {"type": "Frez Alum", "diam": "8.0", "qty": "5", "total_tool": 50.0, "total_coat": 0.0, "total_extra": 0.0}
+        # DODAWANIE
+        item_1 = {"type": "Frez Alum", "diam": "8.0", "qty": "5", "total_tool": 50.0, "total_coat": 0.0, "total_extra": 0.0, "notes": ""}
         self.app.add_item_to_cart(item_1)
         self.assertEqual(len(self.app.cart_items), 1)
 
-        # EDYCJA przez Twoją prawdziwą metodę aplikacji
-        updated_item_1 = {"type": "Frez Alum Modyfikowany", "diam": "8.0", "qty": "10", "total_tool": 100.0, "total_coat": 0.0, "total_extra": 0.0}
+        # EDYCJA
+        updated_item_1 = {"type": "Frez Alum Modyfikowany", "diam": "8.0", "qty": "10", "total_tool": 100.0, "total_coat": 0.0, "total_extra": 0.0, "notes": "Pilne"}
         self.app.update_item_in_cart(0, updated_item_1)
         
         self.assertEqual(self.app.cart_items[0]["qty"], "10")
         self.assertEqual(self.app.cart_items[0]["type"], "Frez Alum Modyfikowany")
 
-        # CZYSZCZENIE przez Twoją prawdziwą metodę aplikacji
+        # CZYSZCZENIE (Wywołuje Twoją funkcję, ale dzięki blokadzie zapisuje do pliku testowego!)
         self.app.clear_cart()
         self.assertEqual(len(self.app.cart_items), 0)
         
