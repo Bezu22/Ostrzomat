@@ -186,6 +186,10 @@ class ToolCalcWindow(ctk.CTkToplevel):
             item_data["shank_diam"] = self.tool_module.shank_entry.get()
             item_data["notes"] = ""
             
+            for key in ["tool_unit", "total_tool", "coat_unit", "total_coat", "extra_unit", "total_extra"]:
+                if key in item_data:
+                    item_data[key] = round(float(item_data[key]), 2)
+                    
             self.parent.add_item_to_cart(item_data)
             OstrzomatPopup(
                 self, 

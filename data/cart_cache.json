@@ -1,0 +1,74 @@
+{
+    "client": "Nieokreślony",
+    "items": [
+        {
+            "type": "Frez prosty",
+            "diam": "12",
+            "z": "4",
+            "qty": "7",
+            "tool_unit": 46.3,
+            "total_tool": 324.1,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "100.0",
+            "coat_unit": 27.98,
+            "total_coat": 195.86,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": true,
+                "polerowanie": false,
+                "zuzycie": false
+            },
+            "extra_unit": 20.0,
+            "total_extra": 140.0,
+            "tool_category": "Frezy",
+            "shank_diam": "12",
+            "notes": ""
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "8",
+            "z": "3",
+            "qty": "11",
+            "tool_unit": 37.5,
+            "total_tool": 412.5,
+            "coat_name": "Brak",
+            "coat_len": "-",
+            "coat_unit": 0.0,
+            "total_coat": 0.0,
+            "services_status": {
+                "ciecie": true,
+                "opuszczenie": false,
+                "polerowanie": true,
+                "zuzycie": false
+            },
+            "extra_unit": 22.0,
+            "total_extra": 242.0,
+            "tool_category": "Frezy",
+            "shank_diam": "8",
+            "notes": ""
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "6",
+            "z": "2",
+            "qty": "9",
+            "tool_unit": 40.53,
+            "total_tool": 364.77,
+            "coat_name": "Brak",
+            "coat_len": "-",
+            "coat_unit": 0.0,
+            "total_coat": 0.0,
+            "services_status": {
+                "ciecie": true,
+                "opuszczenie": false,
+                "polerowanie": false,
+                "zuzycie": true
+            },
+            "extra_unit": 12.0,
+            "total_extra": 108.0,
+            "tool_category": "Frezy",
+            "shank_diam": "6",
+            "notes": ""
+        }
+    ]
+}
