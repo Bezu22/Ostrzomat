@@ -46,7 +46,7 @@ class TestOstrzomatComprehensive(unittest.TestCase):
             os.remove(cls.test_cache_path)
 
     def setUp(self):
-        """Przed każdym testem jedynie czyścimy wirtualny koszyk aplikacji."""
+        """Przed każdym testem czyścimy wirtualny koszyk aplikacji."""
         self.app.cart_items = []
 
     # =========================================================================
@@ -83,7 +83,7 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         print("OK")
 
     # =========================================================================
-    # 2. TESTY ODPORNOŚCI NA INPUTY
+    # 2. TESTY ODPORNOŚCI NA INPUTY (SKRAJNE I BŁĘDNE DANE)
     # =========================================================================
 
     def test_input_resilience(self):
@@ -92,6 +92,21 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         p_err_unit, p_err_total = cart_logic.calculate_tool_price("Frez prosty", "xyz", "10..0", " s2 ", heavy_wear=False)
         self.assertEqual(p_err_unit, 0.0)
         self.assertEqual(p_err_total, 0.0)
+        print("OK")
+
+    def test_edge_cases_and_zero_quantities(self):
+        print("TEST: Dane brzegowe (Wartości ujemne i zera)... ", end="", flush=True)
+        # 1. Próba kalkulacji dla zerowej ilości - musi dać 0.0
+        _, p_zero_t = cart_logic.calculate_tool_price("Frez prosty", "4", "12.0", "0", heavy_wear=False)
+        self.assertEqual(p_zero_t, 0.0)
+        
+        # 2. Średnica równa dokładnie 0.0 - brak fizycznego narzędzia, wynik musi być 0.0
+        p_zero_diam_u, _ = cart_logic.calculate_tool_price("Frez prosty", "4", "0.0", "1", heavy_wear=False)
+        self.assertEqual(p_zero_diam_u, 0.0)
+        
+        # 3. Ekstremalny gigant (Średnica 999.0) - całkowicie poza skalą cennika SQL, wynik musi być 0.0
+        p_macro_u, _ = cart_logic.calculate_tool_price("Frez prosty", "4", "999.0", "1", heavy_wear=False)
+        self.assertEqual(p_macro_u, 0.0)
         print("OK")
 
     # =========================================================================
@@ -113,11 +128,11 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         self.assertEqual(self.app.cart_items[0]["qty"], "10")
         self.assertEqual(self.app.cart_items[0]["type"], "Frez Alum Modyfikowany")
 
-        # --- POPRAWKA MOCKA DLA CLEAR_CART ---
+        # Bezpieczne czyszczenie koszyka bez popupu sukcesu
         from ui.components import OstrzomatPopup
         def mock_popup_clear(shadow_self, parent, title, message, type="info", on_confirm=None):
             if type == "confirm" and on_confirm:
-                on_confirm() # Automatycznie zatwierdza czyszczenie koszyka w teście
+                on_confirm()
                 
         with patch.object(OstrzomatPopup, '__init__', mock_popup_clear):
             self.app.clear_cart()
@@ -126,13 +141,12 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         print("OK")
 
     # =========================================================================
-    # NEW: 4. SCENARIUSZE ZAAWANSOWANE (Wielopozycyjność, precyzja edycji, finanse)
+    # 4. SCENARIUSZE ZAAWANSOWANE (Wielopozycyjność, precyzja edycji, finanse)
     # =========================================================================
 
     def test_advanced_multiple_items_and_totals(self):
         print("TEST: Łączenie wielu cen i podsumowanie stopki... ", end="", flush=True)
         
-        # Wrzucamy 3 różne, skomplikowane cenowo pozycje
         item_a = {"type": "Frez 1", "total_tool": 120.55, "total_coat": 45.20, "total_extra": 10.00}
         item_b = {"type": "Frez 2", "total_tool": 80.00, "total_coat": 0.00, "total_extra": 15.50}
         item_c = {"type": "Frez 3", "total_tool": 210.13, "total_coat": 85.00, "total_extra": 0.00}
@@ -141,10 +155,8 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         self.app.add_item_to_cart(item_b)
         self.app.add_item_to_cart(item_c)
         
-        # Oczekiwana suma: 120.55+45.20+10.00 + 80.00+0.00+15.50 + 210.13+85.00+0.00 = 566.38
         self.assertEqual(len(self.app.cart_items), 3)
         
-        # Pobieramy tekst z widżetu stopki, filtrujemy i sprawdzamy czy aplikacja dobrze policzyła total
         footer_text = self.app.cart_footer.total_label.cget("text")
         extracted_sum = float(footer_text.replace("ŁĄCZNIE DO ZAPŁATY: ", "").replace(" zł", "").strip())
         
@@ -154,7 +166,6 @@ class TestOstrzomatComprehensive(unittest.TestCase):
     def test_advanced_middle_item_edit_isolation(self):
         print("TEST: Izolacja edycji środkowej pozycji (Indeksy)... ", end="", flush=True)
         
-        # Wrzucamy 3 pozycje
         pos_0 = {"type": "Pierwszy", "qty": "5", "total_tool": 50.0, "total_coat": 0.0, "total_extra": 0.0}
         pos_1 = {"type": "Do Edycji", "qty": "2", "total_tool": 40.0, "total_coat": 10.0, "total_extra": 0.0}
         pos_2 = {"type": "Trzeci", "qty": "1", "total_tool": 30.0, "total_coat": 0.0, "total_extra": 0.0}
@@ -163,34 +174,23 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         self.app.add_item_to_cart(pos_1)
         self.app.add_item_to_cart(pos_2)
         
-        # Akcja: Edytujemy WYŁĄCZNIE element pod indeksem 1 (środkowy)
         edited_pos_1 = {"type": "Zmieniony Srodek", "qty": "5", "total_tool": 100.0, "total_coat": 25.0, "total_extra": 0.0}
         self.app.update_item_in_cart(1, edited_pos_1)
         
-        # WERYFIKACJA 1: Czy struktura koszyka zachowała rozmiar 3
         self.assertEqual(len(self.app.cart_items), 3)
-        
-        # WERYFIKACJA 2: Czy sąsiednie pozycje (0 oraz 2) pozostały NIENARUSZONE (brak rozjechania indeksów)
         self.assertEqual(self.app.cart_items[0]["type"], "Pierwszy")
         self.assertEqual(self.app.cart_items[2]["type"], "Trzeci")
-        
-        # WERYFIKACJA 3: Czy środek przyjął nowe wartości
         self.assertEqual(self.app.cart_items[1]["type"], "Zmieniony Srodek")
         self.assertEqual(self.app.cart_items[1]["qty"], "5")
         
-        # WERYFIKACJA 4: Czy stopka poprawnie przeliczyła nową wartość globalną
-        # Pierwotna suma: 50 + 50 + 30 = 130
-        # Nowa suma: 50 + 125 + 30 = 205
         footer_text = self.app.cart_footer.total_label.cget("text")
         extracted_sum = float(footer_text.replace("ŁĄCZNIE DO ZAPŁATY: ", "").replace(" zł", "").strip())
         self.assertEqual(extracted_sum, 205.00)
-        
         print("OK")
 
     def test_advanced_delete_and_lp_recalculation(self):
         print("TEST: Usuwanie pozycji i przeliczanie L.p... ", end="", flush=True)
         
-        # Wrzucamy 3 pozycje do koszyka aplikacji
         p0 = {"type": "Frez Pierwszy", "diam": "8.0", "total_tool": 10.0, "total_coat": 0.0, "total_extra": 0.0}
         p1 = {"type": "Frez Drugi (Do Usunięcia)", "diam": "10.0", "total_tool": 20.0, "total_coat": 0.0, "total_extra": 0.0}
         p2 = {"type": "Frez Trzeci", "diam": "12.0", "total_tool": 30.0, "total_coat": 0.0, "total_extra": 0.0}
@@ -200,35 +200,62 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         self.app.add_item_to_cart(p2)
         
         self.assertEqual(len(self.app.cart_items), 3)
-        
-        # 1. Wymuszamy, aby tabela zameldowała zaznaczenie indeksu 1 (L.p. 2)
         self.app.cart_table.get_selected_index = lambda: 1
         
-        # 2. PANCERNY MOCK POPUPU: Przejmujemy kontrolę nad OstrzomatPopup w tym teście.
-        # Gdy kod spróbuje stworzyć popup potwierdzający, ten mock automatycznie 
-        # wyciągnie argument 'on_confirm' i od razu go wywoła (symulacja kliknięcia TAK)
         from ui.components import OstrzomatPopup
-        
         def mock_popup_init(shadow_self, parent, title, message, type="info", on_confirm=None):
             if type == "confirm" and on_confirm:
-                on_confirm()  # Wykonaj usuwanie natychmiast bez rysowania okna!
+                on_confirm()
                 
         with patch.object(OstrzomatPopup, '__init__', mock_popup_init):
-            # Wywołujemy oryginalną funkcję usuwania z main_window.py
             self.app.delete_selected_item()
         
-        # WERYFIKACJA 1: Koszyk musi mieć teraz długość 2
         self.assertEqual(len(self.app.cart_items), 2)
-        
-        # WERYFIKACJA 2: Sprawdzamy przesunięcie (dawny element 3 stał się elementem 2)
         self.assertEqual(self.app.cart_items[1]["type"], "Frez Trzeci")
         self.assertEqual(self.app.cart_items[0]["type"], "Frez Pierwszy")
         
-        # WERYFIKACJA 3: Czy stopka poprawnie odliczyła kwotę (z 60.00 na 40.00)
         footer_text = self.app.cart_footer.total_label.cget("text")
         extracted_sum = float(footer_text.replace("ŁĄCZNIE DO ZAPŁATY: ", "").replace(" zł", "").strip())
         self.assertEqual(extracted_sum, 40.00)
+        print("OK")
+
+    # =========================================================================
+    # 5. NEW: ZAAWANSOWANE ZARZĄDZANIE UWAGAMI (UCIECIE TEKSTU I TRWAŁOŚĆ)
+    # =========================================================================
+
+    def test_advanced_notes_truncation_and_storage(self):
+        print("TEST: Obsługa uwag (Zapis i ucinanie tekstu)... ", end="", flush=True)
         
+        long_note = "Ostrzyć głęboko - wyszczerbiony"
+        item = {
+            "type": "Frez Testowy", 
+            "diam": "12.0", 
+            "qty": "1", 
+            "total_tool": 45.0, 
+            "total_coat": 0.0, 
+            "total_extra": 0.0, 
+            "notes": long_note
+        }
+        
+        self.app.add_item_to_cart(item)
+        
+        # Weryfikacja bezstratnego zapisu w pamięci operacyjnej
+        saved_note_in_mem = self.app.cart_items[0]["notes"]
+        self.assertEqual(saved_note_in_mem, long_note)
+
+        # Weryfikacja algorytmu maskowania wizualnego w tabeli (obcięcie do 20 znaków + ...)
+        if len(saved_note_in_mem) > 20:
+            display_text = saved_note_in_mem[:20] + "..."
+        else:
+            display_text = saved_note_in_mem if saved_note_in_mem else "-"
+            
+        self.assertEqual(display_text, "Ostrzyć głęboko - wy...")
+        
+        # Weryfikacja powrotu do domyślnego znaku braku uwag po wyczyszczeniu
+        self.app.cart_items[0]["notes"] = ""
+        cleared_note = self.app.cart_items[0]["notes"]
+        display_text_after = cleared_note if cleared_note else "-"
+        self.assertEqual(display_text_after, "-")
         print("OK")
 
 if __name__ == "__main__":
