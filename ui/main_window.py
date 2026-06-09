@@ -90,13 +90,16 @@ class OstrzomatApp(ctk.CTk):
         selected_idx = self.cart_table.get_selected_index()
         
         if selected_idx is None:
-            messagebox.showwarning("Edycja", "Proszę najpierw zaznaczyć pozycję w tabeli (klikając na nią).")
+            OstrzomatPopup(
+                self,
+                title="Brak zaznaczenia",
+                message="Proszę najpierw zaznaczyć pozycję w tabeli (klikając na nią), którą chcesz edytować.",
+                type="error"
+            )
             return
             
-        # Wyciągamy słownik edytowanej pozycji z pamięci
         item_data = self.cart_items[selected_idx]
         
-        # Otwieramy ToolCalcWindow podając parametry edycyjne
         ToolCalcWindow(
             self, 
             tool_category=self.cart_items[selected_idx].get("tool_category", "Frezy"), 
@@ -135,7 +138,7 @@ class OstrzomatApp(ctk.CTk):
             title="Potwierdzenie usunięcia",
             message=msg,
             type="confirm",
-            on_confirm=execute_delete  # Przekazujemy funkcję usuwającą!
+            on_confirm=execute_delete  
         )
 
     def update_item_in_cart(self, idx, updated_item):
@@ -146,12 +149,18 @@ class OstrzomatApp(ctk.CTk):
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
 
     def manual_save_cart(self):
+        """Manualny zapis koszyka do pliku JSON."""
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"), path)
-            messagebox.showinfo("Zapis", "Projekt zapisany pomyślnie.")
+            OstrzomatPopup(
+                self, 
+                title="Zapis projektu", 
+                message="Projekt został pomyślnie zapisany na dysku.", 
+                type="success")
 
     def manual_load_cart(self):
+        """Pozwala załadowac plik JSON z zapisanym koszykiem."""
         path = filedialog.askopenfilename(filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
             client, items = database.load_cart_from_file(path)
@@ -159,12 +168,28 @@ class OstrzomatApp(ctk.CTk):
             self.client_name.configure(text=client)
             self.refresh_cart_ui()
             database.save_cart_to_file(items, client)
+            OstrzomatPopup(
+                self, 
+                title="Wczytanie projektu", 
+                message="Projekt został pomyślnie załadowany do koszyka.", 
+                type="success"
+            )
 
     def clear_cart(self):
-        if messagebox.askyesno("Czyszczenie", "Czy na pewno wyczyścić cały koszyk?"):
+        """Czyści cały koszyk."""
+        def execute_clear():
             self.cart_items = []
             self.refresh_cart_ui()
             database.save_cart_to_file([], "Nieokreślony klient")
+            OstrzomatPopup(self, title="Koszyk wyczyszczony", message="Koszyk został opróżniony.", type="info")
+
+        OstrzomatPopup(
+            self,
+            title="Czyszczenie koszyka",
+            message="Czy na pewno chcesz bezpowrotnie wyczyścić cały koszyk?",
+            type="confirm",
+            on_confirm=execute_clear
+        )
 
     def open_price_editor(self):
         if not hasattr(self, "editor_window") or not self.editor_window.winfo_exists():

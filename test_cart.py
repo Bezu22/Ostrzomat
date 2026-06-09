@@ -98,22 +98,30 @@ class TestOstrzomatComprehensive(unittest.TestCase):
     # 3. TESTY INTEGRACYJNE KOSZYKA (Prawdziwe funkcje aplikacji)
     # =========================================================================
 
-    @patch('tkinter.messagebox.askyesno')
-    def test_cart_lifecycle(self, mock_askyesno):
+    def test_cart_lifecycle(self):
         print("TEST: Cykl życia (Dodaj->Edytuj->Wyczyść)... ", end="", flush=True)
-        mock_askyesno.return_value = True
         
+        # DODAWANIE
         item_1 = {"type": "Frez Alum", "diam": "8.0", "qty": "5", "total_tool": 50.0, "total_coat": 0.0, "total_extra": 0.0, "notes": ""}
         self.app.add_item_to_cart(item_1)
         self.assertEqual(len(self.app.cart_items), 1)
 
+        # EDYCJA
         updated_item_1 = {"type": "Frez Alum Modyfikowany", "diam": "8.0", "qty": "10", "total_tool": 100.0, "total_coat": 0.0, "total_extra": 0.0, "notes": "Pilne"}
         self.app.update_item_in_cart(0, updated_item_1)
         
         self.assertEqual(self.app.cart_items[0]["qty"], "10")
         self.assertEqual(self.app.cart_items[0]["type"], "Frez Alum Modyfikowany")
 
-        self.app.clear_cart()
+        # --- POPRAWKA MOCKA DLA CLEAR_CART ---
+        from ui.components import OstrzomatPopup
+        def mock_popup_clear(shadow_self, parent, title, message, type="info", on_confirm=None):
+            if type == "confirm" and on_confirm:
+                on_confirm() # Automatycznie zatwierdza czyszczenie koszyka w teście
+                
+        with patch.object(OstrzomatPopup, '__init__', mock_popup_clear):
+            self.app.clear_cart()
+            
         self.assertEqual(len(self.app.cart_items), 0)
         print("OK")
 
