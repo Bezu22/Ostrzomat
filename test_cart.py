@@ -179,10 +179,8 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         
         print("OK")
 
-    @patch('tkinter.messagebox.askyesno')
-    def test_advanced_delete_and_lp_recalculation(self, mock_askyesno):
-        print(".TEST: Usuwanie pozycji i przeliczanie L.p... ", end="", flush=True)
-        mock_askyesno.return_value = True
+    def test_advanced_delete_and_lp_recalculation(self):
+        print("TEST: Usuwanie pozycji i przeliczanie L.p... ", end="", flush=True)
         
         # Wrzucamy 3 pozycje do koszyka aplikacji
         p0 = {"type": "Frez Pierwszy", "diam": "8.0", "total_tool": 10.0, "total_coat": 0.0, "total_extra": 0.0}
@@ -195,21 +193,30 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         
         self.assertEqual(len(self.app.cart_items), 3)
         
-        # Symulujemy kliknięcie na wiersz o indeksie 1 (L.p. 2)
-        self.app.cart_table.selected_idx = 1
+        # 1. Wymuszamy, aby tabela zameldowała zaznaczenie indeksu 1 (L.p. 2)
+        self.app.cart_table.get_selected_index = lambda: 1
         
-        # Wywołujemy oryginalną, nowo napisaną funkcję usuwania
-        self.app.delete_selected_item()
+        # 2. PANCERNY MOCK POPUPU: Przejmujemy kontrolę nad OstrzomatPopup w tym teście.
+        # Gdy kod spróbuje stworzyć popup potwierdzający, ten mock automatycznie 
+        # wyciągnie argument 'on_confirm' i od razu go wywoła (symulacja kliknięcia TAK)
+        from ui.components import OstrzomatPopup
+        
+        def mock_popup_init(shadow_self, parent, title, message, type="info", on_confirm=None):
+            if type == "confirm" and on_confirm:
+                on_confirm()  # Wykonaj usuwanie natychmiast bez rysowania okna!
+                
+        with patch.object(OstrzomatPopup, '__init__', mock_popup_init):
+            # Wywołujemy oryginalną funkcję usuwania z main_window.py
+            self.app.delete_selected_item()
         
         # WERYFIKACJA 1: Koszyk musi mieć teraz długość 2
         self.assertEqual(len(self.app.cart_items), 2)
         
-        # WERYFIKACJA 2: Sprawdzamy czy pod indeksem 1 (dawna pozycja 2) znajduje się "Frez Trzeci"
-        # Oznacza to, że po odświeżeniu tabeli dostanie on automatycznie wiersz L.p. 2!
-        self.assertEqual(self.app.cart_items[1]["type"], "Frez Trzeci", "Elementy nie przesunęły się poprawnie w pamięci!")
-        self.assertEqual(self.app.cart_items[0]["type"], "Frez Pierwszy", "Pierwszy element został naruszony!")
+        # WERYFIKACJA 2: Sprawdzamy przesunięcie (dawny element 3 stał się elementem 2)
+        self.assertEqual(self.app.cart_items[1]["type"], "Frez Trzeci")
+        self.assertEqual(self.app.cart_items[0]["type"], "Frez Pierwszy")
         
-        # WERYFIKACJA 3: Czy stopka poprawnie odliczyła skasowane 20 zł (było 60 zł, ma być 40 zł)
+        # WERYFIKACJA 3: Czy stopka poprawnie odliczyła kwotę (z 60.00 na 40.00)
         footer_text = self.app.cart_footer.total_label.cget("text")
         extracted_sum = float(footer_text.replace("ŁĄCZNIE DO ZAPŁATY: ", "").replace(" zł", "").strip())
         self.assertEqual(extracted_sum, 40.00)
