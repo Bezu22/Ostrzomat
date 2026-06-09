@@ -168,11 +168,35 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(15, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, "#3498db" if has_coat else None)
             create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
             
-            notes_text = item.get("notes", "")
+            # 17. UWAGI (Kolumna dynamiczna z inteligentnym skracaniem tekstu do 20 znaków)
+            full_notes_text = item.get("notes", "").strip()
             
-            lbl_notes = ctk.CTkLabel(row, text=notes_text, anchor="center", wraplength=self.cols[17][1]-5, justify="center", text_color="#888", font=self.font_normal)
-            lbl_notes.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
+            # Algorytm skracania do 20 znaków
+            if len(full_notes_text) > 20:
+                short_notes_text = full_notes_text[:20] + "..."
+            else:
+                short_notes_text = full_notes_text if full_notes_text else "-"
+
+            lbl_notes = ctk.CTkLabel(
+                row, 
+                text=short_notes_text, 
+                anchor="center", 
+                wraplength=self.cols[17][1]-5, 
+                justify="center", 
+                text_color="#e67e22" if full_notes_text else "#888", # Pomarańczowy kolor wyróżni wiersze z uwagami
+                font=self.font_normal
+            )
+            
+            # Podwójne bindowanie: Kliknięcie zaznacza wiersz ORAZ otwiera dedykowany edytor uwag!
+            lbl_notes.bind("<Button-1>", lambda event, i=idx: self._handle_notes_click(i))
             lbl_notes.grid(row=0, column=17, padx=2, pady=5, sticky="ew")
 
         # Na koniec upewniamy się, że nowo wyrenderowany zaznaczony wiersz zachowa kolor
         self.update_row_backgrounds()
+
+    def _handle_notes_click(self, index):
+        """Zaznacza wiersz w tabeli i natychmiast zgłasza chęć edycji samej uwagi."""
+        self.toggle_select_row(index)
+        
+        if hasattr(self.master.master, 'open_notes_editor'):
+            self.master.master.open_notes_editor()

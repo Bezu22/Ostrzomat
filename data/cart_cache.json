@@ -3,26 +3,25 @@
     "items": [
         {
             "type": "Frez prosty",
-            "diam": "12",
+            "diam": "10",
             "z": "4",
             "qty": "7",
-            "tool_unit": 46.3,
-            "total_tool": 324.1,
+            "tool_unit": 43.79,
+            "total_tool": 306.53,
             "coat_name": "ALCRONA PRO/LATUMA",
             "coat_len": "100.0",
-            "coat_unit": 27.98,
-            "total_coat": 195.86,
+            "coat_unit": 19.38,
+            "total_coat": 135.66,
             "services_status": {
                 "ciecie": false,
                 "opuszczenie": true,
                 "polerowanie": false,
-                "zuzycie": false
+                "zuzycie": true
             },
-            "extra_unit": 20.0,
-            "total_extra": 140.0,
+            "extra_unit": 10.0,
+            "total_extra": 70.0,
             "tool_category": "Frezy",
-            "shank_diam": "12",
-            "notes": ""
+            "shank_diam": "10"
         },
         {
             "type": "Frez prosty",

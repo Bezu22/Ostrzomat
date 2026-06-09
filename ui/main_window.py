@@ -6,6 +6,7 @@ from ui.cart_footer import CartFooter
 from ui.calc_window import ToolCalcWindow
 from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
+from ui.notes_window import NotesWindow
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
@@ -172,3 +173,27 @@ class OstrzomatApp(ctk.CTk):
 
     def open_calc(self, category):
         ToolCalcWindow(self, category)
+
+    def open_notes_editor(self):
+        """Otwiera dedykowane okno zarządzania uwagami dla podświetlonego wiersza."""
+        selected_idx = self.cart_table.get_selected_index()
+        if selected_idx is None:
+            return
+            
+        current_item = self.cart_items[selected_idx]
+        current_notes = current_item.get("notes", "")
+        
+        # Definiujemy callback zapisu
+        def save_notes_callback(new_text):
+            # Nadpisujemy wyłącznie pole uwag w wybranym elemencie
+            self.cart_items[selected_idx]["notes"] = new_text
+            # Odświeżamy UI i automatycznie zapisujemy zmiany w pliku cache JSON
+            self.refresh_cart_ui()
+            database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
+            
+            # Wyświetlamy nasz popup z sukcesem
+            from ui.components import OstrzomatPopup
+            OstrzomatPopup(self, title="Sukces", message="Uwaga została pomyślnie zaktualizowana!", type="success")
+            
+        # Otwieramy okno uwag
+        NotesWindow(self, current_notes, save_notes_callback)
