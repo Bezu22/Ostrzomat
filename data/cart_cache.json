@@ -6,22 +6,23 @@
             "diam": "10",
             "z": "4",
             "qty": "7",
-            "tool_unit": 43.79,
-            "total_tool": 306.53,
+            "tool_unit": 41.7,
+            "total_tool": 291.9,
             "coat_name": "ALCRONA PRO/LATUMA",
             "coat_len": "100.0",
             "coat_unit": 19.38,
             "total_coat": 135.66,
             "services_status": {
                 "ciecie": false,
-                "opuszczenie": true,
+                "opuszczenie": false,
                 "polerowanie": false,
-                "zuzycie": true
+                "zuzycie": false
             },
-            "extra_unit": 10.0,
-            "total_extra": 70.0,
+            "extra_unit": 0.0,
+            "total_extra": 0.0,
             "tool_category": "Frezy",
-            "shank_diam": "10"
+            "shank_diam": "10",
+            "notes": "Musimy upewnić się, że podczas zapisu zmian w trybie edycji, program w calc_window.py najpierw sprawdzi, czy edytowana pozycja miała już jakąś uwagę, i przepisze ją do nowego słownika, zanim ten wyląduje w koszyku."
         },
         {
             "type": "Frez prosty",

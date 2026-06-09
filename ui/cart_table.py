@@ -33,7 +33,7 @@ class CartTable(ctk.CTkFrame):
             ("POWŁ./SZT", 80),
             ("WARTOŚĆ P.", 90),
             ("SUMA POZ.", 100),
-            ("UWAGI", 100)     
+            ("UWAGI", 250)     
         ]
         self.selected_idx = None
         self.row_frames = {}  # Słownik do przechowywania referencji do ramek wierszy
@@ -171,9 +171,9 @@ class CartTable(ctk.CTkFrame):
             # 17. UWAGI (Kolumna dynamiczna z inteligentnym skracaniem tekstu do 20 znaków)
             full_notes_text = item.get("notes", "").strip()
             
-            # Algorytm skracania do 20 znaków
-            if len(full_notes_text) > 20:
-                short_notes_text = full_notes_text[:20] + "..."
+            # Algorytm skracania do 100 znaków
+            if len(full_notes_text) > 80:
+                short_notes_text = full_notes_text[:80] + "..."
             else:
                 short_notes_text = full_notes_text if full_notes_text else "-"
 

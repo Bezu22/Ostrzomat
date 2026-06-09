@@ -200,14 +200,25 @@ class ToolCalcWindow(ctk.CTkToplevel):
             
 
     def save_changes(self):
-        """Zapisuje zaktualizowane dane pod istniejący indeks (Tryb Edycji)."""
+        """Zapisuje zaktualizowane dane (Tryb Edycji) - ZABEZPIECZA uwagi przed skasowaniem."""
         item_data = self.tool_module.get_full_item_data(run_validation=True)
         if item_data and self.item_index is not None:
-            # Zachowujemy kategorię i dane chwytu
             item_data["tool_category"] = self.tool_category
             item_data["shank_diam"] = self.tool_module.shank_entry.get()
             
-            # Wywołujemy nową metodę aktualizacji w OstrzomatApp
+            # === PANCERNE ZABEZPIECZENIE UWAG ===
+            # Wyciągamy dotychczasowy słownik bezpośrednio z pamięci koszyka
+            old_item = self.parent.cart_items[self.item_index]
+            # Przypisujemy starą uwagę do nowego słownika (jeśli nie było żadnej, dajemy pusty ciąg)
+            item_data["notes"] = old_item.get("notes", "")
+            # ====================================
+            
+            # Bezpieczne zaokrąglanie kwot finansowych do 2 miejsc po przecinku
+            for key in ["tool_unit", "total_tool", "coat_unit", "total_coat", "extra_unit", "total_extra"]:
+                if key in item_data:
+                    item_data[key] = round(float(item_data[key]), 2)
+            
+            # Wywołujemy aktualizację w OstrzomatApp
             self.parent.update_item_in_cart(self.item_index, item_data)
             
             OstrzomatPopup(
@@ -216,4 +227,5 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 message=f"Pozycja L.p. {self.item_index + 1} została pomyślnie zaktualizowana!",
                 type="info"
             )
+            
             self.destroy()
