@@ -22,7 +22,7 @@ class CartTable(ctk.CTkFrame):
             ("Ø CHWYT", 50),
             ("Z", 40),
             ("ZUŻ.", 55),      
-            ("C", 55),
+            ("CIAC", 55),
             ("ZAN.", 55),
             ("POL.", 55),     
             ("SZT.", 60),

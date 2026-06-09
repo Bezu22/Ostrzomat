@@ -21,7 +21,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
             self.title(f"Konfiguracja: {tool_category}")
         
         # Przyklejenie do góry ekranu
-        width, height = 550, 950
+        width, height = 550, 1050
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         self.geometry(f"{width}x{height}+{x}+0")
         
@@ -200,32 +200,21 @@ class ToolCalcWindow(ctk.CTkToplevel):
             
 
     def save_changes(self):
-        """Zapisuje zaktualizowane dane (Tryb Edycji) - ZABEZPIECZA uwagi przed skasowaniem."""
+        """Zapisuje zaktualizowane dane (Tryb Edycji) - BEZ ZBĘDNYCH POPUPOV I BŁĘDÓW FOCUSU."""
         item_data = self.tool_module.get_full_item_data(run_validation=True)
         if item_data and self.item_index is not None:
             item_data["tool_category"] = self.tool_category
             item_data["shank_diam"] = self.tool_module.shank_entry.get()
             
-            # === PANCERNE ZABEZPIECZENIE UWAG ===
-            # Wyciągamy dotychczasowy słownik bezpośrednio z pamięci koszyka
+            # Zabezpieczenie uwag przed nadpisaniem
             old_item = self.parent.cart_items[self.item_index]
-            # Przypisujemy starą uwagę do nowego słownika (jeśli nie było żadnej, dajemy pusty ciąg)
             item_data["notes"] = old_item.get("notes", "")
-            # ====================================
             
             # Bezpieczne zaokrąglanie kwot finansowych do 2 miejsc po przecinku
             for key in ["tool_unit", "total_tool", "coat_unit", "total_coat", "extra_unit", "total_extra"]:
                 if key in item_data:
                     item_data[key] = round(float(item_data[key]), 2)
             
-            # Wywołujemy aktualizację w OstrzomatApp
             self.parent.update_item_in_cart(self.item_index, item_data)
-            
-            OstrzomatPopup(
-                self.parent, 
-                title="Sukces", 
-                message=f"Pozycja L.p. {self.item_index + 1} została pomyślnie zaktualizowana!",
-                type="info"
-            )
             
             self.destroy()

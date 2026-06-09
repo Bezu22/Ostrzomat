@@ -4,7 +4,7 @@ class CartFooter(ctk.CTkFrame):
     def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete):
         super().__init__(parent, height=140)
         
-        # Prawa strona: Suma całkowita (ma teraz dużo miejsca dla siebie)
+       
         self.total_label = ctk.CTkLabel(
             self, 
             text="ŁĄCZNIE DO ZAPŁATY: 0.00 zł", 

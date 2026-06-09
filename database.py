@@ -64,7 +64,6 @@ def get_tool_price(tool_type, blades_key, diam, qty):
     """Zwraca cenę jednostkową ostrzenia na podstawie typu, ostrzy, średnicy i ilości."""
     if not is_db_accessible(): return 0.0
     try:
-        # Upewniamy się, że operujemy na liczbach
         d_val = float(diam)
         q_val = int(qty)
         
@@ -77,7 +76,6 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         elif q_val >= 2: price_col = "price_2_4"
         else: price_col = "price_1"
 
-        # Zmieniony operator diam_min na < aby uniknąć duplikatów na granicach przedziałów
         query = f"""
             SELECT {price_col} FROM pricelist_tools 
             WHERE tool_type=? AND blades=? AND diam_min < ? AND diam_max >= ?
@@ -87,7 +85,6 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         res = cursor.fetchone()
         conn.close()
         
-        # Jeśli res istnieje, zwróć cenę, w przeciwnym razie 0.0
         return float(res[0]) if (res and res[0] is not None) else 0.0
     except Exception as e:
         print(f"Błąd bazy (get_tool_price): {e}")
@@ -102,7 +99,6 @@ def get_unique_coating_lengths(coating_name):
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Jeśli powłoka to "Brak" lub None, pobieramy po prostu wszystkie unikalne długości z cennika
         if coating_name == "Brak" or coating_name is None:
             cursor.execute("SELECT DISTINCT length FROM pricelist_coatings ORDER BY length ASC")
         else:
@@ -115,18 +111,16 @@ def get_unique_coating_lengths(coating_name):
         return []
 
 def get_coating_price(name, diam, length):
+    """Zwraca jednostkową cenę nałożenia powłoki. (Oczyszczona z komunikatów debugowania)"""
     if not is_db_accessible() or name == "Brak": return 0.0
     try:
         d_val = float(str(diam).replace(',', '.'))
         l_val = float(str(length).replace(',', '.'))
         
-        # DEBUG: To powie nam, co program wysyła do bazy
-        print(f"DEBUG: Szukam powłoki: {name}, Fi <= {d_val}, L <= {l_val}")
-
         conn = get_connection()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT price, diam_max, length FROM pricelist_coatings 
+            SELECT price FROM pricelist_coatings 
             WHERE coating_name=? AND diam_max >= ? AND length >= ?
             ORDER BY diam_max ASC, length ASC LIMIT 1
         """, (name, d_val, l_val))
@@ -134,12 +128,7 @@ def get_coating_price(name, diam, length):
         res = cursor.fetchone()
         conn.close()
 
-        if res:
-            print(f"DEBUG: Znaleziono! Cena: {res[0]} (Dopasowano do progu Fi: {res[1]}, L: {res[2]})")
-            return float(res[0])
-        else:
-            print(f"DEBUG: BRAK DOPASOWANIA w bazie dla {name} przy Fi {d_val} i L {l_val}")
-            return 0.0
+        return float(res[0]) if res else 0.0
     except Exception as e:
         print(f"Błąd bazy (coating): {e}")
         return 0.0

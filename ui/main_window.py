@@ -177,18 +177,16 @@ class OstrzomatApp(ctk.CTk):
 
     def clear_cart(self):
         """Czyści cały koszyk."""
-        def execute_clear():
-            self.cart_items = []
-            self.refresh_cart_ui()
-            database.save_cart_to_file([], "Nieokreślony klient")
-            OstrzomatPopup(self, title="Koszyk wyczyszczony", message="Koszyk został opróżniony.", type="info")
-
         OstrzomatPopup(
             self,
             title="Czyszczenie koszyka",
             message="Czy na pewno chcesz bezpowrotnie wyczyścić cały koszyk?",
             type="confirm",
-            on_confirm=execute_clear
+            on_confirm=lambda: [
+                setattr(self, 'cart_items', []),
+                self.refresh_cart_ui(),
+                database.save_cart_to_file([], "Nieokreślony klient")
+            ]
         )
 
     def open_price_editor(self):
