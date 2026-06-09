@@ -11,6 +11,7 @@ class FrezModule(ctk.CTkFrame):
         
         f_bold = ("Arial", 12, "bold")
         f_price = ("Arial", 11, "italic")
+        f_normal = ("Arial", 11, "italic")
         px = 20  # padding boczny
         py_small = (0, 5) # mniejszy odstęp pionowy
         
@@ -69,28 +70,47 @@ class FrezModule(ctk.CTkFrame):
             "ciecie": ctk.BooleanVar(),
             "opuszczenie": ctk.BooleanVar(),
             "polerowanie": ctk.BooleanVar(),
-            "zuzycie": ctk.BooleanVar()  
+            "zuzycie": ctk.BooleanVar()
         }
         self.service_price_labels = {}
         
-        service_names = {
-            "ciecie": "Cięcie",
-            "opuszczenie": "Zaniżenie",
-            "polerowanie": "Polerowanie",
-            "zuzycie": "Mocne zużycie (+5% do ostrzenia)"  
-        }
+        # Nowa zmienna przechowująca mnożnik zaniżenia średnicy (domyślnie 1)
+        self.opuszczenie_mult = 1
 
-        for key, label_text in service_names.items():
-            row = ctk.CTkFrame(self, fg_color="transparent")
-            row.pack(fill="x", padx=px+10, pady=1)
-            
-            cb = ctk.CTkCheckBox(row, text=label_text, variable=self.service_vars[key], command=self.update_callback)
+        # Generowanie widgetów
+        services_info = [
+            ("ciecie", "Cięcie narzędzia (skracanie)"),
+            ("opuszczenie", "Zaniżenie średnicy (szyjka)"),
+            ("polerowanie", "Polerowanie rowka wiórowego"),
+            ("zuzycie", "Ciężkie zużycie / wyszczerbienia (+5% do ostrzenia)")
+        ]
+
+        for key, text in services_info:
+            # Tworzymy główną poziomą linię dla każdej usługi
+            row_frame = ctk.CTkFrame(self, fg_color="transparent")
+            row_frame.pack(fill="x", padx=20, pady=2, anchor="w")
+
+            cb = ctk.CTkCheckBox(row_frame, text=text, variable=self.service_vars[key], command=self._on_service_toggle, font=f_normal)
             cb.pack(side="left")
-            
-            # Etykieta na cenę po prawej
-            p_lbl = ctk.CTkLabel(row, text="", font=f_price, text_color="#aaa")
-            p_lbl.pack(side="right", padx=20)
-            self.service_price_labels[key] = p_lbl
+
+            # SPECJALNY ELEMENT DLA ZANIŻENIA: Przyciski sterujące mnożnikiem
+            if key == "opuszczenie":
+                self.mult_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
+                # Domyślnie ukryte, pojawi się dopiero po zaznaczeniu checkboxa
+                
+                btn_minus = ctk.CTkButton(self.mult_frame, text="-", width=20, height=20, fg_color="#444", hover_color="#555", command=lambda: self._change_multiplier(-1))
+                btn_minus.pack(side="left", padx=2)
+                
+                self.lbl_mult_val = ctk.CTkLabel(self.mult_frame, text="10 mm (x1)", font=("Arial", 11, "bold"), text_color="#e67e22", width=70)
+                self.lbl_mult_val.pack(side="left", padx=5)
+                
+                btn_plus = ctk.CTkButton(self.mult_frame, text="+", width=20, height=20, fg_color="#444", hover_color="#555", command=lambda: self._change_multiplier(1))
+                btn_plus.pack(side="left", padx=2)
+
+            # Etykieta ceny po prawej stronie
+            lbl_p = ctk.CTkLabel(row_frame, text="", font=f_normal, text_color="#28a745")
+            lbl_p.pack(side="right", padx=5)
+            self.service_price_labels[key] = lbl_p
 
         # --- 6. ILOŚĆ SZTUK ---
         self.add_label("Ilość sztuk:", f_bold)
@@ -164,26 +184,27 @@ class FrezModule(ctk.CTkFrame):
                 if not self.validate_all(diam, blades, qty):
                     return None
             
-            # Odczytujemy flagę zużycia i przekazujemy do logic
             heavy_wear_active = self.service_vars["zuzycie"].get()
             t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, diam, qty, heavy_wear=heavy_wear_active)
-            
             c_j, c_r = cart_logic.calculate_coating_price(coat, diam, coat_len, qty)
-            e_j_total, e_r_total, _ = cart_logic.calculate_extra_services(self.service_vars, diam, qty)
+            
+            # POPRAWKA: Przekazujemy aktualny mnożnik zaniżenia do logiki obliczeniowej
+            e_j_total, e_r_total, active_labels = cart_logic.calculate_extra_services(
+                self.service_vars, diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
+            )
 
             # --- AKTUALIZACJA CEN JEDNOSTKOWYCH PRZY CHECKBOXACH ---
             for key in self.service_vars:
                 if key == "zuzycie":
-                    # Zużycie to procent od ceny bazowej, nie szukamy go w bazie usług dodatkowych
-                    if self.service_vars[key].get():
-                        self.service_price_labels[key].configure(text="+5% do ostrz.")
-                    else:
-                        self.service_price_labels[key].configure(text="")
+                    self.service_price_labels[key].configure(text="+5% do ostrz." if self.service_vars[key].get() else "")
                     continue
 
                 if self.service_vars[key].get():
                     db_name = "Cięcie" if key=="ciecie" else "Zaniżenie średnicy" if key=="opuszczenie" else "Polerowanie rowka"
                     price = database.get_service_price_refined(db_name, float(diam))
+                    # Jeśli to zaniżenie, cena jednostkowa na etykiecie uwzględnia mnożnik mm
+                    if key == "opuszczenie":
+                        price = price * self.opuszczenie_mult
                     self.service_price_labels[key].configure(text=f"+{price:.2f} zł")
                 else:
                     self.service_price_labels[key].configure(text="")
@@ -196,11 +217,33 @@ class FrezModule(ctk.CTkFrame):
             return {
                 "type": t_type, "diam": diam, "z": blades, "qty": qty,
                 "tool_unit": t_j, "total_tool": t_r,
-                "coat_name": coat, "coat_len": coat_len if coat != "Brak" else "-",
+                "coat_name": coat, "coat_len": coat_len,
                 "coat_unit": c_j, "total_coat": c_r,
                 "services_status": {k: v.get() for k, v in self.service_vars.items()},
+                "opuszczenie_mult": self.opuszczenie_mult,  # <--- Zapisujemy mnożnik do słownika koszyka!
                 "extra_unit": e_j_total, "total_extra": e_r_total
             }
         except Exception as e:
             print(f"Error in module: {e}")
             return None
+    
+    def _on_service_toggle(self):
+        """Uruchamiane przy kliknięciu dowolnego checkboxa usług."""
+        # Jeśli zaznaczono zaniżenie narzędzia, pokazujemy panel buttonów + / -
+        if self.service_vars["opuszczenie"].get():
+            self.mult_frame.pack(side="left", padx=15)
+        else:
+            self.mult_frame.pack_forget()
+            self.opuszczenie_mult = 1
+            self.lbl_mult_val.configure(text="10 mm (x1)")
+            
+        self.update_callback()
+    
+    def _change_multiplier(self, delta):
+        """Zmienia krotność zaniżenia o podaną deltę (min. 1)."""
+        new_val = self.opuszczenie_mult + delta
+        if new_val >= 1:
+            self.opuszczenie_mult = new_val
+            mm_text = f"{new_val * 10} mm"
+            self.lbl_mult_val.configure(text=f"{mm_text} (x{new_val})")
+            self.update_callback()

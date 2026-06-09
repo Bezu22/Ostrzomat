@@ -148,7 +148,16 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(6, "+" if is_c else "-", self.font_bold, "#28a745" if is_c else "#555")
 
             is_o = status.get("opuszczenie", False)
-            create_cell_label(7, "+" if is_o else "-", self.font_bold, "#28a745" if is_o else "#555")
+            if is_o:
+                mult = item.get("opuszczenie_mult", 1)
+                # Rysujemy tyle plusów, ile wynosi nasz mnożnik technologiczny (np. 1 -> +, 3 -> +++)
+                text_zan = "+" * mult
+                color_zan = "#28a745" # Zielony dla aktywnych usług dodatkowych
+            else:
+                text_zan = "-"
+                color_zan = "#555"    # Szary dla nieaktywnych usług
+
+            create_cell_label(7, text_zan, self.font_bold, color_zan)
 
             is_p = status.get("polerowanie", False)
             create_cell_label(8, "+" if is_p else "-", self.font_bold, "#28a745" if is_p else "#555")

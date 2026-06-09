@@ -20,29 +20,46 @@ def calculate_tool_price(t_type, blades, diam, qty, heavy_wear=False):
         print(f"Błąd logiki ostrzenia: {e}")
         return 0.0, 0.0
 
-def calculate_extra_services(service_vars, diam, qty):
-    """Oblicza sumę usług dodatkowych (zużycie pomijane, bo nalicza się bezpośrednio do narzędzia)."""
+def calculate_extra_services(services_vars, diam, qty, opuszczenie_multiplier=1):
+    """Oblicza sumaryczną cenę usług dodatkowych z uwzględnieniem mnożnika dla zaniżenia."""
+    import database as database
     try:
         d_val = float(str(diam).replace(',', '.'))
         q_val = int(qty)
-        total_unit = 0.0
-        active_labels = []
-        
-        mapping = {
-            "ciecie": ("Cięcie", "Cięcie"),
-            "opuszczenie": ("Zaniżenie", "Zaniżenie średnicy"),
-            "polerowanie": ("Polerowanie", "Polerowanie rowka")
-        }
-
-        for key, (label, db_name) in mapping.items():
-            if service_vars.get(key) and service_vars[key].get():
-                price = database.get_service_price_refined(db_name, d_val)
-                total_unit += price
-                active_labels.append(label)
-        
-        return total_unit, total_unit * q_val, active_labels
     except:
         return 0.0, 0.0, []
+
+    total_unit = 0.0
+    active_labels = []
+
+    # Mapowanie techniczne nazw z bazy danych
+    name_map = {
+        "ciecie": "Cięcie",
+        "opuszczenie": "Zaniżenie średnicy",
+        "polerowanie": "Polerowanie rowka"
+    }
+
+    for key, var in services_vars.items():
+        if key == "zuzycie":  # Zużycie to dopłata procentowa do ostrzenia, nie usługa stała
+            continue
+            
+        if var.get():
+            db_name = name_map.get(key)
+            if db_name:
+                price = database.get_service_price_refined(db_name, d_val)
+                
+                # Zastosowanie mnożnika wyłącznie dla usługi zaniżenia średnicy
+                if key == "opuszczenie":
+                    price = price * int(opuszczenie_multiplier)
+                    label_suffix = f" (x{opuszczenie_multiplier})" if opuszczenie_multiplier > 1 else ""
+                    active_labels.append(f"{db_name}{label_suffix}")
+                else:
+                    active_labels.append(db_name)
+                    
+                total_unit += price
+
+    total_res = round(total_unit * q_val, 2)
+    return round(total_unit, 2), total_res, active_labels
 
 def calculate_coating_price(coating, diam, length, qty):
     try:

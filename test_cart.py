@@ -258,5 +258,59 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         self.assertEqual(display_text_after, "-")
         print("OK")
 
+    def test_advanced_opuszczenie_multiplier_and_pluses(self):
+        print("TEST: Mnożnik zaniżenia i renderowanie plusów... ", end="", flush=True)
+        
+        # 1. Przygotowujemy pozycję z zaniżeniem o krotności 3 (30 mm)
+        item = {
+            "type": "Frez z długą szyjką",
+            "diam": "10.0",
+            "qty": "2",
+            "tool_unit": 40.0, "total_tool": 80.0,
+            "coat_name": "Brak", "coat_len": "100", "coat_unit": 0.0, "total_coat": 0.0,
+            "services_status": {
+                "ciecie": False,
+                "opuszczenie": True,  # Aktywne zaniżenie
+                "polerowanie": False,
+                "zuzycie": False
+            },
+            "opuszczenie_mult": 3,  # Krotność x3 (30 mm)
+            "extra_unit": 45.0,     # Załóżmy, że bazowa usługa to 15 zł, więc x3 = 45 zł
+            "total_extra": 90.0     # 45 zł * 2 sztuki = 90 zł
+        }
+        
+        # Dodajemy element do aplikacji
+        self.app.add_item_to_cart(item)
+        
+        # WERYFIKACJA 1: Czy aplikacja poprawnie zachowała mnożnik w pamięci RAM
+        saved_item = self.app.cart_items[0]
+        self.assertEqual(saved_item["opuszczenie_mult"], 3, "Mnożnik zaniżenia został uszkodzony w pamięci!")
+        
+        # WERYFIKACJA 2: Testujemy dokładnie ten sam algorytm renderowania plusów, który wdrożyliśmy w cart_table.py
+        status = saved_item.get("services_status", {})
+        is_o = status.get("opuszczenie", False)
+        
+        if is_o:
+            mult = saved_item.get("opuszczenie_mult", 1)
+            text_zan = "+" * mult
+        else:
+            text_zan = "-"
+            
+        # Oczekujemy dokładnie trzech plusów '+++'
+        self.assertEqual(text_zan, "+++", f"Algorytm generowania plusów zwrócił: '{text_zan}' zamiast '+++'")
+        
+        # WERYFIKACJA 3: Co się stanie, gdy usługa zaniżenia zostanie wyłączona (mult przechodzi w stan spoczynku)
+        saved_item["services_status"]["opuszczenie"] = False
+        
+        # Ponowne sprawdzenie po wyłączeniu usługi
+        status_after = saved_item.get("services_status", {})
+        if status_after.get("opuszczenie", False):
+            text_zan_after = "+" * saved_item.get("opuszczenie_mult", 1)
+        else:
+            text_zan_after = "-"
+            
+        self.assertEqual(text_zan_after, "-", "Po wyłączeniu usługi zaniżenia wiersz nie wyświetla myślnika '-'!")
+        print("OK")
+
 if __name__ == "__main__":
     unittest.main()

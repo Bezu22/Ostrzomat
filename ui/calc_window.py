@@ -49,6 +49,17 @@ class ToolCalcWindow(ctk.CTkToplevel):
             if self.edit_mode and self.item_data:
                 self.load_item_data_into_form()
                 
+                # Pobieramy zapisany mnożnik (jeśli brak, to domyślnie 1)
+                saved_mult = self.item_data.get("opuszczenie_mult", 1)
+                self.tool_module.opuszczenie_mult = saved_mult
+                
+                # Aktualizujemy tekst podglądu w okienku kalkulatora (np. 30 mm (x3))
+                if saved_mult > 1:
+                    self.tool_module.lbl_mult_val.configure(text=f"{saved_mult * 10} mm (x{saved_mult})")
+                
+                # Odświeżamy widoczność przycisków + / - w module frezów
+                self.tool_module._on_service_toggle()
+                
             self.update_calculation()
         else:
             ctk.CTkLabel(self.main_scroll, text="Błąd ładowania modułu").pack()

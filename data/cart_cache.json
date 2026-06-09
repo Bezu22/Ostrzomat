@@ -64,8 +64,9 @@
                 "polerowanie": false,
                 "zuzycie": false
             },
-            "extra_unit": 22.0,
-            "total_extra": 44.0,
+            "opuszczenie_mult": 2,
+            "extra_unit": 32.0,
+            "total_extra": 64.0,
             "tool_category": "Frezy",
             "shank_diam": "10",
             "notes": ""
@@ -114,6 +115,30 @@
             "total_extra": 240.0,
             "tool_category": "Frezy",
             "shank_diam": "18",
+            "notes": ""
+        },
+        {
+            "type": "Frez stozkowy",
+            "diam": "10",
+            "z": "4",
+            "qty": "6",
+            "tool_unit": 51.3,
+            "total_tool": 307.8,
+            "coat_name": "Brak",
+            "coat_len": "100.0",
+            "coat_unit": 0.0,
+            "total_coat": 0.0,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": true,
+                "polerowanie": false,
+                "zuzycie": false
+            },
+            "opuszczenie_mult": 2,
+            "extra_unit": 20.0,
+            "total_extra": 120.0,
+            "tool_category": "Frezy",
+            "shank_diam": "10",
             "notes": ""
         }
     ]
