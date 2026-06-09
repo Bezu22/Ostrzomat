@@ -5,6 +5,7 @@ from ui.cart_table import CartTable
 from ui.cart_footer import CartFooter
 from ui.calc_window import ToolCalcWindow
 from ui.price_editor import PriceEditor
+from ui.components import OstrzomatPopup
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
@@ -41,10 +42,11 @@ class OstrzomatApp(ctk.CTk):
             on_save=self.manual_save_cart, 
             on_load=self.manual_load_cart, 
             on_clear=self.clear_cart,
-            on_edit=self.edit_selected_item
+            on_edit=self.edit_selected_item,
+            on_delete=self.delete_selected_item
         )
         self.cart_footer.pack(fill="x", pady=(10, 0))
-
+        
         # --- PRZYCISKI SIDEBAR ---
         self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="➕ DODAJ FREZ", command=lambda: self.open_calc("Frezy"))
         self.btn_frez.pack(pady=20, padx=20, fill="x")
@@ -100,6 +102,39 @@ class OstrzomatApp(ctk.CTk):
             edit_mode=True, 
             item_data=item_data, 
             item_index=selected_idx
+        )
+
+    def delete_selected_item(self):
+        """Weryfikuje zaznaczenie i wywołuje dedykowany popup potwierdzający usuwanie."""
+        selected_idx = self.cart_table.get_selected_index()
+        
+        if selected_idx is None:
+            OstrzomatPopup(
+                self,
+                title="Brak zaznaczenia",
+                message="Proszę wybrać pozycję do usunięcia.",
+                type="error"
+            )
+            return
+            
+        # Wyciągamy dane do komunikatu
+        item = self.cart_items[selected_idx]
+        msg = f"Czy na pewno chcesz usunąć pozycję {selected_idx + 1}?\n({item.get('type')} Ø{item.get('diam')})"
+        
+        # Definiujemy wewnętrzną funkcję, która wykona się TYLKO po kliknięciu przycisku "TAK"
+        def execute_delete():
+            self.cart_items.pop(selected_idx)
+            self.cart_table.selected_idx = None
+            self.refresh_cart_ui()
+            database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
+            
+        # Wywołujemy popup
+        OstrzomatPopup(
+            self,
+            title="Potwierdzenie usunięcia",
+            message=msg,
+            type="confirm",
+            on_confirm=execute_delete  # Przekazujemy funkcję usuwającą!
         )
 
     def update_item_in_cart(self, idx, updated_item):

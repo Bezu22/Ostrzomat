@@ -179,5 +179,42 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         
         print("OK")
 
+    @patch('tkinter.messagebox.askyesno')
+    def test_advanced_delete_and_lp_recalculation(self, mock_askyesno):
+        print(".TEST: Usuwanie pozycji i przeliczanie L.p... ", end="", flush=True)
+        mock_askyesno.return_value = True
+        
+        # Wrzucamy 3 pozycje do koszyka aplikacji
+        p0 = {"type": "Frez Pierwszy", "diam": "8.0", "total_tool": 10.0, "total_coat": 0.0, "total_extra": 0.0}
+        p1 = {"type": "Frez Drugi (Do Usunięcia)", "diam": "10.0", "total_tool": 20.0, "total_coat": 0.0, "total_extra": 0.0}
+        p2 = {"type": "Frez Trzeci", "diam": "12.0", "total_tool": 30.0, "total_coat": 0.0, "total_extra": 0.0}
+        
+        self.app.add_item_to_cart(p0)
+        self.app.add_item_to_cart(p1)
+        self.app.add_item_to_cart(p2)
+        
+        self.assertEqual(len(self.app.cart_items), 3)
+        
+        # Symulujemy kliknięcie na wiersz o indeksie 1 (L.p. 2)
+        self.app.cart_table.selected_idx = 1
+        
+        # Wywołujemy oryginalną, nowo napisaną funkcję usuwania
+        self.app.delete_selected_item()
+        
+        # WERYFIKACJA 1: Koszyk musi mieć teraz długość 2
+        self.assertEqual(len(self.app.cart_items), 2)
+        
+        # WERYFIKACJA 2: Sprawdzamy czy pod indeksem 1 (dawna pozycja 2) znajduje się "Frez Trzeci"
+        # Oznacza to, że po odświeżeniu tabeli dostanie on automatycznie wiersz L.p. 2!
+        self.assertEqual(self.app.cart_items[1]["type"], "Frez Trzeci", "Elementy nie przesunęły się poprawnie w pamięci!")
+        self.assertEqual(self.app.cart_items[0]["type"], "Frez Pierwszy", "Pierwszy element został naruszony!")
+        
+        # WERYFIKACJA 3: Czy stopka poprawnie odliczyła skasowane 20 zł (było 60 zł, ma być 40 zł)
+        footer_text = self.app.cart_footer.total_label.cget("text")
+        extracted_sum = float(footer_text.replace("ŁĄCZNIE DO ZAPŁATY: ", "").replace(" zł", "").strip())
+        self.assertEqual(extracted_sum, 40.00)
+        
+        print("OK")
+
 if __name__ == "__main__":
     unittest.main()
