@@ -54,10 +54,14 @@ class FrezModule(ctk.CTkFrame):
         self.coat_combo.configure(state="readonly")
         self.coat_combo.pack(pady=py_small, padx=px, anchor="w")
 
-        # Dynamiczne pola długości (ukryte domyślnie)
         self.len_label = ctk.CTkLabel(self, text="Długość (L):", font=f_bold)
+        self.len_label.pack(pady=(5,0), padx=20, anchor="w")
+
         self.len_combo = ctk.CTkComboBox(self, width=300, values=[], command=self.update_callback)
         self.len_combo.configure(state="readonly")
+        self.len_combo.pack(pady=(0,10), padx=20, anchor="w")
+
+        self.on_coating_change()
 
         # --- 5. USŁUGI DODATKOWE (Rozbudowane o zużycie) ---
         self.add_label("Usługi dodatkowe:", f_bold)
@@ -65,7 +69,7 @@ class FrezModule(ctk.CTkFrame):
             "ciecie": ctk.BooleanVar(),
             "opuszczenie": ctk.BooleanVar(),
             "polerowanie": ctk.BooleanVar(),
-            "zuzycie": ctk.BooleanVar()  # <--- NOWA ZMIENNA
+            "zuzycie": ctk.BooleanVar()  
         }
         self.service_price_labels = {}
         
@@ -73,7 +77,7 @@ class FrezModule(ctk.CTkFrame):
             "ciecie": "Cięcie",
             "opuszczenie": "Zaniżenie",
             "polerowanie": "Polerowanie",
-            "zuzycie": "Mocne zużycie (+5% do ostrzenia)"  # <--- NOWY CHECKBOX
+            "zuzycie": "Mocne zużycie (+5% do ostrzenia)"  
         }
 
         for key, label_text in service_names.items():
@@ -119,17 +123,20 @@ class FrezModule(ctk.CTkFrame):
         self.update_callback()
 
     def on_coating_change(self, _=None):
+        """Aktualizuje wartości w liście rozwijanej długości z bazy danych."""
         selected = self.coat_combo.get()
-        self.len_label.pack_forget()
-        self.len_combo.pack_forget()
         
-        if selected != "Brak":
-            lengths = database.get_unique_coating_lengths(selected)
-            if lengths:
-                self.len_combo.configure(values=lengths)
-                self.len_combo.set(lengths[0])
-                self.len_label.pack(pady=(5,0), padx=20, anchor="w", after=self.coat_combo)
-                self.len_combo.pack(pady=(0,10), padx=20, anchor="w", after=self.len_label)
+        # Pobieramy długości z poprawionej funkcji w bazie danych
+        lengths = database.get_unique_coating_lengths(selected)
+        
+        # Jeśli baza danych zwróci kompletną pustkę (co oznacza fizyczny brak rekordów w tabeli SQL)
+        if not lengths:
+            raise ValueError(f"Błąd krytyczny bazy danych: Brak jakichkolwiek długości technologicznych w tabeli pricelist_coatings.")
+
+        # Ładujemy wartości do comboboxa
+        self.len_combo.configure(values=lengths)
+        # Wybieramy domyślnie pierwszą pozycję z tabeli
+        self.len_combo.set(lengths[0])
         
         self.update_callback()
 
@@ -151,7 +158,7 @@ class FrezModule(ctk.CTkFrame):
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
             coat = self.coat_combo.get()
-            coat_len = self.len_combo.get() if (coat != "Brak" and hasattr(self, 'len_combo')) else "100"
+            coat_len = self.len_combo.get() if hasattr(self, 'len_combo') else "100"
 
             if run_validation:
                 if not self.validate_all(diam, blades, qty):

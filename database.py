@@ -94,16 +94,25 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         return 0.0
 
 def get_unique_coating_lengths(coating_name):
-    """Pobiera dostępne długości dla konkretnej powłoki."""
-    if not is_db_accessible() or coating_name == "Brak": return []
+    """Pobiera dostępne długości dla konkretnej powłoki lub wszystkie dostępne, gdy brak powłoki."""
+    if not is_db_accessible(): 
+        return []
+        
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
+        
+        # Jeśli powłoka to "Brak" lub None, pobieramy po prostu wszystkie unikalne długości z cennika
+        if coating_name == "Brak" or coating_name is None:
+            cursor.execute("SELECT DISTINCT length FROM pricelist_coatings ORDER BY length ASC")
+        else:
+            cursor.execute("SELECT DISTINCT length FROM pricelist_coatings WHERE coating_name=? ORDER BY length ASC", (coating_name,))
+            
         lengths = [str(r[0]) for r in cursor.fetchall()]
         conn.close()
         return lengths
-    except: return []
+    except: 
+        return []
 
 def get_coating_price(name, diam, length):
     if not is_db_accessible() or name == "Brak": return 0.0
