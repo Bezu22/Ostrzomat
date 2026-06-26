@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import messagebox, filedialog
+from tkinter import filedialog
 import database as database
 from ui.cart_table import CartTable
 from ui.cart_footer import CartFooter
@@ -7,11 +7,14 @@ from ui.calc_window import ToolCalcWindow
 from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
 from ui.notes_window import NotesWindow
+from ui.style import AppStyle  # Integracja z systemem stylów
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
+        AppStyle.configure_app_theme() # WYMUSZENIE CIEMNEGO MOTYWU PRZED INICJALIZACJĄ INTERFEJSU
         super().__init__()
         self.title("Ostrzomat v0.2")
+        
         
         # Uruchamianie na pełnym ekranie
         self.minsize(1450, 800)
@@ -22,22 +25,22 @@ class OstrzomatApp(ctk.CTk):
 
         # --- UKŁAD GŁÓWNY ---
         self.sidebar_frame = ctk.CTkFrame(self, width=200)
-        self.sidebar_frame.pack(side="left", fill="y", padx=10, pady=10)
+        self.sidebar_frame.pack(side="left", fill="y", padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
 
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.content_frame.pack(side="right", fill="both", expand=True, padx=10, pady=10)
+        self.content_frame.pack(side="right", fill="both", expand=True, padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
 
         # 1. Nagłówek Klienta
         self.client_frame = ctk.CTkFrame(self.content_frame, height=60)
         self.client_frame.pack(fill="x", pady=(0, 10))
-        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=("Arial", 16, "bold"))
-        self.client_name.pack(side="left", padx=20, pady=15)
+        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=(AppStyle.FONT_FAMILY, int(AppStyle.BASE_FONT_SIZE * 1.3), "bold"))
+        self.client_name.pack(side="left", padx=AppStyle.PAD_LARGE, pady=15)
 
         # 2. Tabela 
         self.cart_table = CartTable(self.content_frame)
         self.cart_table.pack(fill="both", expand=True)
 
-        # 3. Stopka (Przekazujemy self.edit_selected_item jako on_edit)
+        # 3. Stopka
         self.cart_footer = CartFooter(
             self.content_frame, 
             on_save=self.manual_save_cart, 
@@ -49,10 +52,10 @@ class OstrzomatApp(ctk.CTk):
         self.cart_footer.pack(fill="x", pady=(10, 0))
         
         # --- PRZYCISKI SIDEBAR ---
-        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="➕ DODAJ FREZ", command=lambda: self.open_calc("Frezy"))
+        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="➕ DODAJ FREZ", font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_PRIMARY, command=lambda: self.open_calc("Frezy"))
         self.btn_frez.pack(pady=20, padx=20, fill="x")
 
-        self.edit_price_btn = ctk.CTkButton(self.sidebar_frame, text="⚙ CENNIK", fg_color="#444", command=self.open_price_editor)
+        self.edit_price_btn = ctk.CTkButton(self.sidebar_frame, text="⚙ CENNIK", font=AppStyle.get_bold_font(), fg_color="#444", command=self.open_price_editor)
         self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
 
         # Wczytanie cache przy starcie
@@ -69,7 +72,6 @@ class OstrzomatApp(ctk.CTk):
         """Aktualizuje tabelę i stopkę."""
         self.cart_table.refresh(self.cart_items)
         
-        # Obliczanie sumy całkowitej
         total = 0.0
         for item in self.cart_items:
             def clean_val(k):
@@ -80,13 +82,11 @@ class OstrzomatApp(ctk.CTk):
         self.cart_footer.update_total(total)
 
     def add_item_to_cart(self, item):
-        """Publiczna metoda dla okien potomnych (np. CalcWindow)."""
         self.cart_items.append(item)
         self.refresh_cart_ui()
         database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
 
     def edit_selected_item(self):
-        """Sprawdza czy wybrano pozycję z tabeli i otwiera kalkulator w trybie edycji."""
         selected_idx = self.cart_table.get_selected_index()
         
         if selected_idx is None:
@@ -109,7 +109,6 @@ class OstrzomatApp(ctk.CTk):
         )
 
     def delete_selected_item(self):
-        """Weryfikuje zaznaczenie i wywołuje dedykowany popup potwierdzający usuwanie."""
         selected_idx = self.cart_table.get_selected_index()
         
         if selected_idx is None:
@@ -121,18 +120,15 @@ class OstrzomatApp(ctk.CTk):
             )
             return
             
-        # Wyciągamy dane do komunikatu
         item = self.cart_items[selected_idx]
         msg = f"Czy na pewno chcesz usunąć pozycję {selected_idx + 1}?\n({item.get('type')} Ø{item.get('diam')})"
         
-        # Definiujemy wewnętrzną funkcję, która wykona się TYLKO po kliknięciu przycisku "TAK"
         def execute_delete():
             self.cart_items.pop(selected_idx)
             self.cart_table.selected_idx = None
             self.refresh_cart_ui()
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
             
-        # Wywołujemy popup
         OstrzomatPopup(
             self,
             title="Potwierdzenie usunięcia",
@@ -142,14 +138,12 @@ class OstrzomatApp(ctk.CTk):
         )
 
     def update_item_in_cart(self, idx, updated_item):
-        """Aktualizuje istniejącą pozycję w koszyku pod konkretnym indeksem."""
         if 0 <= idx < len(self.cart_items):
             self.cart_items[idx] = updated_item
             self.refresh_cart_ui()
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
 
     def manual_save_cart(self):
-        """Manualny zapis koszyka do pliku JSON."""
         path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"), path)
@@ -160,7 +154,6 @@ class OstrzomatApp(ctk.CTk):
                 type="success")
 
     def manual_load_cart(self):
-        """Pozwala załadowac plik JSON z zapisanym koszykiem."""
         path = filedialog.askopenfilename(filetypes=[("Projekt Ostrzomat", "*.json")], initialdir="data")
         if path:
             client, items = database.load_cart_from_file(path)
@@ -176,7 +169,6 @@ class OstrzomatApp(ctk.CTk):
             )
 
     def clear_cart(self):
-        """Czyści cały koszyk."""
         OstrzomatPopup(
             self,
             title="Czyszczenie koszyka",
@@ -198,7 +190,6 @@ class OstrzomatApp(ctk.CTk):
         ToolCalcWindow(self, category)
 
     def open_notes_editor(self):
-        """Otwiera dedykowane okno zarządzania uwagami dla podświetlonego wiersza."""
         selected_idx = self.cart_table.get_selected_index()
         if selected_idx is None:
             return
@@ -206,17 +197,12 @@ class OstrzomatApp(ctk.CTk):
         current_item = self.cart_items[selected_idx]
         current_notes = current_item.get("notes", "")
         
-        # Definiujemy callback zapisu
         def save_notes_callback(new_text):
-            # Nadpisujemy wyłącznie pole uwag w wybranym elemencie
             self.cart_items[selected_idx]["notes"] = new_text
-            # Odświeżamy UI i automatycznie zapisujemy zmiany w pliku cache JSON
             self.refresh_cart_ui()
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
             
-            # Wyświetlamy nasz popup z sukcesem
             from ui.components import OstrzomatPopup
             OstrzomatPopup(self, title="Sukces", message="Uwaga została pomyślnie zaktualizowana!", type="success")
             
-        # Otwieramy okno uwag
         NotesWindow(self, current_notes, save_notes_callback)
