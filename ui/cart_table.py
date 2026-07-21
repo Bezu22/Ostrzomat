@@ -163,17 +163,34 @@ class CartTable(ctk.CTkFrame):
             else:
                 short_notes_text = full_notes_text if full_notes_text else "-"
 
+            # --- TWORZENIE ETYKIETY UWAG Z EFEKTEM HOVER ---
             lbl_notes = ctk.CTkLabel(
                 row, 
                 text=short_notes_text, 
                 anchor="center", 
-                wraplength=self.cols[17][1]-5, 
+                wraplength=self.cols[17][1] - 5, 
                 justify="center", 
                 text_color=AppStyle.COLOR_WARNING if full_notes_text else AppStyle.COLOR_TEXT_MUTED,
-                font=self.font_normal
+                font=self.font_normal,
+                cursor="hand2"  # Zmiana kursora na rączkę po najechaniu
             )
             
+            # Rejestracja funkcji obsługujących najechanie i opuszczenie kursora
+            def _on_enter(event, label=lbl_notes, has_text=bool(full_notes_text)):
+                # Zwiększamy wyrazistość tekstu po najechaniu myszką
+                hover_color = AppStyle.COLOR_WARNING_HOVER if has_text else AppStyle.COLOR_TEXT_LIGHT
+                label.configure(text_color=hover_color)
+
+            def _on_leave(event, label=lbl_notes, has_text=bool(full_notes_text)):
+                # Przywracamy bazowy kolor tekstu po zjechaniu myszką
+                original_color = AppStyle.COLOR_WARNING if has_text else AppStyle.COLOR_TEXT_MUTED
+                label.configure(text_color=original_color)
+
+            # Podpięcie zdarzeń myszy do etykiety
+            lbl_notes.bind("<Enter>", _on_enter)
+            lbl_notes.bind("<Leave>", _on_leave)
             lbl_notes.bind("<Button-1>", lambda event, i=idx: self._handle_notes_click(i))
+            
             lbl_notes.grid(row=0, column=17, padx=2, pady=5, sticky="ew")
 
         self.update_row_backgrounds()
