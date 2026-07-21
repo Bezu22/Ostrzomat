@@ -272,10 +272,11 @@ def save_user_settings(new_settings):
 
 # --- ZARZĄDZANIE KOSZYKIEM (CART) ---
 
-def save_cart_to_file(cart_items, client_name="Nieokreślony", path=CART_CACHE_PATH):
-    """Zapisuje koszyk i klienta do JSON."""
+def save_cart_to_file(cart_items, client_id=None, client_name="Nieokreślony", path=CART_CACHE_PATH):
+    """Zapisuje koszyk, ID klienta oraz jego nazwę do JSON."""
     data = {
-        "client": client_name,
+        "client_id": client_id,
+        "client_name": client_name,
         "items": cart_items
     }
     try:
@@ -286,12 +287,23 @@ def save_cart_to_file(cart_items, client_name="Nieokreślony", path=CART_CACHE_P
         print(f"Błąd zapisu koszyka: {e}")
 
 def load_cart_from_file(path=CART_CACHE_PATH):
-    """Wczytuje koszyk. Zawsze zwraca (client_name, items)."""
+    """
+    Wczytuje koszyk. Zawsze zwraca słownik: 
+    {"client_id": ID, "client_name": Name, "items": [...]}
+    """
+    default_res = {"client_id": None, "client_name": "Nieokreślony", "items": []}
     if not os.path.exists(path):
-        return "Nieokreślony", []
+        return default_res
     try:
         with open(path, 'r', encoding='utf-8') as f:
             data = json.load(f)
-            return data.get("client", "Nieokreślony"), data.get("items", [])
+            # Obsługa struktur obecnych oraz starszych (kompatybilność)
+            if isinstance(data, dict):
+                return {
+                    "client_id": data.get("client_id", None),
+                    "client_name": data.get("client_name", data.get("client", "Nieokreślony")),
+                    "items": data.get("items", [])
+                }
+            return default_res
     except:
-        return "Nieokreślony", []
+        return default_res
