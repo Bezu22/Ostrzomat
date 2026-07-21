@@ -1,83 +1,128 @@
 import customtkinter as ctk
-from ui.style import AppStyle  # Integracja ze stylami
+from ui.style import AppStyle
 
 class CartFooter(ctk.CTkFrame):
-    def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete):
-        super().__init__(parent, height=140)
+    def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete, on_export_pdf=None, on_export_docx=None):
+        super().__init__(parent, fg_color=AppStyle.COLOR_HEADER_BG, height=85, corner_radius=8)
         
-        # Prawa strona: Suma całkowita (skaluje font w oparciu o BASE_FONT_SIZE)
-        self.total_label = ctk.CTkLabel(
-            self, 
-            text="ŁĄCZNIE DO ZAPŁATY: 0.00 zł", 
-            font=(AppStyle.FONT_FAMILY, int(AppStyle.BASE_FONT_SIZE * 2), "bold"), 
-            text_color=AppStyle.COLOR_SUCCESS
-        )
-        self.total_label.pack(side="right", padx=50, pady=30)
+        self.on_save = on_save
+        self.on_load = on_load
+        self.on_clear = on_clear
+        self.on_edit = on_edit
+        self.on_delete = on_delete
+        self.on_export_pdf = on_export_pdf
+        self.on_export_docx = on_export_docx
 
-        # Lewa strona: Główny kontener na przyciski akcji
-        self.actions_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.actions_container.pack(side="left", padx=AppStyle.PAD_LARGE, pady=AppStyle.PAD_MEDIUM, fill="y")
+        self._build_ui()
 
-        # --- KOLUMNA 1: Akcje Globalne (Zapis, Odczyt, Czyszczenie całości) ---
-        self.col_global = ctk.CTkFrame(self.actions_container, fg_color="transparent")
-        self.col_global.pack(side="left", padx=AppStyle.PAD_MEDIUM, fill="y")
+    def _build_ui(self):
+        # ----------------------------------------------------------------------
+        # LEWA STRONA: PRZYCISKI W KOLUMNACH (Bez zmian)
+        # ----------------------------------------------------------------------
+        left_container = ctk.CTkFrame(self, fg_color="transparent")
+        left_container.pack(side="left", padx=15, pady=8, fill="y")
 
-        self.btn_save = ctk.CTkButton(
-            self.col_global, 
-            text="💾 ZAPISZ KOSZYK", 
-            command=on_save, 
-            font=AppStyle.get_bold_font(),
-            fg_color=AppStyle.COLOR_PRIMARY, 
-            width=160
-        )
-        self.btn_save.pack(side="top", pady=2, fill="x")
-
-        self.btn_load = ctk.CTkButton(
-            self.col_global, 
-            text="📂 WCZYTAJ KOSZYK", 
-            command=on_load, 
-            font=AppStyle.get_bold_font(),
-            fg_color="#444", 
-            width=160
-        )
-        self.btn_load.pack(side="top", pady=2, fill="x")
-        
-        self.btn_clear = ctk.CTkButton(
-            self.col_global, 
-            text="🗑 WYCZYŚĆ KOSZYK", 
-            command=on_clear, 
-            font=AppStyle.get_bold_font(),
-            fg_color=AppStyle.COLOR_DANGER, 
-            width=160
-        )
-        self.btn_clear.pack(side="top", pady=2, fill="x")
-
-        # --- KOLUMNA 2: Akcje Pozycji (Edycja, Usuwanie pojedynczego wiersza) ---
-        self.col_item = ctk.CTkFrame(self.actions_container, fg_color="transparent")
-        self.col_item.pack(side="left", padx=AppStyle.PAD_MEDIUM, fill="y")
+        # Kolumna 1: Edytuj / Usuń
+        col1 = ctk.CTkFrame(left_container, fg_color="transparent")
+        col1.pack(side="left", padx=(0, 10), fill="y")
 
         self.btn_edit = ctk.CTkButton(
-            self.col_item, 
-            text="✏ EDYTUJ POZYCJĘ", 
-            command=on_edit, 
-            font=AppStyle.get_bold_font(),
-            fg_color=AppStyle.COLOR_WARNING, 
-            hover_color="#d35400",
-            width=160
+            col1, text="✏️ EDYTUJ", width=100, height=30,
+            font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
+            hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_edit
         )
-        self.btn_edit.pack(side="top", pady=2, fill="x")
+        self.btn_edit.pack(side="top", pady=(0, 4))
 
         self.btn_delete = ctk.CTkButton(
-            self.col_item, 
-            text="❌ USUŃ POZYCJĘ", 
-            command=on_delete, 
-            font=AppStyle.get_bold_font(),
-            fg_color="#7f8c8d", 
-            hover_color="#95a5a6",
-            width=160
+            col1, text="🗑️ USUŃ", width=100, height=30,
+            font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_DANGER,
+            hover_color=AppStyle.COLOR_DANGER_HOVER, command=self.on_delete
         )
-        self.btn_delete.pack(side="top", pady=2, fill="x")
+        self.btn_delete.pack(side="top")
 
-    def update_total(self, total_value):
-        """Aktualizuje tekst sumy końcowej."""
-        self.total_label.configure(text=f"ŁĄCZNIE DO ZAPŁATY: {total_value:.2f} zł")
+        # Kolumna 2: Zapisz / Wczytaj z nowymi kolorami
+        col2 = ctk.CTkFrame(left_container, fg_color="transparent")
+        col2.pack(side="left", padx=(0, 10), fill="y")
+
+        btn_save = ctk.CTkButton(
+            col2, text="💾 ZAPISZ", width=100, height=30,
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_SAVE,
+            hover_color=AppStyle.COLOR_SAVE_HOVER,
+            command=self.on_save
+        )
+        btn_save.pack(side="top", pady=(0, 4))
+
+        btn_load = ctk.CTkButton(
+            col2, text="📂 WCZYTAJ", width=100, height=30,
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_LOAD,
+            hover_color=AppStyle.COLOR_LOAD_HOVER,
+            command=self.on_load
+        )
+        btn_load.pack(side="top")
+
+        # Kolumna 3: Wyczyść z nowym kolorem
+        col3 = ctk.CTkFrame(left_container, fg_color="transparent")
+        col3.pack(side="left", fill="y")
+
+        btn_clear = ctk.CTkButton(
+            col3, text="🧹 WYCZYŚĆ", width=100, height=64,
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_CLEAR,
+            hover_color=AppStyle.COLOR_CLEAR_HOVER,
+            command=self.on_clear
+        )
+        btn_clear.pack(side="top")
+
+        # ----------------------------------------------------------------------
+        # PRAWA STRONA: ZIELONY NAPIS + KWOTA W JEDNEJ DOLNEJ LINII
+        # ----------------------------------------------------------------------
+        right_container = ctk.CTkFrame(self, fg_color="transparent")
+        right_container.pack(side="right", padx=15, pady=8, fill="y")
+
+        # Kontener na podsumowanie finansowe
+        total_frame = ctk.CTkFrame(right_container, fg_color="transparent")
+        total_frame.pack(side="left", padx=(0, 15), fill="y")
+
+        # Ramka dolna - wyrównana do dołu (side="bottom"), góra zostaje pusta
+        bottom_row = ctk.CTkFrame(total_frame, fg_color="transparent")
+        bottom_row.pack(side="bottom")
+
+        # 1. Etykieta "RAZEM:"
+        lbl_title = ctk.CTkLabel(
+            bottom_row, text="RAZEM: ",
+            font=AppStyle.get_total_font(), text_color=AppStyle.COLOR_SUCCESS
+        )
+        lbl_title.pack(side="left")
+
+        # 2. Kwota w tej samej linii
+        self.lbl_total = ctk.CTkLabel(
+            bottom_row, text="0.00 zł",
+            font=AppStyle.get_total_font(), text_color=AppStyle.COLOR_SUCCESS
+        )
+        self.lbl_total.pack(side="left")
+
+        # Sekcja przycisków generowania w kolumnie (po prawej stronie kwoty)
+        gen_buttons_frame = ctk.CTkFrame(right_container, fg_color="transparent")
+        gen_buttons_frame.pack(side="right", fill="y")
+
+        if self.on_export_pdf:
+            btn_pdf = ctk.CTkButton(
+                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=30,
+                font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
+                hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_pdf
+            )
+            btn_pdf.pack(side="top", pady=(0, 4))
+
+        if self.on_export_docx:
+            btn_docx = ctk.CTkButton(
+                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=30,
+                font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
+                hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_docx
+            )
+            btn_docx.pack(side="top")
+
+    def update_total(self, total_val: float):
+        """Aktualizuje cenę całkowitą."""
+        self.lbl_total.configure(text=f"{total_val:.2f} zł")

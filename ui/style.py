@@ -115,6 +115,16 @@ class AppStyle:
     PAD_MEDIUM = 10
     PAD_LARGE = 15
 
+    # -- przyciski dolne menu
+    COLOR_SAVE = "#2B5B84"           # Elegancki niebieski dla ZAPISZ
+    COLOR_SAVE_HOVER = "#1E405D"
+
+    COLOR_LOAD = "#D97706"           # Bursztynowy/Pomarańczowy dla WCZYTAJ
+    COLOR_LOAD_HOVER = "#B45309"
+
+    COLOR_CLEAR = "#4B5563"          # Ciemnoszary dla WYCZYŚĆ
+    COLOR_CLEAR_HOVER = "#374151"
+
     # --- 4. STYLE WIDŻETÓW (POMOCNICZE SŁOWNIKI) ---
     @classmethod
     def get_entry_style(cls):

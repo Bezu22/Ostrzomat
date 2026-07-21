@@ -11,6 +11,8 @@ from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
 from ui.notes_window import NotesWindow
 from ui.style import AppStyle
+from tkinter import filedialog
+import utils.document_exporter as exporter
 
 
 class OstrzomatApp(ctk.CTk):
@@ -73,7 +75,9 @@ class OstrzomatApp(ctk.CTk):
             on_load=self.manual_load_cart,
             on_clear=self.clear_cart,
             on_edit=self.edit_selected_item,
-            on_delete=self.delete_selected_item
+            on_delete=self.delete_selected_item,
+            on_export_pdf=self.export_to_pdf,
+            on_export_docx=self.export_to_docx
         )
         self.cart_footer.pack(fill="x", pady=(10, 0))
 
@@ -270,3 +274,41 @@ class OstrzomatApp(ctk.CTk):
             OstrzomatPopup(self, title="Sukces", message="Uwaga została pomyślnie zaktualizowana!", type="success")
 
         NotesWindow(self, current_notes, save_notes_callback)
+
+    def export_to_pdf(self):
+        if not self.cart_items:
+            OstrzomatPopup(self, title="Brak danych", message="Koszyk jest pusty!", type="error")
+            return
+
+        path = filedialog.asksaveasfilename(
+            defaultextension=".pdf",
+            filetypes=[("Plik PDF", "*.pdf")],
+            initialfile=f"Wycena_Klient_{self.current_client_id or 0}.pdf"
+        )
+        if path:
+            try:
+                client_info = exporter.fetch_client_data(self.current_client_id)
+                cart_data = {"items": self.cart_items}
+                exporter.generate_pdf(cart_data, client_info, path)
+                OstrzomatPopup(self, title="Sukces", message="Pomyślnie wygenerowano plik PDF!", type="success")
+            except Exception as e:
+                OstrzomatPopup(self, title="Błąd", message=f"Błąd generowania PDF:\n{e}", type="error")
+
+    def export_to_docx(self):
+        if not self.cart_items:
+            OstrzomatPopup(self, title="Brak danych", message="Koszyk jest pusty!", type="error")
+            return
+
+        path = filedialog.asksaveasfilename(
+            defaultextension=".docx",
+            filetypes=[("Dokument Word", "*.docx")],
+            initialfile=f"Wycena_Klient_{self.current_client_id or 0}.docx"
+        )
+        if path:
+            try:
+                client_info = exporter.fetch_client_data(self.current_client_id)
+                cart_data = {"items": self.cart_items}
+                exporter.generate_docx(cart_data, client_info, path)
+                OstrzomatPopup(self, title="Sukces", message="Pomyślnie wygenerowano plik MS Word!", type="success")
+            except Exception as e:
+                OstrzomatPopup(self, title="Błąd", message=f"Błąd generowania DOCX:\n{e}", type="error")

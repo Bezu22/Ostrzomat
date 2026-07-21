@@ -23,7 +23,7 @@
             "total_extra": 0.0,
             "tool_category": "Frezy",
             "shank_diam": "10",
-            "notes": "Musimy upewnić się, że podczas zapisu zmian w trybie edycji, program w calc_window.py najpierw sprawdzi, czy edytowana pozycja miała już jakąś uwagę, i przepisze ją do nowego słownika, zanim ten wyląduje w koszyku."
+            "notes": "to jest uwaga testowa, krótka ale ma polskie znaki"
         },
         {
             "type": "Frez prosty",
