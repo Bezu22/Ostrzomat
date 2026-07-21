@@ -1,5 +1,5 @@
 import customtkinter as ctk
-from tkinter import filedialog
+from tkinter import messagebox, filedialog
 import database as database
 from ui.cart_table import CartTable
 from ui.cart_footer import CartFooter
@@ -7,34 +7,33 @@ from ui.calc_window import ToolCalcWindow
 from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
 from ui.notes_window import NotesWindow
-from ui.style import AppStyle  # Integracja z systemem stylów
+from ui.style import Style
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
-        AppStyle.configure_app_theme() # WYMUSZENIE CIEMNEGO MOTYWU PRZED INICJALIZACJĄ INTERFEJSU
         super().__init__()
+        
+        # Wymuszenie globalnego motywu
+        Style.apply_theme()
+        
         self.title("Ostrzomat v0.2")
-        
-        
-        # Uruchamianie na pełnym ekranie
         self.minsize(1450, 800)
         self.after(0, lambda: self.state('zoomed'))
 
-        # Dane aplikacji
         self.cart_items = []
 
         # --- UKŁAD GŁÓWNY ---
         self.sidebar_frame = ctk.CTkFrame(self, width=200)
-        self.sidebar_frame.pack(side="left", fill="y", padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
+        self.sidebar_frame.pack(side="left", fill="y", padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.content_frame.pack(side="right", fill="both", expand=True, padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
+        self.content_frame.pack(side="right", fill="both", expand=True, padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
         # 1. Nagłówek Klienta
         self.client_frame = ctk.CTkFrame(self.content_frame, height=60)
-        self.client_frame.pack(fill="x", pady=(0, 10))
-        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=(AppStyle.FONT_FAMILY, int(AppStyle.BASE_FONT_SIZE * 1.3), "bold"))
-        self.client_name.pack(side="left", padx=AppStyle.PAD_LARGE, pady=15)
+        self.client_frame.pack(fill="x", pady=(0, Style.PAD_MEDIUM))
+        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=Style.FONT_TITLE)
+        self.client_name.pack(side="left", padx=Style.PAD_LARGE, pady=15)
 
         # 2. Tabela 
         self.cart_table = CartTable(self.content_frame)
@@ -49,27 +48,38 @@ class OstrzomatApp(ctk.CTk):
             on_edit=self.edit_selected_item,
             on_delete=self.delete_selected_item
         )
-        self.cart_footer.pack(fill="x", pady=(10, 0))
+        self.cart_footer.pack(fill="x", pady=(Style.PAD_MEDIUM, 0))
         
         # --- PRZYCISKI SIDEBAR ---
-        self.btn_frez = ctk.CTkButton(self.sidebar_frame, text="➕ DODAJ FREZ", font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_PRIMARY, command=lambda: self.open_calc("Frezy"))
-        self.btn_frez.pack(pady=20, padx=20, fill="x")
+        self.btn_frez = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="➕ DODAJ FREZ", 
+            font=Style.FONT_BOLD,
+            fg_color=Style.COLOR_PRIMARY,
+            hover_color=Style.COLOR_PRIMARY_HOVER,
+            command=lambda: self.open_calc("Frezy")
+        )
+        self.btn_frez.pack(pady=Style.PAD_LARGE, padx=Style.PAD_LARGE, fill="x")
 
-        self.edit_price_btn = ctk.CTkButton(self.sidebar_frame, text="⚙ CENNIK", font=AppStyle.get_bold_font(), fg_color="#444", command=self.open_price_editor)
-        self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
+        self.edit_price_btn = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="⚙ CENNIK", 
+            font=Style.FONT_BOLD,
+            fg_color=Style.COLOR_SECONDARY, 
+            hover_color=Style.COLOR_SECONDARY_HOVER,
+            command=self.open_price_editor
+        )
+        self.edit_price_btn.pack(side="bottom", fill="x", padx=Style.PAD_LARGE, pady=Style.PAD_LARGE)
 
-        # Wczytanie cache przy starcie
         self.load_initial_data()
 
     def load_initial_data(self):
-        """Ładowanie danych z ostatniej sesji."""
         client_cache, items_cache = database.load_cart_from_file() 
         self.cart_items = items_cache 
         self.client_name.configure(text=client_cache)
         self.refresh_cart_ui()
 
     def refresh_cart_ui(self):
-        """Aktualizuje tabelę i stopkę."""
         self.cart_table.refresh(self.cart_items)
         
         total = 0.0
@@ -202,7 +212,6 @@ class OstrzomatApp(ctk.CTk):
             self.refresh_cart_ui()
             database.save_cart_to_file(self.cart_items, self.client_name.cget("text"))
             
-            from ui.components import OstrzomatPopup
             OstrzomatPopup(self, title="Sukces", message="Uwaga została pomyślnie zaktualizowana!", type="success")
             
         NotesWindow(self, current_notes, save_notes_callback)

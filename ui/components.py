@@ -1,28 +1,31 @@
 import customtkinter as ctk
+from ui.style import Style
 
 class OstrzomatPopup(ctk.CTkToplevel):
-    # DODAJEMY parametr on_confirm na samym końcu konstruktora
     def __init__(self, parent, title, message, type="info", on_confirm=None):
         super().__init__(parent)
         self.parent = parent
         self.type = type
-        self.on_confirm = on_confirm # Zapisujemy funkcję do wykonania po zatwierdzeniu
+        self.on_confirm = on_confirm
         
         self.title(title)
         
-        # Określanie koloru ramki w zależności od typu
+        # Kolorystyka i ramka z pliku Style
         if type == "error":
-            border_color = "#c0392b"  # Czerwony
+            border_color = Style.COLOR_DANGER
         elif type == "success":
-            border_color = "#28a745"  # Zielony
+            border_color = Style.COLOR_SUCCESS
         elif type == "confirm":
-            border_color = "#e67e22"  # Pomarańczowy dla ostrzeżeń/potwierdzeń
+            border_color = Style.COLOR_WARNING
         else:
-            border_color = "#1f538d"  # Niebieski (standard)
+            border_color = Style.COLOR_PRIMARY
             
-        self.configure(fg_color="#1a1a1a", highlightbackground=border_color, highlightthickness=2)
+        self.configure(
+            fg_color=Style.COLOR_BG_DARK, 
+            highlightbackground=border_color, 
+            highlightthickness=Style.BORDER_WIDTH
+        )
         
-        # Centrowanie okna popupu
         width, height = 400, 180
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
@@ -32,30 +35,48 @@ class OstrzomatPopup(ctk.CTkToplevel):
         self.grab_set()
         self.resizable(False, False)
         
-        # Układ wiadomości
-        self.msg_label = ctk.CTkLabel(self, text=message, font=("Arial", 13), wraplength=360, justify="center")
-        self.msg_label.pack(expand=True, padx=20, pady=(20, 10))
+        self.msg_label = ctk.CTkLabel(
+            self, 
+            text=message, 
+            font=Style.FONT_NORMAL, 
+            wraplength=360, 
+            justify="center"
+        )
+        self.msg_label.pack(expand=True, padx=Style.PAD_LARGE, pady=(Style.PAD_LARGE, Style.PAD_MEDIUM))
         
-        # --- SEKCJA PRZYCISKÓW (DYNAMICZNA) ---
         if self.type == "confirm":
-            # Tworzymy kontener na dwa przyciski obok siebie
             btn_frame = ctk.CTkFrame(self, fg_color="transparent")
-            btn_frame.pack(side="bottom", fill="x", padx=20, pady=15)
+            btn_frame.pack(side="bottom", fill="x", padx=Style.PAD_LARGE, pady=15)
             
-            # Przycisk TAK (Uruchamia on_confirm i zamyka popup)
-            self.btn_yes = ctk.CTkButton(btn_frame, text="TAK", fg_color="#28a745", hover_color="#218838", width=160, command=self._action_confirm)
-            self.btn_yes.pack(side="left", padx=5, expand=True)
+            self.btn_yes = ctk.CTkButton(
+                btn_frame, 
+                text="TAK", 
+                fg_color=Style.COLOR_SUCCESS, 
+                hover_color=Style.COLOR_SUCCESS_HOVER, 
+                width=160, 
+                command=self._action_confirm
+            )
+            self.btn_yes.pack(side="left", padx=Style.PAD_SMALL, expand=True)
             
-            # Przycisk NIE (Po prostu zamyka popup, anulując akcję)
-            self.btn_no = ctk.CTkButton(btn_frame, text="NIE", fg_color="#c0392b", hover_color="#a93226", width=160, command=self.destroy)
-            self.btn_no.pack(side="right", padx=5, expand=True)
+            self.btn_no = ctk.CTkButton(
+                btn_frame, 
+                text="NIE", 
+                fg_color=Style.COLOR_DANGER, 
+                hover_color=Style.COLOR_DANGER_HOVER, 
+                width=160,  command=self.destroy
+            )
+            self.btn_no.pack(side="right", padx=Style.PAD_SMALL, expand=True)
         else:
-            # Standardowy, pojedynczy przycisk OK dla info/error/success
-            self.btn_ok = ctk.CTkButton(self, text="OK", fg_color=border_color, width=120, command=self.destroy)
+            self.btn_ok = ctk.CTkButton(
+                self, 
+                text="OK", 
+                fg_color=border_color, 
+                width=120, 
+                command=self.destroy
+            )
             self.btn_ok.pack(side="bottom", pady=15)
 
     def _action_confirm(self):
-        """Uruchamia przekazaną akcję i bezpiecznie niszczy okienko popup."""
         if self.on_confirm:
             self.on_confirm()
         self.destroy()

@@ -1,8 +1,8 @@
 import customtkinter as ctk
+from tkinter import messagebox
 import database as database
 from logic import db_editor_logic
-from ui.style import AppStyle  # Integracja z centralnym plikiem stylów
-from ui.components import OstrzomatPopup  # Zamiana messagebox na autorski popup
+from ui.style import Style
 
 class PriceEditor(ctk.CTkToplevel):
     def __init__(self, parent):
@@ -14,39 +14,37 @@ class PriceEditor(ctk.CTkToplevel):
         self.selected_row_data = None
         self.selected_frame = None
 
-        # --- PANEL GÓRNY ---
         self.top_bar = ctk.CTkFrame(self)
-        self.top_bar.pack(fill="x", padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
+        self.top_bar.pack(fill="x", padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
-        ctk.CTkLabel(self.top_bar, text="Kategoria:", font=AppStyle.get_normal_font()).pack(side="left", padx=AppStyle.PAD_SMALL)
-        self.main_cat_combo = ctk.CTkComboBox(self.top_bar, values=["Narzędzia", "Powłoki", "Usługi"], font=AppStyle.get_normal_font(), command=self.on_main_cat_change)
+        ctk.CTkLabel(self.top_bar, text="Kategoria:", font=Style.FONT_NORMAL).pack(side="left", padx=5)
+        self.main_cat_combo = ctk.CTkComboBox(self.top_bar, values=["Narzędzia", "Powłoki", "Usługi"], command=self.on_main_cat_change)
         self.main_cat_combo.set("Narzędzia")
-        self.main_cat_combo.pack(side="left", padx=AppStyle.PAD_SMALL)
+        self.main_cat_combo.pack(side="left", padx=5)
 
-        ctk.CTkLabel(self.top_bar, text="Filtr:", font=AppStyle.get_normal_font()).pack(side="left", padx=AppStyle.PAD_SMALL)
-        self.sub_filter_combo = ctk.CTkComboBox(self.top_bar, values=["Wszystkie"], font=AppStyle.get_normal_font(), command=self.refresh_list)
-        self.sub_filter_combo.pack(side="left", padx=AppStyle.PAD_SMALL)
+        ctk.CTkLabel(self.top_bar, text="Filtr:", font=Style.FONT_NORMAL).pack(side="left", padx=5)
+        self.sub_filter_combo = ctk.CTkComboBox(self.top_bar, values=["Wszystkie"], command=self.refresh_list)
+        self.sub_filter_combo.pack(side="left", padx=5)
 
-        self.btn_edit = ctk.CTkButton(self.top_bar, text="EDYTUJ", state="disabled", font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_WARNING, width=100, command=self.open_edit_form)
-        self.btn_edit.pack(side="left", padx=AppStyle.PAD_MEDIUM)
+        self.btn_edit = ctk.CTkButton(self.top_bar, text="EDYTUJ", state="disabled", width=100, command=self.open_edit_form)
+        self.btn_edit.pack(side="left", padx=10)
 
-        self.btn_delete = ctk.CTkButton(self.top_bar, text="USUŃ", state="disabled", font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_DANGER, width=100, command=self.delete_action)
-        self.btn_delete.pack(side="left", padx=AppStyle.PAD_SMALL)
+        self.btn_delete = ctk.CTkButton(self.top_bar, text="USUŃ", state="disabled", fg_color=Style.COLOR_DANGER, hover_color=Style.COLOR_DANGER_HOVER, width=100, command=self.delete_action)
+        self.btn_delete.pack(side="left", padx=5)
 
-        self.status_label = ctk.CTkLabel(self.top_bar, text="", font=AppStyle.get_bold_font())
-        self.status_label.pack(side="right", padx=AppStyle.PAD_LARGE)
+        self.status_label = ctk.CTkLabel(self.top_bar, text="", font=Style.FONT_BOLD)
+        self.status_label.pack(side="right", padx=20)
 
-        ctk.CTkButton(self.top_bar, text="+ DODAJ", fg_color=AppStyle.COLOR_SUCCESS, font=AppStyle.get_bold_font(), width=100, command=lambda: self.open_edit_form(is_new=True)).pack(side="right", padx=AppStyle.PAD_MEDIUM)
+        ctk.CTkButton(self.top_bar, text="+ DODAJ", fg_color=Style.COLOR_SUCCESS, hover_color=Style.COLOR_SUCCESS_HOVER, width=100, command=lambda: self.open_edit_form(is_new=True)).pack(side="right", padx=10)
 
-        # Nagłówki i Lista
         self.header_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.header_frame.pack(fill="x", padx=AppStyle.PAD_LARGE, pady=AppStyle.PAD_SMALL)
-        self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color=AppStyle.COLOR_BG_DARK)
-        self.scroll_frame.pack(fill="both", expand=True, padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_SMALL)
+        self.header_frame.pack(fill="x", padx=20, pady=5)
+        self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color=Style.COLOR_BG_DARK)
+        self.scroll_frame.pack(fill="both", expand=True, padx=Style.PAD_MEDIUM, pady=5)
         
         self.on_main_cat_change()
 
-    def show_status(self, message, color=AppStyle.COLOR_SUCCESS):
+    def show_status(self, message, color=Style.COLOR_SUCCESS):
         self.status_label.configure(text=message, text_color=color)
         self.after(3000, lambda: self.status_label.configure(text=""))
 
@@ -67,7 +65,7 @@ class PriceEditor(ctk.CTkToplevel):
         
         for child in self.header_frame.winfo_children(): child.destroy()
         for text, width in self.headers:
-            ctk.CTkLabel(self.header_frame, text=text, font=AppStyle.get_header_font(), width=width, anchor="w").pack(side="left", padx=AppStyle.PAD_SMALL)
+            ctk.CTkLabel(self.header_frame, text=text, font=Style.FONT_BOLD, width=width, anchor="w").pack(side="left", padx=5)
         self.refresh_list()
 
     def refresh_list(self, _=None):
@@ -94,15 +92,15 @@ class PriceEditor(ctk.CTkToplevel):
             self.render_row_item(row, index % 2 == 0, widths, d_slice)
 
     def render_row_item(self, row, is_even, widths, d_slice):
-        bg = "transparent" if is_even else AppStyle.COLOR_BG_LIGHT
+        bg = "transparent" if is_even else Style.COLOR_ROW_EVEN
         f = ctk.CTkFrame(self.scroll_frame, fg_color=bg, corner_radius=0)
         f.pack(fill="x", pady=0, padx=5)
         f.original_bg = bg
         
         display_data = row[d_slice]
         for i in range(len(widths)):
-            lbl = ctk.CTkLabel(f, text=str(display_data[i]), font=AppStyle.get_normal_font(), width=widths[i], anchor="w")
-            lbl.pack(side="left", padx=AppStyle.PAD_SMALL, pady=4)
+            lbl = ctk.CTkLabel(f, text=str(display_data[i]), width=widths[i], anchor="w", font=Style.FONT_NORMAL)
+            lbl.pack(side="left", padx=5, pady=4)
             lbl.bind("<Button-1>", lambda e: self.on_row_select(row, f))
         f.bind("<Button-1>", lambda e: self.on_row_select(row, f))
 
@@ -111,23 +109,15 @@ class PriceEditor(ctk.CTkToplevel):
             self.selected_frame.configure(fg_color=self.selected_frame.original_bg)
         self.selected_row_data = data
         self.selected_frame = frame
-        self.selected_frame.configure(fg_color=AppStyle.COLOR_PRIMARY)
+        self.selected_frame.configure(fg_color=Style.COLOR_ROW_SELECTED)
         self.btn_edit.configure(state="normal")
         self.btn_delete.configure(state="normal")
 
     def delete_action(self):
-        def execute_delete():
+        if messagebox.askyesno("Usuń", "Na pewno usunąć wybrany rekord?"):
             db_editor_logic.delete_record(self.main_cat_combo.get(), self.selected_row_data[0])
             self.refresh_list()
-            self.show_status("REKORD USUNIĘTY", color=AppStyle.COLOR_DANGER)
-
-        OstrzomatPopup(
-            self,
-            title="Usuń rekord",
-            message="Na pewno usunąć wybrany rekord z cennika bazy danych?",
-            type="confirm",
-            on_confirm=execute_delete
-        )
+            self.show_status("REKORD USUNIĘTY", color=Style.COLOR_DANGER)
 
     def open_edit_form(self, is_new=False):
         cat = self.main_cat_combo.get()
@@ -151,8 +141,8 @@ class PriceEditor(ctk.CTkToplevel):
 
         entries = []
         for i, txt in enumerate(labels):
-            ctk.CTkLabel(form, text=txt, font=AppStyle.get_bold_font()).pack(pady=(10, 0))
-            e = ctk.CTkEntry(form, width=350, font=AppStyle.get_normal_font())
+            ctk.CTkLabel(form, text=txt, font=Style.FONT_BOLD).pack(pady=(10, 0))
+            e = ctk.CTkEntry(form, width=350, font=Style.FONT_NORMAL)
             if data and not (is_new and self.selected_row_data is None):
                 try: e.insert(0, str(data[db_slice][i]))
                 except: pass
@@ -168,6 +158,6 @@ class PriceEditor(ctk.CTkToplevel):
                 self.refresh_list()
                 self.show_status("ZAPISANO POMYŚLNIE!")
             except Exception as ex:
-                self.show_status(f"BŁĄD: {ex}", color=AppStyle.COLOR_DANGER)
+                self.show_status(f"BŁĄD: {ex}", color=Style.COLOR_DANGER)
 
-        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color=AppStyle.COLOR_SUCCESS, font=AppStyle.get_bold_font(), height=40, command=save_action).pack(pady=30, padx=20, fill="x")
+        ctk.CTkButton(form, text="ZAPISZ ZMIANY", fg_color=Style.COLOR_SUCCESS, hover_color=Style.COLOR_SUCCESS_HOVER, height=40, command=save_action).pack(pady=30, padx=20, fill="x")

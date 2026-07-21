@@ -1,16 +1,14 @@
 import customtkinter as ctk
-from ui.style import AppStyle
+from ui.style import Style
 
 class CartTable(ctk.CTkFrame):
     def __init__(self, parent):
         super().__init__(parent)
         
-        # Pobieranie czcionek z centralnego pliku konfiguracji stylów
-        self.font_header = AppStyle.get_header_font()
-        self.font_normal = AppStyle.get_normal_font()
-        self.font_bold   = AppStyle.get_bold_font()     
+        self.font_header = Style.FONT_HEADER
+        self.font_normal = Style.FONT_NORMAL
+        self.font_bold   = Style.FONT_BOLD
         
-        # Definicja i sztywne szerokości kolumn
         self.cols = [
             ("L.p.", 40),
             ("TYP NARZĘDZIA", 130),
@@ -37,11 +35,10 @@ class CartTable(ctk.CTkFrame):
         self.setup_headers()
         
         self.scroll_frame = ctk.CTkScrollableFrame(self, fg_color="transparent")
-        self.scroll_frame.pack(fill="both", expand=True, padx=(0, 15), pady=5)
+        self.scroll_frame.pack(fill="both", expand=True, padx=(0, 15), pady=Style.PAD_SMALL)
 
     def setup_headers(self):
-        """Konfiguracja nagłówków kolumn przy użyciu GRID dla idealnego centrowania."""
-        h_frame = ctk.CTkFrame(self, fg_color=AppStyle.COLOR_BG_LIGHT, height=35, corner_radius=0)
+        h_frame = ctk.CTkFrame(self, fg_color=Style.COLOR_ROW_ODD, height=35, corner_radius=0)
         h_frame.pack(fill="x", padx=(0, 15)) 
         
         for i, (_, width) in enumerate(self.cols):
@@ -52,7 +49,6 @@ class CartTable(ctk.CTkFrame):
             lbl.grid(row=0, column=i, padx=2, pady=5, sticky="ew")
 
     def toggle_select_row(self, idx):
-        """Logika wizualnego zaznaczania wiersza po kliknięciu."""
         if self.selected_idx == idx:
             self.selected_idx = None
         else:
@@ -60,20 +56,17 @@ class CartTable(ctk.CTkFrame):
         self.update_row_backgrounds()
 
     def update_row_backgrounds(self):
-        """Przywraca standardowe kolory lub nakłada kolor zaznaczenia."""
         for idx, row_frame in self.row_frames.items():
             if idx == self.selected_idx:
-                row_frame.configure(fg_color=AppStyle.COLOR_PRIMARY)
+                row_frame.configure(fg_color=Style.COLOR_ROW_SELECTED)
             else:
-                bg_color = AppStyle.COLOR_BG_DARK if idx % 2 == 0 else AppStyle.COLOR_BG_LIGHT
+                bg_color = Style.COLOR_ROW_EVEN if idx % 2 == 0 else Style.COLOR_ROW_ODD
                 row_frame.configure(fg_color=bg_color)
     
     def get_selected_index(self):
-        """Zwraca indeks zaznaczonego wiersza lub None."""
         return self.selected_idx
     
     def refresh(self, items):
-        """Odświeżanie tabeli z podpięciem zdarzenia kliknięcia."""
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
@@ -82,8 +75,8 @@ class CartTable(ctk.CTkFrame):
             self.selected_idx = None
 
         for idx, item in enumerate(items):
-            bg_color = AppStyle.COLOR_BG_DARK if idx % 2 == 0 else AppStyle.COLOR_BG_LIGHT
-            row = ctk.CTkFrame(self.scroll_frame, fg_color=bg_color, height=45, corner_radius=5)
+            bg_color = Style.COLOR_ROW_EVEN if idx % 2 == 0 else Style.COLOR_ROW_ODD
+            row = ctk.CTkFrame(self.scroll_frame, fg_color=bg_color, height=45, corner_radius=Style.CORNER_RADIUS)
             row.pack(fill="x", pady=1)
             
             self.row_frames[idx] = row
@@ -122,28 +115,28 @@ class CartTable(ctk.CTkFrame):
             status = item.get("services_status", {})
             
             is_wear = status.get("zuzycie", False)
-            create_cell_label(5, "+" if is_wear else "-", self.font_bold, AppStyle.COLOR_DANGER if is_wear else "#555")
+            create_cell_label(5, "+" if is_wear else "-", self.font_bold, Style.COLOR_DANGER if is_wear else Style.COLOR_TEXT_INACTIVE)
 
             is_c = status.get("ciecie", False)
-            create_cell_label(6, "+" if is_c else "-", self.font_bold, AppStyle.COLOR_SUCCESS if is_c else "#555")
+            create_cell_label(6, "+" if is_c else "-", self.font_bold, Style.COLOR_SUCCESS if is_c else Style.COLOR_TEXT_INACTIVE)
 
             is_o = status.get("opuszczenie", False)
             if is_o:
                 mult = item.get("opuszczenie_mult", 1)
                 text_zan = "+" * mult
-                color_zan = AppStyle.COLOR_SUCCESS
+                color_zan = Style.COLOR_SUCCESS
             else:
                 text_zan = "-"
-                color_zan = "#555"
+                color_zan = Style.COLOR_TEXT_INACTIVE
 
             create_cell_label(7, text_zan, self.font_bold, color_zan)
 
             is_p = status.get("polerowanie", False)
-            create_cell_label(8, "+" if is_p else "-", self.font_bold, AppStyle.COLOR_SUCCESS if is_p else "#555")
+            create_cell_label(8, "+" if is_p else "-", self.font_bold, Style.COLOR_SUCCESS if is_p else Style.COLOR_TEXT_INACTIVE)
 
             create_cell_label(9, str(qty), self.font_bold)
             create_cell_label(10, f"{regen_unit:.2f}", self.font_normal)
-            create_cell_label(11, f"{regen_total:.2f}", self.font_bold, AppStyle.COLOR_SUCCESS)
+            create_cell_label(11, f"{regen_total:.2f}", self.font_bold, Style.COLOR_SUCCESS)
 
             has_coat = item.get("coat_name") != "Brak"
             
@@ -157,11 +150,7 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
             
             full_notes_text = item.get("notes", "").strip()
-            
-            if len(full_notes_text) > 80:
-                short_notes_text = full_notes_text[:80] + "..."
-            else:
-                short_notes_text = full_notes_text if full_notes_text else "-"
+            short_notes_text = (full_notes_text[:80] + "...") if len(full_notes_text) > 80 else (full_notes_text if full_notes_text else "-")
 
             lbl_notes = ctk.CTkLabel(
                 row, 
@@ -169,7 +158,7 @@ class CartTable(ctk.CTkFrame):
                 anchor="center", 
                 wraplength=self.cols[17][1]-5, 
                 justify="center", 
-                text_color=AppStyle.COLOR_WARNING if full_notes_text else AppStyle.COLOR_TEXT_MUTED,
+                text_color=Style.COLOR_WARNING if full_notes_text else Style.COLOR_TEXT_MUTED,
                 font=self.font_normal
             )
             
