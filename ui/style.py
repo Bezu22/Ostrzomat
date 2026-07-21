@@ -3,7 +3,7 @@ import customtkinter as ctk
 class AppStyle:
     """
     Centralny Design System aplikacji Ostrzomat.
-    Kompletny zestaw wszystkich stałych, czcionek, metod i aliasów wstecznej kompatybilności.
+    Gromadzi stałe kolorów, czcionek, geometrii oraz metody pomocnicze.
     """
 
     # --- 1. CZCIONKI (FONTS) ---
@@ -15,6 +15,7 @@ class AppStyle:
     FONT_HEADER = (FONT_FAMILY, 11, "bold")
     FONT_NORMAL = (FONT_FAMILY, BASE_FONT_SIZE)
     FONT_BOLD = (FONT_FAMILY, BASE_FONT_SIZE, "bold")
+    FONT_ITALIC = (FONT_FAMILY, BASE_FONT_SIZE, "italic")
     FONT_SMALL = (FONT_FAMILY, 10)
     FONT_TOTAL = (FONT_FAMILY, 22, "bold")
 
@@ -26,6 +27,10 @@ class AppStyle:
     @classmethod
     def get_bold_font(cls):
         return cls.FONT_BOLD
+
+    @classmethod
+    def get_italic_font(cls):
+        return cls.FONT_ITALIC
 
     @classmethod
     def get_title_font(cls):
@@ -109,6 +114,34 @@ class AppStyle:
     PAD_SMALL = 5
     PAD_MEDIUM = 10
     PAD_LARGE = 15
+
+    # --- 4. STYLE WIDŻETÓW (POMOCNICZE SŁOWNIKI) ---
+    @classmethod
+    def get_entry_style(cls):
+        """Standardowe parametry dla widżetów CTkEntry."""
+        return {
+            "font": cls.FONT_NORMAL,
+            "corner_radius": cls.CORNER_RADIUS,
+            "border_width": 1,
+            "border_color": cls.COLOR_MUTED,
+            "fg_color": cls.COLOR_BG_LIGHT,
+            "text_color": cls.COLOR_TEXT_LIGHT
+        }
+
+    @classmethod
+    def get_combo_style(cls):
+        """Standardowe parametry dla widżetów CTkComboBox."""
+        return {
+            "font": cls.FONT_NORMAL,
+            "dropdown_font": cls.FONT_NORMAL,
+            "corner_radius": cls.CORNER_RADIUS,
+            "border_width": 1,
+            "border_color": cls.COLOR_MUTED,
+            "fg_color": cls.COLOR_BG_LIGHT,
+            "button_color": cls.COLOR_MUTED,
+            "button_hover_color": cls.COLOR_MUTED_HOVER,
+            "text_color": cls.COLOR_TEXT_LIGHT
+        }
 
     @classmethod
     def apply_theme(cls):
