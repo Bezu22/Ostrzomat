@@ -17,22 +17,23 @@ class OstrzomatApp(ctk.CTk):
         Style.apply_theme()
         
         self.title("Ostrzomat v0.2")
+        self.configure(fg_color=Style.COLOR_BG_DARK)
         self.minsize(1450, 800)
         self.after(0, lambda: self.state('zoomed'))
 
         self.cart_items = []
 
         # --- UKŁAD GŁÓWNY ---
-        self.sidebar_frame = ctk.CTkFrame(self, width=200)
+        self.sidebar_frame = ctk.CTkFrame(self, width=200, fg_color=Style.COLOR_SIDEBAR_BG, corner_radius=Style.CORNER_RADIUS)
         self.sidebar_frame.pack(side="left", fill="y", padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
         self.content_frame = ctk.CTkFrame(self, fg_color="transparent")
         self.content_frame.pack(side="right", fill="both", expand=True, padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
         # 1. Nagłówek Klienta
-        self.client_frame = ctk.CTkFrame(self.content_frame, height=60)
+        self.client_frame = ctk.CTkFrame(self.content_frame, height=60, fg_color=Style.COLOR_CARD_BG, corner_radius=Style.CORNER_RADIUS)
         self.client_frame.pack(fill="x", pady=(0, Style.PAD_MEDIUM))
-        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=Style.FONT_TITLE)
+        self.client_name = ctk.CTkLabel(self.client_frame, text="Nieokreślony klient", font=Style.FONT_TITLE, text_color=Style.COLOR_TEXT_DARK)
         self.client_name.pack(side="left", padx=Style.PAD_LARGE, pady=15)
 
         # 2. Tabela 
@@ -57,6 +58,7 @@ class OstrzomatApp(ctk.CTk):
             font=Style.FONT_BOLD,
             fg_color=Style.COLOR_PRIMARY,
             hover_color=Style.COLOR_PRIMARY_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             command=lambda: self.open_calc("Frezy")
         )
         self.btn_frez.pack(pady=Style.PAD_LARGE, padx=Style.PAD_LARGE, fill="x")
@@ -67,6 +69,7 @@ class OstrzomatApp(ctk.CTk):
             font=Style.FONT_BOLD,
             fg_color=Style.COLOR_SECONDARY, 
             hover_color=Style.COLOR_SECONDARY_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             command=self.open_price_editor
         )
         self.edit_price_btn.pack(side="bottom", fill="x", padx=Style.PAD_LARGE, pady=Style.PAD_LARGE)

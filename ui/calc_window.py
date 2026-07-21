@@ -15,6 +15,8 @@ class ToolCalcWindow(ctk.CTkToplevel):
         self.item_data = item_data
         self.item_index = item_index
         
+        self.configure(fg_color=Style.COLOR_BG_DARK)
+        
         if self.edit_mode:
             self.title(f"Edycja pozycji L.p. {self.item_index + 1}: {tool_category}")
         else:
@@ -29,7 +31,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
 
         self.settings = database.get_user_settings()
         
-        self.main_scroll = ctk.CTkScrollableFrame(self)
+        self.main_scroll = ctk.CTkScrollableFrame(self, fg_color="transparent")
         self.main_scroll.pack(fill="both", expand=True, padx=Style.PAD_MEDIUM, pady=Style.PAD_MEDIUM)
 
         self.tool_module = None
@@ -57,10 +59,10 @@ class ToolCalcWindow(ctk.CTkToplevel):
             ctk.CTkLabel(self.main_scroll, text="Błąd ładowania modułu", font=Style.FONT_BOLD, text_color=Style.COLOR_DANGER).pack()
     
     def setup_price_preview(self):
-        self.preview_frame = ctk.CTkFrame(self.main_scroll, fg_color=[Style.COLOR_ROW_EVEN, Style.COLOR_ROW_ODD])
-        self.preview_frame.pack(fill="x", padx=30, pady=Style.PAD_MEDIUM)
+        self.preview_frame = ctk.CTkFrame(self.main_scroll, fg_color=Style.COLOR_CARD_BG, corner_radius=Style.CORNER_RADIUS)
+        self.preview_frame.pack(fill="x", padx=20, pady=Style.PAD_MEDIUM)
         
-        ctk.CTkLabel(self.preview_frame, text="CENA - PODGLĄD", font=Style.FONT_SUBTITLE).pack(pady=5)
+        ctk.CTkLabel(self.preview_frame, text="CENA - PODGLĄD", font=Style.FONT_SUBTITLE, text_color=Style.COLOR_TEXT_DARK).pack(pady=10)
         
         self.price_labels = {}
         fields = [
@@ -72,27 +74,42 @@ class ToolCalcWindow(ctk.CTkToplevel):
         
         for label_text, key in fields:
             f = ctk.CTkFrame(self.preview_frame, fg_color="transparent")
-            f.pack(fill="x", padx=20)
-            ctk.CTkLabel(f, text=label_text, font=Style.FONT_NORMAL).pack(side="left")
-            self.price_labels[key] = ctk.CTkLabel(f, text="0.00 zł", font=Style.FONT_BOLD)
+            f.pack(fill="x", padx=20, pady=2)
+            ctk.CTkLabel(f, text=label_text, font=Style.FONT_NORMAL, text_color=Style.COLOR_TEXT_DARK).pack(side="left")
+            self.price_labels[key] = ctk.CTkLabel(f, text="0.00 zł", font=Style.FONT_BOLD, text_color=Style.COLOR_TEXT_DARK)
             self.price_labels[key].pack(side="right")
 
     def setup_action_buttons(self):
         btn_frame = ctk.CTkFrame(self.main_scroll, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=30, pady=20)
+        btn_frame.pack(fill="x", padx=20, pady=20)
 
         btn_text = "ZAPISZ ZMIANY" if self.edit_mode else "DODAJ DO KOSZYKA"
         btn_color = Style.COLOR_WARNING if self.edit_mode else Style.COLOR_SUCCESS
         btn_hover = Style.COLOR_WARNING_HOVER if self.edit_mode else Style.COLOR_SUCCESS_HOVER
         btn_cmd = self.save_changes if self.edit_mode else self.add_to_cart
 
-        self.add_btn = ctk.CTkButton(btn_frame, text=btn_text, 
-                                     height=50, font=Style.FONT_SUBTITLE, 
-                                     fg_color=btn_color, hover_color=btn_hover, command=btn_cmd)
+        self.add_btn = ctk.CTkButton(
+            btn_frame, 
+            text=btn_text, 
+            height=50, 
+            font=Style.FONT_SUBTITLE, 
+            fg_color=btn_color, 
+            hover_color=btn_hover, 
+            text_color=Style.COLOR_TEXT_LIGHT,
+            command=btn_cmd
+        )
         self.add_btn.pack(fill="x", pady=5)
 
-        self.close_btn = ctk.CTkButton(btn_frame, text="ZAMKNIJ", 
-                                      height=40, fg_color=Style.COLOR_SECONDARY, hover_color=Style.COLOR_SECONDARY_HOVER, command=self.destroy)
+        self.close_btn = ctk.CTkButton(
+            btn_frame, 
+            text="ZAMKNIJ", 
+            height=40, 
+            font=Style.FONT_BOLD,
+            fg_color=Style.COLOR_SECONDARY, 
+            hover_color=Style.COLOR_SECONDARY_HOVER, 
+            text_color=Style.COLOR_TEXT_LIGHT,
+            command=self.destroy
+        )
         self.close_btn.pack(fill="x", pady=5)
 
     def load_item_data_into_form(self):
@@ -149,15 +166,15 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 e_j = data.get("extra_unit", 0.0)   
                 e_r = data.get("total_extra", 0.0)  
                 
-                self.price_labels["tool_price"].configure(text=f"{t_j:.2f} / {t_r:.2f} zł")
+                self.price_labels["tool_price"].configure(text=f"{t_j:.2f} / {t_r:.2f} zł", text_color=Style.COLOR_TEXT_DARK)
                 
                 if c_r > 0:
-                    self.price_labels["coat_price"].configure(text=f"{c_j:.2f} / {c_r:.2f} zł")
+                    self.price_labels["coat_price"].configure(text=f"{c_j:.2f} / {c_r:.2f} zł", text_color=Style.COLOR_TEXT_DARK)
                 else:
                     self.price_labels["coat_price"].configure(text="---", text_color=Style.COLOR_TEXT_MUTED)
 
                 if e_r > 0:
-                    self.price_labels["extra_price"].configure(text=f"{e_j:.2f} / {e_r:.2f} zł")
+                    self.price_labels["extra_price"].configure(text=f"{e_j:.2f} / {e_r:.2f} zł", text_color=Style.COLOR_TEXT_DARK)
                 else:
                     self.price_labels["extra_price"].configure(text="---", text_color=Style.COLOR_TEXT_MUTED)
 

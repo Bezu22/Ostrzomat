@@ -3,7 +3,7 @@ from ui.style import Style
 
 class CartTable(ctk.CTkFrame):
     def __init__(self, parent):
-        super().__init__(parent)
+        super().__init__(parent, fg_color="transparent")
         
         self.font_header = Style.FONT_HEADER
         self.font_normal = Style.FONT_NORMAL
@@ -38,14 +38,14 @@ class CartTable(ctk.CTkFrame):
         self.scroll_frame.pack(fill="both", expand=True, padx=(0, 15), pady=Style.PAD_SMALL)
 
     def setup_headers(self):
-        h_frame = ctk.CTkFrame(self, fg_color=Style.COLOR_ROW_ODD, height=35, corner_radius=0)
+        h_frame = ctk.CTkFrame(self, fg_color=Style.COLOR_HEADER_BG, height=35, corner_radius=Style.CORNER_RADIUS)
         h_frame.pack(fill="x", padx=(0, 15)) 
         
         for i, (_, width) in enumerate(self.cols):
             h_frame.columnconfigure(i, weight=0, minsize=width)
         
-        for i, (text, width) in enumerate(self.cols):
-            lbl = ctk.CTkLabel(h_frame, text=text, font=self.font_header, anchor="center", justify="center")
+        for i, (text, _) in enumerate(self.cols):
+            lbl = ctk.CTkLabel(h_frame, text=text, font=self.font_header, text_color=Style.COLOR_TEXT_DARK, anchor="center", justify="center")
             lbl.grid(row=0, column=i, padx=2, pady=5, sticky="ew")
 
     def toggle_select_row(self, idx):
@@ -94,16 +94,14 @@ class CartTable(ctk.CTkFrame):
             coat_total = get_v("total_coat")
             suma_calkowita_pozycji = regen_total + coat_total
 
-            def create_cell_label(column, text, font, text_color=None):
-                lbl = ctk.CTkLabel(row, text=text, anchor="center", font=font)
-                if text_color:
-                    lbl.configure(text_color=text_color)
+            def create_cell_label(column, text, font, text_color=Style.COLOR_TEXT_DARK):
+                lbl = ctk.CTkLabel(row, text=text, anchor="center", font=font, text_color=text_color)
                 lbl.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
                 lbl.grid(row=0, column=column, padx=2, pady=5, sticky="ew")
 
             create_cell_label(0, str(idx + 1), self.font_normal)
             
-            lbl_type = ctk.CTkLabel(row, text=item.get("type", "-"), anchor="center", wraplength=self.cols[1][1]-5, justify="center", font=self.font_normal)
+            lbl_type = ctk.CTkLabel(row, text=item.get("type", "-"), text_color=Style.COLOR_TEXT_DARK, anchor="center", wraplength=self.cols[1][1]-5, justify="center", font=self.font_normal)
             lbl_type.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
             lbl_type.grid(row=0, column=1, padx=2, pady=5, sticky="ew")
 
@@ -140,14 +138,14 @@ class CartTable(ctk.CTkFrame):
 
             has_coat = item.get("coat_name") != "Brak"
             
-            lbl_coat = ctk.CTkLabel(row, text=item.get("coat_name", "Brak"), anchor="center", wraplength=self.cols[12][1]-5, justify="center", font=self.font_normal)
+            lbl_coat = ctk.CTkLabel(row, text=item.get("coat_name", "Brak"), text_color=Style.COLOR_TEXT_DARK, anchor="center", wraplength=self.cols[12][1]-5, justify="center", font=self.font_normal)
             lbl_coat.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
             lbl_coat.grid(row=0, column=12, padx=2, pady=5, sticky="ew")
 
             create_cell_label(13, item.get("coat_len", "-") if has_coat else "-", self.font_normal)
             create_cell_label(14, f"{coat_unit:.2f}" if has_coat else "-", self.font_normal)
-            create_cell_label(15, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, "#3498db" if has_coat else None)
-            create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
+            create_cell_label(15, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, Style.COLOR_SECONDARY if has_coat else Style.COLOR_TEXT_INACTIVE)
+            create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold, Style.COLOR_TEXT_ACCENT)
             
             full_notes_text = item.get("notes", "").strip()
             short_notes_text = (full_notes_text[:80] + "...") if len(full_notes_text) > 80 else (full_notes_text if full_notes_text else "-")
@@ -158,7 +156,7 @@ class CartTable(ctk.CTkFrame):
                 anchor="center", 
                 wraplength=self.cols[17][1]-5, 
                 justify="center", 
-                text_color=Style.COLOR_WARNING if full_notes_text else Style.COLOR_TEXT_MUTED,
+                text_color=Style.COLOR_ACCENT_YELLOW if full_notes_text else Style.COLOR_TEXT_MUTED,
                 font=self.font_normal
             )
             

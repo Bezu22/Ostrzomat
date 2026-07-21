@@ -21,7 +21,7 @@ class OstrzomatPopup(ctk.CTkToplevel):
             border_color = Style.COLOR_PRIMARY
             
         self.configure(
-            fg_color=Style.COLOR_BG_DARK, 
+            fg_color=Style.COLOR_CARD_BG, 
             highlightbackground=border_color, 
             highlightthickness=Style.BORDER_WIDTH
         )
@@ -39,6 +39,7 @@ class OstrzomatPopup(ctk.CTkToplevel):
             self, 
             text=message, 
             font=Style.FONT_NORMAL, 
+            text_color=Style.COLOR_TEXT_DARK,
             wraplength=360, 
             justify="center"
         )
@@ -51,8 +52,10 @@ class OstrzomatPopup(ctk.CTkToplevel):
             self.btn_yes = ctk.CTkButton(
                 btn_frame, 
                 text="TAK", 
+                font=Style.FONT_BOLD,
                 fg_color=Style.COLOR_SUCCESS, 
                 hover_color=Style.COLOR_SUCCESS_HOVER, 
+                text_color=Style.COLOR_TEXT_LIGHT,
                 width=160, 
                 command=self._action_confirm
             )
@@ -61,16 +64,21 @@ class OstrzomatPopup(ctk.CTkToplevel):
             self.btn_no = ctk.CTkButton(
                 btn_frame, 
                 text="NIE", 
+                font=Style.FONT_BOLD,
                 fg_color=Style.COLOR_DANGER, 
                 hover_color=Style.COLOR_DANGER_HOVER, 
-                width=160,  command=self.destroy
+                text_color=Style.COLOR_TEXT_LIGHT,
+                width=160,  
+                command=self.destroy
             )
             self.btn_no.pack(side="right", padx=Style.PAD_SMALL, expand=True)
         else:
             self.btn_ok = ctk.CTkButton(
                 self, 
                 text="OK", 
+                font=Style.FONT_BOLD,
                 fg_color=border_color, 
+                text_color=Style.COLOR_TEXT_LIGHT,
                 width=120, 
                 command=self.destroy
             )

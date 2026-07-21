@@ -8,6 +8,7 @@ class NotesWindow(ctk.CTkToplevel):
         self.on_save_callback = on_save_callback
         
         self.title("Uwagi do pozycji")
+        self.configure(fg_color=Style.COLOR_BG_DARK)
         
         width, height = 450, 300
         x = parent.winfo_x() + (parent.winfo_width() // 2) - (width // 2)
@@ -20,6 +21,7 @@ class NotesWindow(ctk.CTkToplevel):
         
         self.main_frame = ctk.CTkFrame(
             self, 
+            fg_color=Style.COLOR_CARD_BG,
             corner_radius=Style.CORNER_RADIUS_POPUP, 
             border_width=Style.BORDER_WIDTH, 
             border_color=Style.COLOR_WARNING
@@ -40,11 +42,18 @@ class NotesWindow(ctk.CTkToplevel):
             text="Dodaj / Edytuj własną uwagę dla tej pozycji", 
             variable=self.has_notes_var,
             command=self.toggle_textbox,
-            font=Style.FONT_NORMAL
+            font=Style.FONT_NORMAL,
+            text_color=Style.COLOR_TEXT_DARK
         )
         self.cb_enable.pack(pady=10, padx=Style.PAD_LARGE, anchor="w")
         
-        self.txt_notes = ctk.CTkTextbox(self.main_frame, height=100, width=390, font=Style.FONT_NORMAL)
+        self.txt_notes = ctk.CTkTextbox(
+            self.main_frame, 
+            height=100, 
+            width=390, 
+            font=Style.FONT_NORMAL,
+            text_color=Style.COLOR_TEXT_DARK
+        )
         self.txt_notes.pack(padx=Style.PAD_LARGE, pady=5)
         self.txt_notes.insert("0.0", current_text)
         
@@ -54,8 +63,10 @@ class NotesWindow(ctk.CTkToplevel):
         self.btn_save = ctk.CTkButton(
             btn_frame, 
             text="ZAPISZ", 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_SUCCESS, 
             hover_color=Style.COLOR_SUCCESS_HOVER, 
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=180, 
             command=self.save_notes
         )
@@ -64,8 +75,10 @@ class NotesWindow(ctk.CTkToplevel):
         self.btn_cancel = ctk.CTkButton(
             btn_frame, 
             text="ANULUJ", 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_DANGER, 
             hover_color=Style.COLOR_DANGER_HOVER, 
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=180, 
             command=self.destroy
         )
@@ -75,11 +88,11 @@ class NotesWindow(ctk.CTkToplevel):
 
     def toggle_textbox(self):
         if self.has_notes_var.get():
-            self.txt_notes.configure(state="normal", fg_color=["#F9F9FA", "#1D1E20"])
+            self.txt_notes.configure(state="normal", fg_color=Style.COLOR_ROW_EVEN)
         else:
             self.txt_notes.configure(state="normal")
             self.txt_notes.delete("0.0", "end")
-            self.txt_notes.configure(state="disabled", fg_color=["#D1D1D1", "#141414"])
+            self.txt_notes.configure(state="disabled", fg_color=Style.COLOR_HEADER_BG)
 
     def save_notes(self):
         final_text = self.txt_notes.get("0.0", "end").strip() if self.has_notes_var.get() else ""

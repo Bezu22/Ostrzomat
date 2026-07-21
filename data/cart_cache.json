@@ -73,29 +73,6 @@
         },
         {
             "type": "Frez kulisty",
-            "diam": "9",
-            "z": "4",
-            "qty": "21",
-            "tool_unit": 46.31,
-            "total_tool": 972.51,
-            "coat_name": "ALCRONA PRO/LATUMA",
-            "coat_len": "100.0",
-            "coat_unit": 19.38,
-            "total_coat": 406.98,
-            "services_status": {
-                "ciecie": false,
-                "opuszczenie": false,
-                "polerowanie": false,
-                "zuzycie": true
-            },
-            "extra_unit": 0.0,
-            "total_extra": 0.0,
-            "tool_category": "Frezy",
-            "shank_diam": "9",
-            "notes": ""
-        },
-        {
-            "type": "Frez kulisty",
             "diam": "18",
             "z": "5",
             "qty": "12",

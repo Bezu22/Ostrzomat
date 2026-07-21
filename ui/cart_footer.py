@@ -3,7 +3,7 @@ from ui.style import Style
 
 class CartFooter(ctk.CTkFrame):
     def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete):
-        super().__init__(parent, height=140)
+        super().__init__(parent, height=140, fg_color=Style.COLOR_CARD_BG, corner_radius=Style.CORNER_RADIUS)
         
         self.total_label = ctk.CTkLabel(
             self, 
@@ -24,8 +24,10 @@ class CartFooter(ctk.CTkFrame):
             self.col_global, 
             text="💾 ZAPISZ KOSZYK", 
             command=on_save, 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_PRIMARY, 
             hover_color=Style.COLOR_PRIMARY_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=160
         )
         self.btn_save.pack(side="top", pady=2, fill="x")
@@ -34,8 +36,10 @@ class CartFooter(ctk.CTkFrame):
             self.col_global, 
             text="📂 WCZYTAJ KOSZYK", 
             command=on_load, 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_SECONDARY, 
             hover_color=Style.COLOR_SECONDARY_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=160
         )
         self.btn_load.pack(side="top", pady=2, fill="x")
@@ -44,8 +48,10 @@ class CartFooter(ctk.CTkFrame):
             self.col_global, 
             text="🗑 WYCZYŚĆ KOSZYK", 
             command=on_clear, 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_DANGER, 
             hover_color=Style.COLOR_DANGER_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=160
         )
         self.btn_clear.pack(side="top", pady=2, fill="x")
@@ -58,8 +64,10 @@ class CartFooter(ctk.CTkFrame):
             self.col_item, 
             text="✏ EDYTUJ POZYCJĘ", 
             command=on_edit, 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_WARNING, 
             hover_color=Style.COLOR_WARNING_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=160
         )
         self.btn_edit.pack(side="top", pady=2, fill="x")
@@ -68,8 +76,10 @@ class CartFooter(ctk.CTkFrame):
             self.col_item, 
             text="❌ USUŃ POZYCJĘ", 
             command=on_delete, 
+            font=Style.FONT_BOLD,
             fg_color=Style.COLOR_MUTED, 
             hover_color=Style.COLOR_MUTED_HOVER,
+            text_color=Style.COLOR_TEXT_LIGHT,
             width=160
         )
         self.btn_delete.pack(side="top", pady=2, fill="x")
