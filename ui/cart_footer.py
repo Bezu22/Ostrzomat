@@ -1,31 +1,33 @@
 import customtkinter as ctk
+from ui.style import AppStyle  # Integracja ze stylami
 
 class CartFooter(ctk.CTkFrame):
     def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete):
         super().__init__(parent, height=140)
         
-       
+        # Prawa strona: Suma całkowita (skaluje font w oparciu o BASE_FONT_SIZE)
         self.total_label = ctk.CTkLabel(
             self, 
             text="ŁĄCZNIE DO ZAPŁATY: 0.00 zł", 
-            font=("Arial", 24, "bold"), 
-            text_color="#28a745"
+            font=(AppStyle.FONT_FAMILY, int(AppStyle.BASE_FONT_SIZE * 2), "bold"), 
+            text_color=AppStyle.COLOR_SUCCESS
         )
         self.total_label.pack(side="right", padx=50, pady=30)
 
         # Lewa strona: Główny kontener na przyciski akcji
         self.actions_container = ctk.CTkFrame(self, fg_color="transparent")
-        self.actions_container.pack(side="left", padx=20, pady=10, fill="y")
+        self.actions_container.pack(side="left", padx=AppStyle.PAD_LARGE, pady=AppStyle.PAD_MEDIUM, fill="y")
 
         # --- KOLUMNA 1: Akcje Globalne (Zapis, Odczyt, Czyszczenie całości) ---
         self.col_global = ctk.CTkFrame(self.actions_container, fg_color="transparent")
-        self.col_global.pack(side="left", padx=10, fill="y")
+        self.col_global.pack(side="left", padx=AppStyle.PAD_MEDIUM, fill="y")
 
         self.btn_save = ctk.CTkButton(
             self.col_global, 
             text="💾 ZAPISZ KOSZYK", 
             command=on_save, 
-            fg_color="#1f538d", 
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_PRIMARY, 
             width=160
         )
         self.btn_save.pack(side="top", pady=2, fill="x")
@@ -34,6 +36,7 @@ class CartFooter(ctk.CTkFrame):
             self.col_global, 
             text="📂 WCZYTAJ KOSZYK", 
             command=on_load, 
+            font=AppStyle.get_bold_font(),
             fg_color="#444", 
             width=160
         )
@@ -43,20 +46,22 @@ class CartFooter(ctk.CTkFrame):
             self.col_global, 
             text="🗑 WYCZYŚĆ KOSZYK", 
             command=on_clear, 
-            fg_color="#c0392b", 
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_DANGER, 
             width=160
         )
         self.btn_clear.pack(side="top", pady=2, fill="x")
 
         # --- KOLUMNA 2: Akcje Pozycji (Edycja, Usuwanie pojedynczego wiersza) ---
         self.col_item = ctk.CTkFrame(self.actions_container, fg_color="transparent")
-        self.col_item.pack(side="left", padx=10, fill="y")
+        self.col_item.pack(side="left", padx=AppStyle.PAD_MEDIUM, fill="y")
 
         self.btn_edit = ctk.CTkButton(
             self.col_item, 
             text="✏ EDYTUJ POZYCJĘ", 
             command=on_edit, 
-            fg_color="#e67e22", 
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_WARNING, 
             hover_color="#d35400",
             width=160
         )
@@ -66,6 +71,7 @@ class CartFooter(ctk.CTkFrame):
             self.col_item, 
             text="❌ USUŃ POZYCJĘ", 
             command=on_delete, 
+            font=AppStyle.get_bold_font(),
             fg_color="#7f8c8d", 
             hover_color="#95a5a6",
             width=160
