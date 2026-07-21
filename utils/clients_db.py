@@ -1,23 +1,28 @@
 import sqlite3
 import os
 
-# Ścieżka do osobnej bazy klientów
+# Ścieżka do pliku bazy danych klientów
 CLIENTS_DB_PATH = os.path.join('data', 'clients.db')
 
 def _ensure_data_dir():
-    """Upewnia się, że katalog 'data' istnieje."""
+    """Upewnia się, że katalog 'data' istnieje na dysku."""
     if not os.path.exists('data'):
         os.makedirs('data')
 
 def get_clients_connection():
-    """Tworzy połączenie z bazą klientów (i tworzy plik, jeśli nie istnieje)."""
+    """
+    Tworzy bezpieczne połączenie z bazą danych klientów.
+    Automatycznie konfiguruje zwracanie wierszy jako słowniki.
+    """
     _ensure_data_dir()
     conn = sqlite3.connect(CLIENTS_DB_PATH)
-    conn.row_factory = sqlite3.Row  # Dostęp do kolumn jak w słowniku
+    conn.row_factory = sqlite3.Row  # Pozwala na dostęp do kolumn po nazwie (np. row['name'])
     return conn
 
 def init_clients_db():
-    """Inicjalizuje tabelę klientów, jeśli jeszcze nie istnieje."""
+    """
+    Tworzy tabelę 'clients' w bazie danych, jeśli jeszcze nie istnieje.
+    """
     conn = get_clients_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -35,10 +40,13 @@ def init_clients_db():
     conn.commit()
     conn.close()
 
-# --- FUNKCJE CRUD KLIENTÓW ---
+# --- OPERACJE NA BAZIE DANYCH (CRUD) ---
 
 def add_client(name, phone="", nip="", email="", address="", notes=""):
-    """Dodaje nowego klienta i zwraca jego nowe ID."""
+    """
+    Dodaje nowego klienta do bazy i zwraca jego unikalne ID.
+    """
+    init_clients_db()  # Upewniamy się, że tabela istnieje
     conn = get_clients_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -50,8 +58,26 @@ def add_client(name, phone="", nip="", email="", address="", notes=""):
     conn.close()
     return client_id
 
+def update_client(client_id, name, phone="", nip="", email="", address="", notes=""):
+    """
+    Aktualizuje dane istniejącego klienta w bazie na podstawie jego ID.
+    """
+    init_clients_db()
+    conn = get_clients_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        UPDATE clients 
+        SET name=?, phone=?, nip=?, email=?, address=?, notes=?
+        WHERE id=?
+    """, (name, phone, nip, email, address, notes, client_id))
+    conn.commit()
+    conn.close()
+
 def get_all_clients():
-    """Zwraca listę wszystkich klientów posortowanych po nazwie."""
+    """
+    Zwraca listę wszystkich klientów zapisanych w bazie,
+    posortowanych alfabetycznie po nazwie.
+    """
     init_clients_db()
     conn = get_clients_connection()
     cursor = conn.cursor()
@@ -61,7 +87,10 @@ def get_all_clients():
     return clients
 
 def search_clients(query):
-    """Szuka klientów po nazwie, telefonie lub NIP-ie."""
+    """
+    Wyszukuje klientów, których nazwa, numer telefonu lub NIP 
+    zawierają wpisaną frazę (query).
+    """
     init_clients_db()
     conn = get_clients_connection()
     cursor = conn.cursor()
@@ -76,7 +105,9 @@ def search_clients(query):
     return clients
 
 def get_client_by_id(client_id):
-    """Pobiera dane konkretnego klienta po ID."""
+    """
+    Pobiera pełne dane jednego klienta na podstawie jego numeru ID.
+    """
     if not client_id:
         return None
     init_clients_db()
