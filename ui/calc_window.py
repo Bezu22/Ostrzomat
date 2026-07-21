@@ -2,7 +2,7 @@ import customtkinter as ctk
 import database
 from ui.calc_modules.frez_module import FrezModule
 from ui.components import OstrzomatPopup
-from ui.style import AppStyle  # Zaimportowanie systemu stylizacji
+from ui.style import AppStyle
 
 class ToolCalcWindow(ctk.CTkToplevel):
     def __init__(self, parent, tool_category="Frezy", edit_mode=False, item_data=None, item_index=None):
@@ -19,7 +19,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
         else:
             self.title(f"Konfiguracja: {tool_category}")
         
-        # Przyklejenie do góry ekranu
         width, height = 550, 1050
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         self.geometry(f"{width}x{height}+{x}+0")
@@ -29,11 +28,9 @@ class ToolCalcWindow(ctk.CTkToplevel):
 
         self.settings = database.get_user_settings()
         
-        # Główny kontener przewijany
         self.main_scroll = ctk.CTkScrollableFrame(self)
         self.main_scroll.pack(fill="both", expand=True, padx=AppStyle.PAD_MEDIUM, pady=AppStyle.PAD_MEDIUM)
 
-        # --- DYNAMICZNE ŁADOWANIE MODUŁU ---
         self.tool_module = None
         if tool_category == "Frezy":
             self.tool_module = FrezModule(self.main_scroll, self.update_calculation, self.settings)
@@ -59,11 +56,10 @@ class ToolCalcWindow(ctk.CTkToplevel):
             ctk.CTkLabel(self.main_scroll, text="Błąd ładowania modułu", font=AppStyle.get_bold_font()).pack()
     
     def setup_price_preview(self):
-        """Tworzy sekcję wyświetlającą ceny przed dodaniem do koszyka."""
-        self.preview_frame = ctk.CTkFrame(self.main_scroll, fg_color=["#EBEBEB", AppStyle.COLOR_BG_DARK])
+        self.preview_frame = ctk.CTkFrame(self.main_scroll, fg_color=AppStyle.COLOR_CARD_BG)
         self.preview_frame.pack(fill="x", padx=30, pady=AppStyle.PAD_MEDIUM)
         
-        ctk.CTkLabel(self.preview_frame, text="CENA - PODGLĄD", font=AppStyle.get_bold_font()).pack(pady=5)
+        ctk.CTkLabel(self.preview_frame, text="CENA - PODGLĄD", font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=5)
         
         self.price_labels = {}
         fields = [
@@ -76,7 +72,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
         for label_text, key in fields:
             f = ctk.CTkFrame(self.preview_frame, fg_color="transparent")
             f.pack(fill="x", padx=20)
-            ctk.CTkLabel(f, text=label_text, font=AppStyle.get_normal_font()).pack(side="left")
+            ctk.CTkLabel(f, text=label_text, font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_TEXT_DARK).pack(side="left")
             self.price_labels[key] = ctk.CTkLabel(f, text="0.00 zł", font=AppStyle.get_bold_font())
             self.price_labels[key].pack(side="right")
 
@@ -88,18 +84,22 @@ class ToolCalcWindow(ctk.CTkToplevel):
         btn_color = AppStyle.COLOR_WARNING if self.edit_mode else AppStyle.COLOR_SUCCESS
         btn_cmd = self.save_changes if self.edit_mode else self.add_to_cart
 
-        self.add_btn = ctk.CTkButton(btn_frame, text=btn_text, 
-                                     height=50, font=AppStyle.get_bold_font(), 
-                                     fg_color=btn_color, command=btn_cmd)
+        self.add_btn = ctk.CTkButton(
+            btn_frame, text=btn_text, 
+            height=50, font=AppStyle.get_bold_font(), 
+            fg_color=btn_color, command=btn_cmd
+        )
         self.add_btn.pack(fill="x", pady=5)
 
-        self.close_btn = ctk.CTkButton(btn_frame, text="ZAMKNIJ", 
-                                      height=40, font=AppStyle.get_normal_font(),
-                                      fg_color="#666", command=self.destroy)
+        self.close_btn = ctk.CTkButton(
+            btn_frame, text="ZAMKNIJ", 
+            height=40, font=AppStyle.get_normal_font(),
+            fg_color=AppStyle.COLOR_MUTED, hover_color=AppStyle.COLOR_MUTED_HOVER, 
+            command=self.destroy
+        )
         self.close_btn.pack(fill="x", pady=5)
 
     def load_item_data_into_form(self):
-        """Wstrzykuje dane edytowanej pozycji bezpośrednio do widżetów modułu."""
         try:
             m = self.tool_module
             d = self.item_data
@@ -138,7 +138,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
             print(f"Błąd ładowania danych do formularza edycji: {e}")
 
     def update_calculation(self, _=None):
-        """Aktualizuje podgląd cen w formacie: Jednostkowa / Suma."""
+        """Aktualizuje wyłącznie podgląd w pamięci RAM bez operacji na plikach."""
         if not self.tool_module: return
         
         data = self.tool_module.get_full_item_data(run_validation=False)
@@ -157,12 +157,12 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 self.price_labels["tool_price"].configure(text=f"{t_j:.2f} / {t_r:.2f} zł")
                 
                 if c_r > 0:
-                    self.price_labels["coat_price"].configure(text=f"{c_j:.2f} / {c_r:.2f} zł", text_color=None)
+                    self.price_labels["coat_price"].configure(text=f"{c_j:.2f} / {c_r:.2f} zł", text_color=AppStyle.COLOR_TEXT_DARK)
                 else:
                     self.price_labels["coat_price"].configure(text="---", text_color=AppStyle.COLOR_TEXT_MUTED)
 
                 if e_r > 0:
-                    self.price_labels["extra_price"].configure(text=f"{e_j:.2f} / {e_r:.2f} zł", text_color=None)
+                    self.price_labels["extra_price"].configure(text=f"{e_j:.2f} / {e_r:.2f} zł", text_color=AppStyle.COLOR_TEXT_DARK)
                 else:
                     self.price_labels["extra_price"].configure(text="---", text_color=AppStyle.COLOR_TEXT_MUTED)
 
@@ -177,7 +177,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 lbl.configure(text="---", text_color=AppStyle.COLOR_TEXT_MUTED)
 
     def add_to_cart(self):
-        """Standardowe dodawanie nowego rekordu."""
+        """Zatwierdzenie wprowadzonych danych i zapis pozycji."""
         item_data = self.tool_module.get_full_item_data(run_validation=True)
         if item_data:
             item_data["tool_category"] = self.tool_category

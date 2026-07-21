@@ -1,5 +1,6 @@
 {
-    "client": "Nieokreślony",
+    "client_id": 1,
+    "client_name": "Frezwid",
     "items": [
         {
             "type": "Frez prosty",

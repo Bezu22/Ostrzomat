@@ -13,24 +13,24 @@ from ui.style import AppStyle
 
 class OstrzomatApp(ctk.CTk):
     def __init__(self):
-        # Aktywacja stylów PRZED inicjalizacją CTk
         AppStyle.apply_theme()
         super().__init__()
         
         self.title("Ostrzomat v0.2")
         self.configure(fg_color=AppStyle.COLOR_BG_DARK)
         
-        # Inicjalizacja bazy klientów
         clients_db.init_clients_db()
         
-        # Rozmiar początkowy i maksymalizacja
         self.minsize(1450, 800)
         self.after(0, lambda: self.state('zoomed'))
 
-        # Dane aplikacji
+        # Dane w pamięci RAM
         self.cart_items = []
         self.current_client_id = None
         self.current_client_name = "Nieokreślony klient"
+
+        # Bezpieczny zapis cache na dysku przy zamykaniu aplikacji
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
 
         # --- UKŁAD GŁÓWNY ---
         self.sidebar_frame = ctk.CTkFrame(self, width=200, fg_color=AppStyle.COLOR_SIDEBAR_BG)
@@ -93,8 +93,13 @@ class OstrzomatApp(ctk.CTk):
         )
         self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
 
-        # Wczytanie cache przy starcie
+        # Wczytanie cache z dysku tylko raz przy starcie
         self.load_initial_data()
+
+    def on_closing(self):
+        """Zapisuje stan koszyka do pliku przy zamykaniu okna programu."""
+        self.save_cart_state()
+        self.destroy()
 
     def open_client_modal(self):
         ClientSelectionModal(parent=self, on_client_selected_callback=self.on_client_selected)
@@ -108,7 +113,7 @@ class OstrzomatApp(ctk.CTk):
             self.current_client_name = "Nieokreślony klient"
             
         self.client_btn.configure(text=f"👤 Klient: {self.current_client_name}")
-        self.save_cart_state()
+        # Zapis wykonywany w pamięci, zapis na dysk przy zamykaniu lub dodaniu pozycji
 
     def load_initial_data(self):
         cart_data = database.load_cart_from_file() 
@@ -128,6 +133,7 @@ class OstrzomatApp(ctk.CTk):
         self.refresh_cart_ui()
 
     def save_cart_state(self, path=database.CART_CACHE_PATH):
+        """Metoda fizycznie zapisująca dane z RAM do pliku JSON na dysku."""
         database.save_cart_to_file(
             cart_items=self.cart_items, 
             client_id=self.current_client_id, 
@@ -136,6 +142,7 @@ class OstrzomatApp(ctk.CTk):
         )
 
     def refresh_cart_ui(self):
+        """Szybkie odświeżanie interfejsu wyłącznie w pamięci RAM."""
         self.cart_table.refresh(self.cart_items)
         
         total = 0.0
@@ -148,6 +155,7 @@ class OstrzomatApp(ctk.CTk):
         self.cart_footer.update_total(total)
 
     def add_item_to_cart(self, item):
+        """Dodaje pozycję w RAM i zapisuje plik w tle."""
         self.cart_items.append(item)
         self.refresh_cart_ui()
         self.save_cart_state()
