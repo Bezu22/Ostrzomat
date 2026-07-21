@@ -4,42 +4,47 @@ from ui.style import AppStyle
 
 class ClientSelectionModal(ctk.CTkToplevel):
     """
-    Okno wyboru i edycji klienta z kompaktową listą.
+    Kompaktowe okno wyboru i edycji klienta, zoptymalizowane pod kątem płynności.
     """
-    def __init__(self, parent, on_client_selected_callback):
+    def __init__(self, parent, on_client_selected_callback, initial_cache=None):
         super().__init__(parent)
-        
+
+        self.parent = parent
         self.on_client_selected = on_client_selected_callback
-        
+        self.initial_cache = initial_cache or []
+
         self.title("Zarządzanie / Wybór Klienta")
         self.geometry("600x550")
         self.resizable(False, False)
-        
+
         self.transient(parent)
         self.grab_set()
-        
+
         self.configure(fg_color=AppStyle.COLOR_CARD_BG)
-        self.editing_client_id = None  # None = nowy klient, liczba = edycja
-        
+        self.editing_client_id = None
+
         self._build_ui()
-        self._load_clients_list()
+
+        # OPTYMALIZACJA: Dajemy systemowi 10ms na wyrysowanie tła okna,
+        # zanim zaczniemy generować widżety na liście (eliminacja białego błysku)
+        self.after(10, self._initial_render)
 
     def _build_ui(self):
         # Nagłówek
         header_frame = ctk.CTkFrame(self, fg_color=AppStyle.COLOR_HEADER_BG, corner_radius=0, height=45)
         header_frame.pack(fill="x", side="top")
-        
+
         lbl_title = ctk.CTkLabel(
-            header_frame, 
-            text="👤 Zarządzanie Klientami", 
-            font=AppStyle.get_title_font(), 
+            header_frame,
+            text="👤 Zarządzanie Klientami",
+            font=AppStyle.get_title_font(),
             text_color=AppStyle.COLOR_TEXT_LIGHT
         )
         lbl_title.pack(pady=10, padx=15, side="left")
 
         # Zakładki
         self.tabview = ctk.CTkTabview(
-            self, 
+            self,
             segmented_button_selected_color=AppStyle.COLOR_PRIMARY,
             segmented_button_selected_hover_color=AppStyle.COLOR_PRIMARY_HOVER,
             segmented_button_unselected_color=AppStyle.COLOR_MUTED,
@@ -47,7 +52,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
             text_color=AppStyle.COLOR_TEXT_LIGHT
         )
         self.tabview.pack(fill="both", expand=True, padx=15, pady=10)
-        
+
         self.tab_search = self.tabview.add("🔍 Wybierz z listy")
         self.tab_form = self.tabview.add("➕ Dodaj / Edytuj")
 
@@ -55,13 +60,11 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self._setup_form_tab()
 
     def _setup_search_tab(self):
-        """Zakładka listy z kompaktowymi wierszami."""
         search_frame = ctk.CTkFrame(self.tab_search, fg_color="transparent")
         search_frame.pack(fill="x", pady=(2, 6))
-        
-        # POPRAWKA: Usunięto zduplikowane 'font=...' – słownik get_entry_style() sam go dostarcza
+
         self.entry_search = ctk.CTkEntry(
-            search_frame, 
+            search_frame,
             placeholder_text="Szukaj po nazwie, NIP lub telefonie...",
             height=34,
             **AppStyle.get_entry_style()
@@ -70,7 +73,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_search.bind("<KeyRelease>", self._on_search_change)
 
         self.scroll_list = ctk.CTkScrollableFrame(
-            self.tab_search, 
+            self.tab_search,
             fg_color=AppStyle.COLOR_BG_DARK,
             label_text="Baza Klientów",
             label_text_color=AppStyle.COLOR_TEXT_LIGHT,
@@ -79,7 +82,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.scroll_list.pack(fill="both", expand=True, pady=2)
 
     def _setup_form_tab(self):
-        """Zakładka formularza (Służy do dodawania LUB edycji)."""
         form_frame = ctk.CTkFrame(self.tab_form, fg_color="transparent")
         form_frame.pack(fill="both", expand=True, padx=10, pady=5)
 
@@ -105,82 +107,112 @@ class ClientSelectionModal(ctk.CTkToplevel):
     def _create_form_field(self, parent, label_text, row):
         lbl = ctk.CTkLabel(parent, text=label_text, font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_TEXT_LIGHT, anchor="w")
         lbl.grid(row=row, column=0, sticky="w", pady=3, padx=5)
-        
-        # POPRAWKA: Usunięto zduplikowane 'font=...'
+
         entry = ctk.CTkEntry(parent, height=30, **AppStyle.get_entry_style())
         entry.grid(row=row, column=1, sticky="ew", pady=3, padx=5)
         parent.grid_columnconfigure(1, weight=1)
         return entry
 
+    def _initial_render(self):
+        """Pierwsze wyrenderowanie danych z pamięci podręcznej RAM."""
+        if self.initial_cache:
+            self._render_cards(self.initial_cache)
+        else:
+            self._load_clients_list()
+
     def _load_clients_list(self, query=""):
+        clients = clients_db.search_clients(query) if query else clients_db.get_all_clients()
+        self._render_cards(clients)
+
+    def _render_cards(self, clients):
+        """Generuje niezwykle zwarty układ wierszy na liście klientów."""
         for widget in self.scroll_list.winfo_children():
             widget.destroy()
 
-        clients = clients_db.search_clients(query) if query else clients_db.get_all_clients()
-
         if not clients:
-            lbl_empty = ctk.CTkLabel(self.scroll_list, text="Brak klientów w bazie.", font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_TEXT_MUTED)
+            lbl_empty = ctk.CTkLabel(
+                self.scroll_list, 
+                text="Brak klientów w bazie.", 
+                font=AppStyle.get_normal_font(), 
+                text_color=AppStyle.COLOR_TEXT_MUTED
+            )
             lbl_empty.pack(pady=15)
             return
 
         for idx, client in enumerate(clients):
             base_bg = AppStyle.COLOR_ROW_EVEN if idx % 2 == 0 else AppStyle.COLOR_ROW_ODD
-            
-            card = ctk.CTkFrame(self.scroll_list, fg_color=base_bg, corner_radius=6, height=38)
-            card.pack(fill="x", pady=2, padx=2)
 
+            # 1. Kompaktowa ramka wiersza (wysokość tylko 30px)
+            card = ctk.CTkFrame(self.scroll_list, fg_color=base_bg, corner_radius=4, height=30)
+            card.pack(fill="x", pady=1, padx=2)
+
+            # 2. Kontener na informacje (układ poziomy)
             info_container = ctk.CTkFrame(card, fg_color="transparent")
-            info_container.pack(side="left", fill="both", expand=True, padx=8, pady=4)
+            info_container.pack(side="left", fill="both", expand=True, padx=6, pady=1)
 
-            # Linia 1: Nazwa
-            lbl_name = ctk.CTkLabel(info_container, text=client['name'], font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_LIGHT, anchor="w")
-            lbl_name.pack(anchor="w")
+            # Główna nazwa klienta
+            lbl_name = ctk.CTkLabel(
+                info_container, 
+                text=client['name'], 
+                font=AppStyle.get_bold_font(), 
+                text_color=AppStyle.COLOR_TEXT_LIGHT, 
+                anchor="w"
+            )
+            lbl_name.pack(side="left", padx=(0, 8))
 
-            # Linia 2: Tylko Tel i NIP
+            # Dane kontaktowe (tel / NIP) umieszczone tuż obok nazwy w tej samej linii
             sub_info = []
             if client['phone']: sub_info.append(f"Tel: {client['phone']}")
             if client['nip']: sub_info.append(f"NIP: {client['nip']}")
-            info_str = " | ".join(sub_info) if sub_info else "Brak danych kontaktowych"
+            info_str = f"({ ' | '.join(sub_info) })" if sub_info else ""
 
-            lbl_sub = ctk.CTkLabel(info_container, text=info_str, font=AppStyle.get_small_font(), text_color=AppStyle.COLOR_TEXT_MUTED, anchor="w")
-            lbl_sub.pack(anchor="w")
+            if info_str:
+                lbl_sub = ctk.CTkLabel(
+                    info_container, 
+                    text=info_str, 
+                    font=AppStyle.get_small_font(), 
+                    text_color=AppStyle.COLOR_TEXT_MUTED, 
+                    anchor="w"
+                )
+                lbl_sub.pack(side="left")
 
-            # Przyciski po prawej stronie
+            # 3. Odchudzone przyciski akcji po prawej stronie
             btn_frame = ctk.CTkFrame(card, fg_color="transparent")
-            btn_frame.pack(side="right", padx=6, pady=4)
+            btn_frame.pack(side="right", padx=4, pady=1)
 
+            # Przycisk edycji (mniejszy i bardziej zwarty)
             btn_edit = ctk.CTkButton(
                 btn_frame,
                 text="✏️",
-                width=30,
-                height=28,
-                font=AppStyle.get_normal_font(),
+                width=24,
+                height=22,
+                font=AppStyle.get_small_font(),
                 fg_color=AppStyle.COLOR_MUTED,
                 hover_color=AppStyle.COLOR_MUTED_HOVER,
                 command=lambda c=client: self._open_edit_mode(c)
             )
-            btn_edit.pack(side="left", padx=2)
+            btn_edit.pack(side="left", padx=1)
 
+            # Zmniejszony przycisk wyboru
             btn_select = ctk.CTkButton(
                 btn_frame,
-                text="WYBIERZ",
-                width=75,
-                height=28,
-                font=AppStyle.get_bold_font(),
+                text="Wybierz",
+                width=55,
+                height=22,
+                font=AppStyle.get_small_font(),
                 fg_color=AppStyle.COLOR_SECONDARY,
                 hover_color=AppStyle.COLOR_SECONDARY_HOVER,
                 text_color=AppStyle.COLOR_TEXT_LIGHT,
                 command=lambda c=client: self._select_client(c)
             )
-            btn_select.pack(side="left", padx=2)
+            btn_select.pack(side="left", padx=1)
 
     def _open_edit_mode(self, client):
-        """Wypełnia formularz danymi klienta i przełącza zakładkę."""
         self.editing_client_id = client['id']
-        
+
         self.entry_name.delete(0, 'end')
         self.entry_name.insert(0, client.get('name', '') or '')
-        
+
         self.entry_phone.delete(0, 'end')
         self.entry_phone.insert(0, client.get('phone', '') or '')
 
@@ -226,5 +258,9 @@ class ClientSelectionModal(ctk.CTkToplevel):
         else:
             new_id = clients_db.add_client(name, phone, nip, email, address, notes)
             client = clients_db.get_client_by_id(new_id)
+
+        # Odświeżamy wątek tła w oknie głównym po zapisie
+        if hasattr(self.parent, 'preload_clients_in_background'):
+            self.parent.preload_clients_in_background()
 
         self._select_client(client)
