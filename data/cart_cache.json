@@ -37,12 +37,13 @@
             "total_coat": 27.98,
             "services_status": {
                 "ciecie": true,
-                "opuszczenie": false,
+                "opuszczenie": true,
                 "polerowanie": false,
                 "zuzycie": false
             },
-            "extra_unit": 12.0,
-            "total_extra": 12.0,
+            "opuszczenie_mult": 2,
+            "extra_unit": 52.0,
+            "total_extra": 52.0,
             "tool_category": "Frezy",
             "shank_diam": "12",
             "notes": ""
@@ -138,6 +139,30 @@
             "opuszczenie_mult": 1,
             "extra_unit": 12.0,
             "total_extra": 84.0,
+            "tool_category": "Frezy",
+            "shank_diam": "12",
+            "notes": ""
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "10.5",
+            "z": "3",
+            "qty": "5",
+            "tool_unit": 48.62,
+            "total_tool": 243.1,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "100.0",
+            "coat_unit": 27.98,
+            "total_coat": 139.9,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": true,
+                "polerowanie": false,
+                "zuzycie": true
+            },
+            "opuszczenie_mult": 1,
+            "extra_unit": 20.0,
+            "total_extra": 100.0,
             "tool_category": "Frezy",
             "shank_diam": "12",
             "notes": ""

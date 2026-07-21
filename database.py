@@ -7,20 +7,54 @@ DB_PATH = os.path.join('data', 'ostrzomat.db')
 SETTINGS_PATH = os.path.join('data', 'user_settings.json')
 CART_CACHE_PATH = os.path.join('data', 'cart_cache.json')
 
+# Pamięć podręczna ustawień w RAM
+_SETTINGS_CACHE = None
+
 def is_db_accessible():
-    """Sprawdza czy plik bazy istnieje."""
     return os.path.exists(DB_PATH)
 
 def get_connection():
-    """Bezpieczne połączenie z bazą."""
     if not is_db_accessible():
         raise FileNotFoundError(f"Brak bazy w {DB_PATH}")
     return sqlite3.connect(f"file:{DB_PATH}?mode=rw", uri=True)
 
-# --- FUNKCJE DLA FILTRÓW (COMBOBOXY) ---
+# --- ZARZĄDZANIE USTAWIENIAMI (ZOPTOWANE - RAM CACHE) ---
+
+def get_user_settings():
+    global _SETTINGS_CACHE
+    if _SETTINGS_CACHE is not None:
+        return _SETTINGS_CACHE
+
+    if not os.path.exists(SETTINGS_PATH):
+        _SETTINGS_CACHE = {}
+        return _SETTINGS_CACHE
+    try:
+        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
+            _SETTINGS_CACHE = json.load(f)
+            return _SETTINGS_CACHE
+    except:
+        _SETTINGS_CACHE = {}
+        return _SETTINGS_CACHE
+
+def save_user_settings(new_settings, flush_to_disk=False):
+    """Zapisuje ustawienia do RAM, a opcjonalnie na dysk."""
+    global _SETTINGS_CACHE
+    settings = get_user_settings()
+    settings.update(new_settings)
+    _SETTINGS_CACHE = settings
+    
+    # Zapis na dysk tylko gdy explicite wymuszony (np. przy zamknięciu okna)
+    if flush_to_disk:
+        try:
+            if not os.path.exists('data'): os.makedirs('data')
+            with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
+                json.dump(settings, f, indent=4, ensure_ascii=False)
+        except Exception as e:
+            print(f"Błąd zapisu ustawień: {e}")
+
+# --- FUNKCJE DLA FILTRÓW I CEN (BEZ ZMIAN W LOGICE) ---
 
 def get_unique_tool_types(category="Wszystkie"):
-    """Pobiera typy dla Narzędzi."""
     if not is_db_accessible(): return []
     try:
         conn = get_connection()
@@ -35,7 +69,6 @@ def get_unique_tool_types(category="Wszystkie"):
     except: return []
 
 def get_unique_coating_names():
-    """Pobiera unikalne nazwy powłok."""
     if not is_db_accessible(): return []
     try:
         conn = get_connection()
@@ -47,7 +80,6 @@ def get_unique_coating_names():
     except: return []
 
 def get_unique_service_names():
-    """Pobiera unikalne nazwy usług dla filtrów edytora."""
     if not is_db_accessible(): return []
     try:
         conn = get_connection()
@@ -58,10 +90,7 @@ def get_unique_service_names():
         return names
     except: return []
 
-# --- POBIERANIE CEN (LOGIKA KALKULATORA) ---
-
 def get_tool_price(tool_type, blades_key, diam, qty):
-    """Zwraca cenę jednostkową ostrzenia na podstawie typu, ostrzy, średnicy i ilości."""
     if not is_db_accessible(): return 0.0
     try:
         d_val = float(diam)
@@ -70,7 +99,6 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Wybór kolumny ceny na podstawie ilości
         if q_val >= 11: price_col = "price_11_20"
         elif q_val >= 5: price_col = "price_5_10"
         elif q_val >= 2: price_col = "price_2_4"
@@ -81,24 +109,18 @@ def get_tool_price(tool_type, blades_key, diam, qty):
             WHERE tool_type=? AND blades=? AND diam_min < ? AND diam_max >= ?
         """
         cursor.execute(query, (tool_type, blades_key, d_val, d_val))
-        
         res = cursor.fetchone()
         conn.close()
         
         return float(res[0]) if (res and res[0] is not None) else 0.0
     except Exception as e:
-        print(f"Błąd bazy (get_tool_price): {e}")
         return 0.0
 
 def get_unique_coating_lengths(coating_name):
-    """Pobiera dostępne długości dla konkretnej powłoki lub wszystkie dostępne, gdy brak powłoki."""
-    if not is_db_accessible(): 
-        return []
-        
+    if not is_db_accessible(): return []
     try:
         conn = get_connection()
         cursor = conn.cursor()
-        
         if coating_name == "Brak" or coating_name is None:
             cursor.execute("SELECT DISTINCT length FROM pricelist_coatings ORDER BY length ASC")
         else:
@@ -107,11 +129,9 @@ def get_unique_coating_lengths(coating_name):
         lengths = [str(r[0]) for r in cursor.fetchall()]
         conn.close()
         return lengths
-    except: 
-        return []
+    except: return []
 
 def get_coating_price(name, diam, length):
-    """Zwraca jednostkową cenę nałożenia powłoki. (Oczyszczona z komunikatów debugowania)"""
     if not is_db_accessible() or name == "Brak": return 0.0
     try:
         d_val = float(str(diam).replace(',', '.'))
@@ -130,11 +150,9 @@ def get_coating_price(name, diam, length):
 
         return float(res[0]) if res else 0.0
     except Exception as e:
-        print(f"Błąd bazy (coating): {e}")
         return 0.0
 
 def get_service_price_refined(name, param_val):
-    """Zwraca cenę usługi dodatkowej na podstawie parametru (np. średnicy)."""
     if not is_db_accessible(): return 0.0
     try:
         conn = get_connection()
@@ -147,8 +165,6 @@ def get_service_price_refined(name, param_val):
         conn.close()
         return float(res[0]) if res else 0.0
     except: return 0.0
-
-# --- FUNKCJE DLA EDYTORA (FILTROWANIE LISTY) ---
 
 def get_filtered_tools(tool_type="Wszystkie", category="Wszystkie"):
     if not is_db_accessible(): return []
@@ -191,89 +207,7 @@ def get_filtered_services(name="Wszystkie"):
     conn.close()
     return res
 
-# --- OPERACJE CRUD (DODAWANIE / EDYCJA / USUWANIE) ---
-
-def delete_row(table_name, row_id):
-    """Usuwa rekord z bazy."""
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(f"DELETE FROM {table_name} WHERE id=?", (row_id,))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Błąd usuwania: {e}")
-
-def add_tool_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""INSERT INTO pricelist_tools 
-        (category, tool_type, blades, diam_min, diam_max, price_1, price_2_4, price_5_10, price_11_20) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", vals)
-    conn.commit()
-    conn.close()
-
-def update_tool_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""UPDATE pricelist_tools SET 
-        category=?, tool_type=?, blades=?, diam_min=?, diam_max=?, 
-        price_1=?, price_2_4=?, price_5_10=?, price_11_20=? WHERE id=?""", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_coating_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) VALUES (?, ?, ?, ?)", vals)
-    conn.commit()
-    conn.close()
-
-def update_coating_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? WHERE id=?", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_service_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO pricelist_services (service_name, param_min, param_max, price) VALUES (?, ?, ?, ?)", vals)
-    conn.commit()
-    conn.close()
-
-def update_service_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? WHERE id=?", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-# --- ZARZĄDZANIE USTAWIENIAMI (JSON) ---
-
-def get_user_settings():
-    if not os.path.exists(SETTINGS_PATH):
-        return {}
-    try:
-        with open(SETTINGS_PATH, 'r', encoding='utf-8') as f:
-            return json.load(f)
-    except: return {}
-
-def save_user_settings(new_settings):
-    settings = get_user_settings()
-    settings.update(new_settings)
-    try:
-        if not os.path.exists('data'): os.makedirs('data')
-        with open(SETTINGS_PATH, 'w', encoding='utf-8') as f:
-            json.dump(settings, f, indent=4, ensure_ascii=False)
-    except Exception as e:
-        print(f"Błąd zapisu ustawień: {e}")
-
-# --- ZARZĄDZANIE KOSZYKIEM (CART) ---
-
 def save_cart_to_file(cart_items, client_name="Nieokreślony", path=CART_CACHE_PATH):
-    """Zapisuje koszyk i klienta do JSON."""
     data = {
         "client": client_name,
         "items": cart_items
@@ -286,7 +220,6 @@ def save_cart_to_file(cart_items, client_name="Nieokreślony", path=CART_CACHE_P
         print(f"Błąd zapisu koszyka: {e}")
 
 def load_cart_from_file(path=CART_CACHE_PATH):
-    """Wczytuje koszyk. Zawsze zwraca (client_name, items)."""
     if not os.path.exists(path):
         return "Nieokreślony", []
     try:

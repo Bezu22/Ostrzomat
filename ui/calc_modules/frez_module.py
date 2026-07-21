@@ -191,17 +191,21 @@ class FrezModule(ctk.CTkFrame):
 
                 if self.service_vars[key].get():
                     db_name = "Cięcie" if key=="ciecie" else "Zaniżenie średnicy" if key=="opuszczenie" else "Polerowanie rowka"
-                    price = database.get_service_price_refined(db_name, float(diam))
+                    try:
+                        price = database.get_service_price_refined(db_name, float(diam))
+                    except:
+                        price = 0.0
                     if key == "opuszczenie":
                         price = price * self.opuszczenie_mult
                     self.service_price_labels[key].configure(text=f"+{price:.2f} zł")
                 else:
                     self.service_price_labels[key].configure(text="")
 
+            # Zapis do RAM zamiast na dysk! (Znikają przycinki podczas pisania)
             database.save_user_settings({
                 "last_tool_type": t_type, "last_blades": blades,
                 "last_diam": diam, "last_shank": self.shank_entry.get()
-            })
+            }, flush_to_disk=False)
 
             return {
                 "type": t_type, "diam": diam, "z": blades, "qty": qty,

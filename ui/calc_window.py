@@ -198,6 +198,9 @@ class ToolCalcWindow(ctk.CTkToplevel):
             for key in ["tool_unit", "total_tool", "coat_unit", "total_coat", "extra_unit", "total_extra"]:
                 if key in item_data:
                     item_data[key] = round(float(item_data[key]), 2)
+            
+            # Wymuszamy zapis ustawień na dysk dopiero PO DODANIU DO KOSZYKA
+            database.save_user_settings({}, flush_to_disk=True)
                     
             self.parent.add_item_to_cart(item_data)
             OstrzomatPopup(
