@@ -1,3 +1,4 @@
+import math
 import customtkinter as ctk
 import database
 from logic import cart_logic
@@ -10,13 +11,24 @@ class FrezModule(ctk.CTkFrame):
         self.settings = settings
         self.shank_override = ctk.BooleanVar(value=False)
         
+        # --- GŁÓWNY KONTENER DWUKOLUMNOWY ---
+        self.main_container = ctk.CTkFrame(self, fg_color="transparent")
+        self.main_container.pack(fill="both", expand=True)
+
+        self.left_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        self.left_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+
+        self.right_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
+        self.right_col.pack(side="left", fill="both", expand=True, padx=(10, 0))
+        
         px = AppStyle.PAD_LARGE
         py_small = (0, AppStyle.PAD_SMALL)
         
+        # ================= KOLUMNA LEWA =================
         # --- 1. TYP i ostrza ---
-        self.add_label("Typ narzędzia:", AppStyle.get_bold_font())
+        self.add_label(self.left_col, "Typ narzędzia:", AppStyle.get_bold_font())
         self.type_combo = ctk.CTkComboBox(
-            self, 
+            self.left_col, 
             width=300, 
             values=database.get_unique_tool_types("Frezy"), 
             command=self.update_callback,
@@ -26,22 +38,22 @@ class FrezModule(ctk.CTkFrame):
         self.type_combo.configure(state="readonly") 
         self.type_combo.pack(pady=py_small, padx=px, anchor="w")
 
-        self.add_label("Liczba ostrzy:", AppStyle.get_bold_font())
-        self.blades_entry = ctk.CTkEntry(self, width=300, **AppStyle.get_entry_style())
+        self.add_label(self.left_col, "Liczba ostrzy:", AppStyle.get_bold_font())
+        self.blades_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
         self.blades_entry.insert(0, settings.get("last_blades", "4"))
         self.blades_entry.pack(pady=py_small, padx=px, anchor="w")
         self.blades_entry.bind("<KeyRelease>", lambda e: self.update_callback())
 
         # --- 2. ŚREDNICA ROBOCZA ---
-        self.add_label("Średnica robocza:", AppStyle.get_bold_font())
-        self.diam_entry = ctk.CTkEntry(self, width=300, **AppStyle.get_entry_style())
+        self.add_label(self.left_col, "Średnica robocza:", AppStyle.get_bold_font())
+        self.diam_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
         self.diam_entry.insert(0, settings.get("last_diam", "10.0"))
         self.diam_entry.pack(pady=py_small, padx=px, anchor="w")
         self.diam_entry.bind("<KeyRelease>", self.on_diam_change)
 
         # --- 3. CHWYT ---
-        self.add_label("Średnica chwytu:", AppStyle.get_bold_font())
-        s_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.add_label(self.left_col, "Średnica chwytu:", AppStyle.get_bold_font())
+        s_frame = ctk.CTkFrame(self.left_col, fg_color="transparent")
         s_frame.pack(fill="x", pady=py_small, padx=px)
         
         self.shank_entry = ctk.CTkEntry(s_frame, width=140, **AppStyle.get_entry_style())
@@ -60,9 +72,9 @@ class FrezModule(ctk.CTkFrame):
         self.shank_cb.pack(side="left", padx=AppStyle.PAD_MEDIUM)
 
         # --- 4. POWŁOKA ---
-        self.add_label("Powłoka:", AppStyle.get_bold_font())
+        self.add_label(self.left_col, "Powłoka:", AppStyle.get_bold_font())
         self.coat_combo = ctk.CTkComboBox(
-            self, 
+            self.left_col, 
             width=300, 
             values=["Brak"] + database.get_unique_coating_names(), 
             command=self.on_coating_change,
@@ -72,11 +84,11 @@ class FrezModule(ctk.CTkFrame):
         self.coat_combo.configure(state="readonly")
         self.coat_combo.pack(pady=py_small, padx=px, anchor="w")
 
-        self.len_label = ctk.CTkLabel(self, text="Długość (L):", font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_DARK)
+        self.len_label = ctk.CTkLabel(self.left_col, text="Długość (L):", font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_DARK)
         self.len_label.pack(pady=(AppStyle.PAD_SMALL, 0), padx=px, anchor="w")
 
         self.len_combo = ctk.CTkComboBox(
-            self, 
+            self.left_col, 
             width=300, 
             values=[], 
             command=self.update_callback,
@@ -85,10 +97,16 @@ class FrezModule(ctk.CTkFrame):
         self.len_combo.configure(state="readonly")
         self.len_combo.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
 
-        self.on_coating_change()
+        # --- 6. ILOŚĆ SZTUK (Przeniesiono do lewej kolumny) ---
+        self.add_label(self.left_col, "Ilość sztuk:", AppStyle.get_bold_font())
+        self.qty_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
+        self.qty_entry.insert(0, "1")
+        self.qty_entry.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
+        self.qty_entry.bind("<KeyRelease>", lambda e: self.update_callback())
 
+        # ================= KOLUMNA PRAWA =================
         # --- 5. USŁUGI DODATKOWE ---
-        self.add_label("Usługi dodatkowe:", AppStyle.get_bold_font())
+        self.add_label(self.right_col, "Usługi dodatkowe:", AppStyle.get_bold_font())
         self.service_vars = {
             "ciecie": ctk.BooleanVar(),
             "opuszczenie": ctk.BooleanVar(),
@@ -102,11 +120,11 @@ class FrezModule(ctk.CTkFrame):
             ("ciecie", "Cięcie narzędzia (skracanie)"),
             ("opuszczenie", "Zaniżenie średnicy (szyjka)"),
             ("polerowanie", "Polerowanie rowka wiórowego"),
-            ("zuzycie", "Ciężkie zużycie / wyszczerbienia (+5% do ostrzenia)")
+            ("zuzycie", "Ciężkie zużycie / wyszczerbienia (+5%)")
         ]
 
         for key, text in services_info:
-            row_frame = ctk.CTkFrame(self, fg_color="transparent")
+            row_frame = ctk.CTkFrame(self.right_col, fg_color="transparent")
             row_frame.pack(fill="x", padx=px, pady=2, anchor="w")
 
             cb = ctk.CTkCheckBox(
@@ -151,54 +169,70 @@ class FrezModule(ctk.CTkFrame):
             lbl_p.pack(side="right", padx=AppStyle.PAD_SMALL)
             self.service_price_labels[key] = lbl_p
 
-        # --- 6. ILOŚĆ SZTUK ---
-        self.add_label("Ilość sztuk:", AppStyle.get_bold_font())
-        self.qty_entry = ctk.CTkEntry(self, width=300, **AppStyle.get_entry_style())
-        self.qty_entry.insert(0, "1")
-        self.qty_entry.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
-        self.qty_entry.bind("<KeyRelease>", lambda e: self.update_callback())
-        
+        # Uruchomienie domyślnych funkcji na starcie
+        self.on_coating_change()
         self.toggle_shank()
 
-    def add_label(self, text, font):
-        ctk.CTkLabel(self, text=text, font=font, text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=(AppStyle.PAD_SMALL, 0), padx=AppStyle.PAD_LARGE, anchor="w")
+    # ================= LOGIKA WIDOKU =================
+    def add_label(self, parent_frame, text, font):
+        """Dodano parent_frame, aby wiedzieć, do której kolumny wstawić etykietę."""
+        ctk.CTkLabel(parent_frame, text=text, font=font, text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=(AppStyle.PAD_SMALL, 0), padx=AppStyle.PAD_LARGE, anchor="w")
+
+    def calculate_shank_value(self, diam_str):
+        """Zwraca bezpiecznie wyliczoną średnicę chwytu parzystą w górę."""
+        try:
+            val = diam_str.replace(',', '.')
+            if not val:
+                return ""
+            d = float(val)
+            if d <= 0:
+                return ""
+            
+            # Jeśli wartość to idealnie parzysta liczba całkowita np. 8.0, 10.0
+            if d.is_integer() and int(d) % 2 == 0:
+                return str(int(d))
+            
+            # Zaokrąglenie w górę np. 8.5 -> 9,  4.7 -> 5
+            c = math.ceil(d)
+            
+            # Jeśli po zaokrągleniu wynik jest nieparzysty, podbijamy do parzystej
+            if c % 2 != 0:
+                c += 1
+                
+            return str(c)
+        except ValueError:
+            # Ignorujemy błąd podczas wpisywania, walidacja przy zapisie go złapie
+            return ""
 
     def on_diam_change(self, _=None):
         if not self.shank_override.get():
-            val = self.diam_entry.get()
+            raw_val = self.diam_entry.get()
+            new_shank = self.calculate_shank_value(raw_val)
+
             self.shank_entry.configure(state="normal")
             self.shank_entry.delete(0, "end")
-            self.shank_entry.insert(0, val)
+            self.shank_entry.insert(0, new_shank)
             self.shank_entry.configure(state="disabled")
         self.update_callback()
 
     def toggle_shank(self):
-        """
-        Przełącza stan pola średnicy chwytu (aktywne / nieaktywne)
-        oraz nakłada bardzo wyraźne różnice wizualne.
-        """
+        """Przełącza stan pola średnicy chwytu (aktywne / nieaktywne)."""
         if self.shank_override.get():
-            # 1. STAN AKTYWNY:
-            # Polu przywracamy stan edycji, jasne tło i czerwoną/crimson ramkę akcentową.
             self.shank_entry.configure(
                 state="normal", 
                 fg_color=AppStyle.COLOR_BG_LIGHT,
-                border_color=AppStyle.COLOR_SECONDARY,  # Bursztynowy akcent aktywności
+                border_color=AppStyle.COLOR_SECONDARY,
                 border_width=2
             )
         else:
-            # 2. STAN NIEAKTYWNY:
-            # Pole przechodzi w tryb do odczytu, dostaje ciemne tło i szarą ramkę.
             self.shank_entry.configure(
                 state="disabled", 
-                fg_color=AppStyle.COLOR_MAIN_BG,        # Ciemne tło (zlewające się z oknem)
-                border_color=AppStyle.COLOR_MUTED,      # Przygaszona szara ramka
-                border_width=1                           # Cienki obrys
+                fg_color=AppStyle.COLOR_MAIN_BG,
+                border_color=AppStyle.COLOR_MUTED,
+                border_width=1
             )
-            # Automatyczne przeliczenie i przepisanie wartości ze średnicy roboczej
             self.on_diam_change()
             
-        # Odświeżenie kalkulacji po zmianie stanu
         self.update_callback()
 
     def on_coating_change(self, _=None):
@@ -212,20 +246,24 @@ class FrezModule(ctk.CTkFrame):
         self.len_combo.set(lengths[0])
         self.update_callback()
 
-    def validate_all(self, diam, z, qty):
+    # ================= LOGIKA DANYCH I WALIDACJA =================
+    def validate_all(self, diam, z, qty, shank):
+        """Sprawdza poprawność wpisanych danych liczbowych."""
         try:
             float(diam)
+            float(shank)
             if not z.isdigit() or not qty.isdigit():
                 raise ValueError()
             return True
         except ValueError:
             from ui.components import OstrzomatPopup
-            OstrzomatPopup(self.master, title="Błąd", message="Sprawdź wartości liczbowe!", type="error")
+            OstrzomatPopup(self.master, title="Błąd", message="Wprowadzono nieprawidłowe wartości (litery/znaki specjalne). Popraw je przed kalkulacją!", type="error")
             return False
     
     def get_full_item_data(self, run_validation=False):
         try:
             diam = self.diam_entry.get().replace(',', '.')
+            shank = self.shank_entry.get().replace(',', '.')
             qty = self.qty_entry.get() or "1" 
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
@@ -233,7 +271,7 @@ class FrezModule(ctk.CTkFrame):
             coat_len = self.len_combo.get() if hasattr(self, 'len_combo') else "100"
 
             if run_validation:
-                if not self.validate_all(diam, blades, qty):
+                if not self.validate_all(diam, blades, qty, shank):
                     return None
             
             heavy_wear_active = self.service_vars["zuzycie"].get()
@@ -260,7 +298,7 @@ class FrezModule(ctk.CTkFrame):
 
             database.save_user_settings({
                 "last_tool_type": t_type, "last_blades": blades,
-                "last_diam": diam, "last_shank": self.shank_entry.get()
+                "last_diam": diam, "last_shank": shank
             })
 
             return {

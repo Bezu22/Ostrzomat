@@ -189,6 +189,30 @@
             "tool_category": "Frezy",
             "shank_diam": "10",
             "notes": ""
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "12",
+            "z": "4",
+            "qty": "3",
+            "tool_unit": 49.1,
+            "total_tool": 147.3,
+            "coat_name": "Brak",
+            "coat_len": "100.0",
+            "coat_unit": 0.0,
+            "total_coat": 0.0,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": false,
+                "polerowanie": true,
+                "zuzycie": false
+            },
+            "opuszczenie_mult": 1,
+            "extra_unit": 10.0,
+            "total_extra": 30.0,
+            "tool_category": "Frezy",
+            "shank_diam": "12",
+            "notes": ""
         }
     ]
 }
