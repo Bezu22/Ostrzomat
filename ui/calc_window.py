@@ -36,9 +36,11 @@ class ToolCalcWindow(ctk.CTkToplevel):
         else:
             self.title(f"Konfiguracja: {tool_category}")
 
-        width, height = 550, 900
+        # Zmiana rozmiaru zgodnie z prośbą, dla lepszego rozłożenia kolumn
+        width, height = 1200, 800
         x = (self.winfo_screenwidth() // 2) - (width // 2)
-        self.geometry(f"{width}x{height}+{x}+0")
+        # Zabezpieczenie, by okno nie wyjechało poza górną krawędź ekranu
+        self.geometry(f"{width}x{height}+{x}+10") 
 
         self.attributes("-topmost", True)
         self.grab_set()
@@ -54,16 +56,22 @@ class ToolCalcWindow(ctk.CTkToplevel):
             self.tool_module = FrezModule(
                 self.main_scroll, self.update_calculation, self.settings
             )
-        elif tool_category == "Wiertla":  # Usunięto polski znak 'ł'
+        elif tool_category == "Wiertla":
             self.tool_module = DrillModule(
                 self.main_scroll, self.update_calculation, self.settings
             )
             
         if self.tool_module:
-            self.tool_module.pack(fill="x", padx=10, pady=10)
+            # fill="both", expand=True pozwala na ładne rozszerzenie 2 kolumn modułu na całe okno
+            self.tool_module.pack(fill="both", expand=True, padx=10, pady=10)
 
-            self.setup_price_preview()
-            self.setup_action_buttons()
+            # --- KLUCZOWA ZMIANA UKŁADU ---
+            # Zamiast pakować podgląd i przyciski na sam dół pod modułem,
+            # sprawdzamy, czy moduł ma prawą kolumnę i pakujemy je bezpośrednio do niej!
+            target_parent = getattr(self.tool_module, "right_col", self.main_scroll)
+
+            self.setup_price_preview(target_parent)
+            self.setup_action_buttons(target_parent)
 
             if self.edit_mode and self.item_data:
                 self.load_item_data_into_form()
@@ -88,12 +96,13 @@ class ToolCalcWindow(ctk.CTkToplevel):
                 font=AppStyle.get_bold_font(),
             ).pack(pady=20)
 
-    def setup_price_preview(self):
-        """Tworzy dolny panel z podglądem przeliczonych cen."""
+    def setup_price_preview(self, parent_frame):
+        """Tworzy dolny panel z podglądem przeliczonych cen i pakuje do wskazanej ramki."""
         self.preview_frame = ctk.CTkFrame(
-            self.main_scroll, fg_color=AppStyle.COLOR_HEADER_BG
+            parent_frame, fg_color=AppStyle.COLOR_HEADER_BG
         )
-        self.preview_frame.pack(fill="x", padx=20, pady=10)
+        # Margines górny (pady=(20, 10)) odsuwa podgląd cen od usług dodatkowych
+        self.preview_frame.pack(fill="x", padx=20, pady=(20, 10))
 
         ctk.CTkLabel(
             self.preview_frame,
@@ -129,10 +138,11 @@ class ToolCalcWindow(ctk.CTkToplevel):
             )
             self.price_labels[key].pack(side="right")
 
-    def setup_action_buttons(self):
-        """Tworzy przyciski akcji."""
-        btn_frame = ctk.CTkFrame(self.main_scroll, fg_color="transparent")
-        btn_frame.pack(fill="x", padx=20, pady=15)
+    def setup_action_buttons(self, parent_frame):
+        """Tworzy przyciski akcji i pakuje do wskazanej ramki."""
+        btn_frame = ctk.CTkFrame(parent_frame, fg_color="transparent")
+        # Pojawią się na samym dole prawej kolumny
+        btn_frame.pack(fill="x", side="bottom", padx=20, pady=(15, 30))
 
         btn_text = "ZAPISZ ZMIANY" if self.edit_mode else "DODAJ DO KOSZYKA"
         btn_color = (
@@ -242,16 +252,17 @@ class ToolCalcWindow(ctk.CTkToplevel):
         if callable(get_data_func):
             data = get_data_func(run_validation=False)
 
-        if data:
+        # Usunięcie ostrzeżeń z VS Code: upewniamy się, że data to w 100% słownik
+        if isinstance(data, dict):
             try:
-                t_j = data.get("tool_unit", 0.0)
-                t_r = data.get("total_tool", 0.0)
+                t_j = float(data.get("tool_unit", 0.0))
+                t_r = float(data.get("total_tool", 0.0))
 
-                c_j = data.get("coat_unit", 0.0)
-                c_r = data.get("total_coat", 0.0)
+                c_j = float(data.get("coat_unit", 0.0))
+                c_r = float(data.get("total_coat", 0.0))
 
-                e_j = data.get("extra_unit", 0.0)
-                e_r = data.get("total_extra", 0.0)
+                e_j = float(data.get("extra_unit", 0.0))
+                e_r = float(data.get("total_extra", 0.0))
 
                 self.price_labels["tool_price"].configure(
                     text=f"{t_j:.2f} / {t_r:.2f} zł"
@@ -299,38 +310,41 @@ class ToolCalcWindow(ctk.CTkToplevel):
             return
 
         item_data = get_data_func(run_validation=True)
-        if item_data:
-            item_data["tool_category"] = self.tool_category
+        
+        # Usunięcie ostrzeżeń z VS Code w tym miejscu
+        if not isinstance(item_data, dict):
+            return
+            
+        item_data["tool_category"] = self.tool_category
 
-            shank_entry = getattr(self.tool_module, "shank_entry", None)
-            if shank_entry and hasattr(shank_entry, "get"):
-                item_data["shank_diam"] = shank_entry.get()
+        shank_entry = getattr(self.tool_module, "shank_entry", None)
+        if shank_entry and hasattr(shank_entry, "get"):
+            item_data["shank_diam"] = shank_entry.get()
 
-            item_data["notes"] = ""
+        item_data["notes"] = ""
 
-            for key in [
-                "tool_unit",
-                "total_tool",
-                "coat_unit",
-                "total_coat",
-                "extra_unit",
-                "total_extra",
-            ]:
-                if key in item_data:
-                    item_data[key] = round(float(item_data[key]), 2)
+        for key in [
+            "tool_unit",
+            "total_tool",
+            "coat_unit",
+            "total_coat",
+            "extra_unit",
+            "total_extra",
+        ]:
+            if key in item_data:
+                item_data[key] = round(float(item_data[key]), 2)
 
-            self.parent.add_item_to_cart(item_data)
+        self.parent.add_item_to_cart(item_data)
 
-            tool_type = item_data.get("type", self.tool_category)
-            tool_diam = item_data.get("diam", "")
+        tool_type = item_data.get("type", self.tool_category)
+        tool_diam = item_data.get("diam", "")
 
-            OstrzomatPopup(
-                self,
-                title="Sukces",
-                message=f"Narzędzie {tool_type} Ø{tool_diam} zostało dodane do koszyka!",
-                type="info",
-            )
-            # Okno pozostaje otwarte – użytkownik zamyka je przyciskiem ZAMKNIJ
+        OstrzomatPopup(
+            self,
+            title="Sukces",
+            message=f"Narzędzie {tool_type} Ø{tool_diam} zostało dodane do koszyka!",
+            type="info",
+        )
 
     def save_changes(self):
         """Zapisuje zmiany w trybie edycji i zamyka okno."""
@@ -339,30 +353,34 @@ class ToolCalcWindow(ctk.CTkToplevel):
             return
 
         item_data = get_data_func(run_validation=True)
-        if item_data and self.item_index is not None:
-            item_data["tool_category"] = self.tool_category
+        
+        # Usunięcie ostrzeżeń z VS Code w tym miejscu
+        if not isinstance(item_data, dict) or self.item_index is None:
+            return
+            
+        item_data["tool_category"] = self.tool_category
 
-            shank_entry = getattr(self.tool_module, "shank_entry", None)
-            if shank_entry and hasattr(shank_entry, "get"):
-                item_data["shank_diam"] = shank_entry.get()
+        shank_entry = getattr(self.tool_module, "shank_entry", None)
+        if shank_entry and hasattr(shank_entry, "get"):
+            item_data["shank_diam"] = shank_entry.get()
 
-            if (
-                hasattr(self.parent, "cart_items")
-                and len(self.parent.cart_items) > self.item_index
-            ):
-                old_item = self.parent.cart_items[self.item_index]
-                item_data["notes"] = old_item.get("notes", "")
+        if (
+            hasattr(self.parent, "cart_items")
+            and len(self.parent.cart_items) > self.item_index
+        ):
+            old_item = self.parent.cart_items[self.item_index]
+            item_data["notes"] = old_item.get("notes", "")
 
-            for key in [
-                "tool_unit",
-                "total_tool",
-                "coat_unit",
-                "total_coat",
-                "extra_unit",
-                "total_extra",
-            ]:
-                if key in item_data:
-                    item_data[key] = round(float(item_data[key]), 2)
+        for key in [
+            "tool_unit",
+            "total_tool",
+            "coat_unit",
+            "total_coat",
+            "extra_unit",
+            "total_extra",
+        ]:
+            if key in item_data:
+                item_data[key] = round(float(item_data[key]), 2)
 
-            self.parent.update_item_in_cart(self.item_index, item_data)
-            self.destroy()
+        self.parent.update_item_in_cart(self.item_index, item_data)
+        self.destroy()

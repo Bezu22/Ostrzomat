@@ -15,11 +15,17 @@ class FrezModule(ctk.CTkFrame):
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
         self.main_container.pack(fill="both", expand=True)
 
+        # Konfigurujemy sztywną siatkę: 2 kolumny o równej wadze i tym samym identyfikatorze 'uniform'
+        self.main_container.grid_columnconfigure(0, weight=1, uniform="kolumna")
+        self.main_container.grid_columnconfigure(1, weight=1, uniform="kolumna")
+        self.main_container.grid_rowconfigure(0, weight=1)
+
         self.left_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        self.left_col.pack(side="left", fill="both", expand=True, padx=(0, 10))
+        # sticky="nsew" rozciąga zawartość wewnątrz przypisanej komórki
+        self.left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
         self.right_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        self.right_col.pack(side="left", fill="both", expand=True, padx=(10, 0))
+        self.right_col.grid(row=0, column=1, sticky="nsew", padx=(10, 0))
         
         px = AppStyle.PAD_LARGE
         py_small = (0, AppStyle.PAD_SMALL)
@@ -165,7 +171,14 @@ class FrezModule(ctk.CTkFrame):
                 )
                 btn_plus.pack(side="left", padx=2)
 
-            lbl_p = ctk.CTkLabel(row_frame, text="", font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_SUCCESS)
+            lbl_p = ctk.CTkLabel(
+                row_frame, 
+                text="", 
+                font=AppStyle.get_normal_font(), 
+                text_color=AppStyle.COLOR_SUCCESS,
+                width=90,      # Zarezerwowane stałe miejsce
+                anchor="e"     # Wyrównanie do prawej krawędzi
+            )
             lbl_p.pack(side="right", padx=AppStyle.PAD_SMALL)
             self.service_price_labels[key] = lbl_p
 
