@@ -1,6 +1,6 @@
 import customtkinter as ctk
 from tkinter import filedialog
-import threading  # Moduł do obsługi wątków w tle
+import threading 
 import database as database
 import utils.clients_db as clients_db
 from ui.client_popup import ClientSelectionModal
@@ -92,6 +92,17 @@ class OstrzomatApp(ctk.CTk):
             command=lambda: self.open_calc("Frezy")
         )
         self.btn_frez.pack(pady=20, padx=20, fill="x")
+
+        self.btn_drill = ctk.CTkButton(
+        self.sidebar_frame,
+        text="➕ DODAJ WIERTŁO",
+        font=AppStyle.FONT_BOLD,
+        fg_color=AppStyle.COLOR_PRIMARY,
+        hover_color=AppStyle.COLOR_PRIMARY_HOVER,
+        text_color=AppStyle.COLOR_TEXT_LIGHT,
+        command=lambda: self.open_calc("Wiertla"),  # Przekazujemy kategorię 'Wiertla'
+        )
+        self.btn_drill.pack(pady=10, padx=20, fill="x")
 
         self.edit_price_btn = ctk.CTkButton(
             self.sidebar_frame,
