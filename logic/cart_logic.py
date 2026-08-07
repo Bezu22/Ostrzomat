@@ -1,29 +1,36 @@
 import database as database
 
-def calculate_tool_price(t_type, blades, diam, qty, heavy_wear=False):
-    """Logika obliczania ostrzenia z obsługą parametru mocnego zużycia."""
+def calculate_tool_price(tool_type, blades, diam, qty, heavy_wear=False):
+    """
+    Oblicza cenę jednostkową oraz łączną dla narzędzia.
+    Gwarantuje powrót 0.0 dla nieprawidłowych danych (np. diam <= 0, qty <= 0).
+    """
     try:
-        d_val = float(str(diam).replace(',', '.'))
-        q_val = int(qty)
+        # Konwersja i czyśczenie wprowadzonych danych
+        d_val = float(str(diam).replace(',', '.').strip())
+        q_val = int(str(qty).strip())
         
-        # Osobna obsługa wierteł zapobiegająca awarii przy pustym polu 'blades'
-        if t_type in ["Wiertla", "Wiertła", "Wiertlo", "Wiertło"]:
-            b_key = "2-4"  # Zakładamy domyślnie, że wiertła mieszczą się w tym kluczu
-        else:
-            b_val = int(blades)
-            b_key = "2-4" if 2 <= b_val <= 4 else "pozostałe"
-        
-        # Pobranie ceny z pliku database
-        p_unit = database.get_tool_price(t_type, b_key, d_val, q_val)
-        
-        # DODATKOWA LOGIKA BIZNESOWA: Mocne zużycie (+5%)
-        if heavy_wear:
-            p_unit = round(p_unit * 1.05, 2)
-            
-        return p_unit, p_unit * q_val
-    except Exception as e:
-        print(f"Błąd logiki ostrzenia: {e}")
+        # WALIDACJA WARTOŚCI BRZEGOWYCH:
+        # Jeśli ilość lub średnica są równe 0 lub ujemne, cena musi wynosić 0.0
+        if d_val <= 0.0 or q_val <= 0:
+            return 0.0, 0.0
+
+    except (ValueError, TypeError):
+        # W przypadku podania tekstu zamiast liczby
         return 0.0, 0.0
+
+    # Pobranie ceny bazowej z bazy danych
+    base_price = database.get_tool_price(tool_type, blades, d_val, q_val)
+    
+    if base_price <= 0.0:
+        return 0.0, 0.0
+
+    # Doliczenie 5% w przypadku ciężkiego zużycia
+    if heavy_wear:
+        base_price = round(base_price * 1.05, 2)
+
+    total_price = round(base_price * q_val, 2)
+    return base_price, total_price
 
 def calculate_extra_services(services_vars, diam, qty, opuszczenie_multiplier=1):
     """Oblicza sumaryczną cenę usług dodatkowych z uwzględnieniem mnożnika dla zaniżenia."""
