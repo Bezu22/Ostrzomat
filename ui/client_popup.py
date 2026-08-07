@@ -54,7 +54,8 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.tabview.pack(fill="both", expand=True, padx=15, pady=10)
 
         self.tab_search = self.tabview.add("🔍 Wybierz z listy")
-        self.tab_form = self.tabview.add("➕ Dodaj / Edytuj")
+        # Zmieniono nazwę zakładki z Dodaj/Edytuj na Dodaj
+        self.tab_form = self.tabview.add("➕ Dodaj")
 
         self._setup_search_tab()
         self._setup_form_tab()
@@ -92,9 +93,10 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_address = self._create_form_field(form_frame, "Adres:", 4)
         self.entry_notes = self._create_form_field(form_frame, "Uwagi:", 5)
 
+        # Zmieniono tekst przycisku
         self.btn_save_form = ctk.CTkButton(
             form_frame,
-            text="ZAPISZ I WYBIERZ",
+            text="ZAPISZ",
             font=AppStyle.get_bold_font(),
             fg_color=AppStyle.COLOR_PRIMARY,
             hover_color=AppStyle.COLOR_PRIMARY_HOVER,
@@ -228,8 +230,9 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_notes.delete(0, 'end')
         self.entry_notes.insert(0, client.get('notes', '') or '')
 
-        self.btn_save_form.configure(text="ZAPISZ ZMIANY I WYBIERZ")
-        self.tabview.set("➕ Dodaj / Edytuj")
+        # Zmiana tekstu przycisku i nazwy zakładki przy edycji
+        self.btn_save_form.configure(text="ZAPISZ ZMIANY")
+        self.tabview.set("➕ Dodaj")
 
     def _on_search_change(self, event):
         q = self.entry_search.get().strip()
@@ -239,6 +242,17 @@ class ClientSelectionModal(ctk.CTkToplevel):
         if self.on_client_selected:
             self.on_client_selected(client)
         self.destroy()
+
+    def _reset_form(self):
+        """Czyści formularz po pomyślnym zapisie klienta i resetuje stan edycji."""
+        self.editing_client_id = None
+        self.entry_name.delete(0, 'end')
+        self.entry_phone.delete(0, 'end')
+        self.entry_nip.delete(0, 'end')
+        self.entry_email.delete(0, 'end')
+        self.entry_address.delete(0, 'end')
+        self.entry_notes.delete(0, 'end')
+        self.btn_save_form.configure(text="ZAPISZ")
 
     def _save_form_client(self):
         name = self.entry_name.get().strip()
@@ -254,13 +268,20 @@ class ClientSelectionModal(ctk.CTkToplevel):
 
         if self.editing_client_id:
             clients_db.update_client(self.editing_client_id, name, phone, nip, email, address, notes)
-            client = clients_db.get_client_by_id(self.editing_client_id)
         else:
-            new_id = clients_db.add_client(name, phone, nip, email, address, notes)
-            client = clients_db.get_client_by_id(new_id)
+            clients_db.add_client(name, phone, nip, email, address, notes)
 
         # Odświeżamy wątek tła w oknie głównym po zapisie
         if hasattr(self.parent, 'preload_clients_in_background'):
             self.parent.preload_clients_in_background()
 
-        self._select_client(client)
+        # Zamiast wybierać klienta i zamykać okno: 
+        # 1. Czyścimy formularz
+        self._reset_form()
+        
+        # 2. Odświeżamy listę klientów
+        self.entry_search.delete(0, 'end')
+        self._load_clients_list()
+        
+        # 3. Wracamy na zakładkę z listą
+        self.tabview.set("🔍 Wybierz z listy")
