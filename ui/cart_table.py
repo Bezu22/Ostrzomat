@@ -2,8 +2,11 @@ import customtkinter as ctk
 from ui.style import AppStyle
 
 class CartTable(ctk.CTkFrame):
-    def __init__(self, parent):
+    def __init__(self, parent, on_notes_click=None):
         super().__init__(parent)
+        
+        # Zapamiętujemy funkcję zwrotną otwierającą uwagi
+        self.on_notes_click = on_notes_click
         
         # Pobieranie czcionek z centralnego pliku konfiguracji stylów
         self.font_header = AppStyle.get_header_font()
@@ -172,21 +175,17 @@ class CartTable(ctk.CTkFrame):
                 justify="center", 
                 text_color=AppStyle.COLOR_WARNING if full_notes_text else AppStyle.COLOR_TEXT_MUTED,
                 font=self.font_normal,
-                cursor="hand2"  # Zmiana kursora na rączkę po najechaniu
+                cursor="hand2"
             )
             
-            # Rejestracja funkcji obsługujących najechanie i opuszczenie kursora
             def _on_enter(event, label=lbl_notes, has_text=bool(full_notes_text)):
-                # Zwiększamy wyrazistość tekstu po najechaniu myszką
                 hover_color = AppStyle.COLOR_WARNING_HOVER if has_text else AppStyle.COLOR_TEXT_LIGHT
                 label.configure(text_color=hover_color)
 
             def _on_leave(event, label=lbl_notes, has_text=bool(full_notes_text)):
-                # Przywracamy bazowy kolor tekstu po zjechaniu myszką
                 original_color = AppStyle.COLOR_WARNING if has_text else AppStyle.COLOR_TEXT_MUTED
                 label.configure(text_color=original_color)
 
-            # Podpięcie zdarzeń myszy do etykiety
             lbl_notes.bind("<Enter>", _on_enter)
             lbl_notes.bind("<Leave>", _on_leave)
             lbl_notes.bind("<Button-1>", lambda event, i=idx: self._handle_notes_click(i))
@@ -196,6 +195,7 @@ class CartTable(ctk.CTkFrame):
         self.update_row_backgrounds()
 
     def _handle_notes_click(self, index):
+        """Prawidłowa i bezpośrednia obsługa kliknięcia komórki uwagi."""
         self.toggle_select_row(index)
-        if hasattr(self.master.master, 'open_notes_editor'):
-            self.master.master.open_notes_editor()
+        if self.on_notes_click:
+            self.on_notes_click(index)

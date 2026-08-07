@@ -62,7 +62,8 @@ class OstrzomatApp(ctk.CTk):
         self.client_btn.pack(side="left", padx=AppStyle.PAD_LARGE, pady=10)
 
         # Tabela Koszyka
-        self.cart_table = CartTable(self.content_frame)
+        self.cart_table = CartTable(self.content_frame,
+            on_notes_click=self.open_notes_editor)
         self.cart_table.pack(fill="both", expand=True)
 
         # Stopka Koszyka
@@ -269,6 +270,24 @@ class OstrzomatApp(ctk.CTk):
 
     def open_calc(self, category):
         ToolCalcWindow(self, category)
+
+    def open_notes_editor(self, selected_idx=None):
+        """Otwiera okno edycji uwag dla wyznaczonego wiersza z tabeli."""
+        if selected_idx is None:
+            selected_idx = self.cart_table.get_selected_index()
+
+        if selected_idx is None or selected_idx < 0 or selected_idx >= len(self.cart_items):
+            return
+
+        current_item = self.cart_items[selected_idx]
+        current_notes = current_item.get("notes", "")
+
+        def save_notes_callback(new_text):
+            self.cart_items[selected_idx]["notes"] = new_text
+            self.refresh_cart_ui()
+            self.save_cart_state()
+
+        NotesWindow(self, current_notes, save_notes_callback)
 
     def export_to_pdf(self):
         if not self.cart_items:
