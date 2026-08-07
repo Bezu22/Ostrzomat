@@ -1,6 +1,7 @@
 import customtkinter as ctk
 import utils.clients_db as clients_db
 from ui.style import AppStyle
+import utils.cache_manager as cache_manager
 
 class ClientSelectionModal(ctk.CTkToplevel):
     """
@@ -9,7 +10,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
     def __init__(self, parent, on_client_selected_callback, initial_cache=None):
         super().__init__(parent)
 
-        # OPTYMALIZACJA 1: Natychmiast ukrywamy okno, aby nie pokazywać białego tła systemu
+        
         self.withdraw()
 
         self.parent = parent
@@ -301,6 +302,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
         if hasattr(self.parent, 'preload_clients_in_background'):
             self.parent.preload_clients_in_background()
 
+        cache_manager.refresh_clients()
         self._reset_form()
         self.entry_search.delete(0, 'end')
         self._load_clients_list()
