@@ -25,8 +25,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
 
         self._build_ui()
 
-        # OPTYMALIZACJA: Dajemy systemowi 10ms na wyrysowanie tła okna,
-        # zanim zaczniemy generować widżety na liście (eliminacja białego błysku)
+        # OPTYMALIZACJA: Wyrenderowanie wierszy z opóźnieniem zapobiega białym błyskom
         self.after(10, self._initial_render)
 
     def _build_ui(self):
@@ -54,7 +53,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.tabview.pack(fill="both", expand=True, padx=15, pady=10)
 
         self.tab_search = self.tabview.add("🔍 Wybierz z listy")
-        # Zmieniono nazwę zakładki z Dodaj/Edytuj na Dodaj
         self.tab_form = self.tabview.add("➕ Dodaj")
 
         self._setup_search_tab()
@@ -93,9 +91,14 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_address = self._create_form_field(form_frame, "Adres:", 4)
         self.entry_notes = self._create_form_field(form_frame, "Uwagi:", 5)
 
-        # Zmieniono tekst przycisku
+        # Kontener na przyciski wiersza (ZAPISZ i ANULUJ)
+        btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        btn_frame.grid(row=6, column=0, columnspan=2, pady=15, sticky="ew")
+        btn_frame.grid_columnconfigure(0, weight=1)
+        btn_frame.grid_columnconfigure(1, weight=1)
+
         self.btn_save_form = ctk.CTkButton(
-            form_frame,
+            btn_frame,
             text="ZAPISZ",
             font=AppStyle.get_bold_font(),
             fg_color=AppStyle.COLOR_PRIMARY,
@@ -104,7 +107,19 @@ class ClientSelectionModal(ctk.CTkToplevel):
             height=38,
             command=self._save_form_client
         )
-        self.btn_save_form.grid(row=6, column=0, columnspan=2, pady=15, sticky="ew")
+        self.btn_save_form.grid(row=0, column=0, padx=(0, 5), sticky="ew")
+
+        self.btn_cancel_form = ctk.CTkButton(
+            btn_frame,
+            text="ANULUJ",
+            font=AppStyle.get_bold_font(),
+            fg_color=AppStyle.COLOR_MUTED,
+            hover_color=AppStyle.COLOR_MUTED_HOVER,
+            text_color=AppStyle.COLOR_TEXT_LIGHT,
+            height=38,
+            command=self._reset_form
+        )
+        self.btn_cancel_form.grid(row=0, column=1, padx=(5, 0), sticky="ew")
 
     def _create_form_field(self, parent, label_text, row):
         lbl = ctk.CTkLabel(parent, text=label_text, font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_TEXT_LIGHT, anchor="w")
@@ -116,7 +131,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         return entry
 
     def _initial_render(self):
-        """Pierwsze wyrenderowanie danych z pamięci podręcznej RAM."""
         if self.initial_cache:
             self._render_cards(self.initial_cache)
         else:
@@ -127,7 +141,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self._render_cards(clients)
 
     def _render_cards(self, clients):
-        """Generuje niezwykle zwarty układ wierszy na liście klientów."""
         for widget in self.scroll_list.winfo_children():
             widget.destroy()
 
@@ -144,15 +157,12 @@ class ClientSelectionModal(ctk.CTkToplevel):
         for idx, client in enumerate(clients):
             base_bg = AppStyle.COLOR_ROW_EVEN if idx % 2 == 0 else AppStyle.COLOR_ROW_ODD
 
-            # 1. Kompaktowa ramka wiersza (wysokość tylko 30px)
             card = ctk.CTkFrame(self.scroll_list, fg_color=base_bg, corner_radius=4, height=30)
             card.pack(fill="x", pady=1, padx=2)
 
-            # 2. Kontener na informacje (układ poziomy)
             info_container = ctk.CTkFrame(card, fg_color="transparent")
             info_container.pack(side="left", fill="both", expand=True, padx=6, pady=1)
 
-            # Główna nazwa klienta
             lbl_name = ctk.CTkLabel(
                 info_container, 
                 text=client['name'], 
@@ -162,7 +172,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
             )
             lbl_name.pack(side="left", padx=(0, 8))
 
-            # Dane kontaktowe (tel / NIP) umieszczone tuż obok nazwy w tej samej linii
             sub_info = []
             if client['phone']: sub_info.append(f"Tel: {client['phone']}")
             if client['nip']: sub_info.append(f"NIP: {client['nip']}")
@@ -178,15 +187,14 @@ class ClientSelectionModal(ctk.CTkToplevel):
                 )
                 lbl_sub.pack(side="left")
 
-            # 3. Odchudzone przyciski akcji po prawej stronie
             btn_frame = ctk.CTkFrame(card, fg_color="transparent")
             btn_frame.pack(side="right", padx=4, pady=1)
 
-            # Przycisk edycji (mniejszy i bardziej zwarty)
+            # Dopisano czytelny tekst '✏️ Edytuj'
             btn_edit = ctk.CTkButton(
                 btn_frame,
-                text="✏️",
-                width=24,
+                text="✏️ Edytuj",
+                width=65,
                 height=22,
                 font=AppStyle.get_small_font(),
                 fg_color=AppStyle.COLOR_MUTED,
@@ -195,7 +203,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
             )
             btn_edit.pack(side="left", padx=1)
 
-            # Zmniejszony przycisk wyboru
             btn_select = ctk.CTkButton(
                 btn_frame,
                 text="Wybierz",
@@ -230,9 +237,12 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_notes.delete(0, 'end')
         self.entry_notes.insert(0, client.get('notes', '') or '')
 
-        # Zmiana tekstu przycisku i nazwy zakładki przy edycji
         self.btn_save_form.configure(text="ZAPISZ ZMIANY")
         self.tabview.set("➕ Dodaj")
+
+        # Ukrycie paska zakładek podczas edycji
+        if hasattr(self.tabview, "_segmented_button"):
+            self.tabview._segmented_button.pack_forget()
 
     def _on_search_change(self, event):
         q = self.entry_search.get().strip()
@@ -244,7 +254,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.destroy()
 
     def _reset_form(self):
-        """Czyści formularz po pomyślnym zapisie klienta i resetuje stan edycji."""
+        """Resetuje formularz, przywraca pasek zakładek i przełącza widok na listę."""
         self.editing_client_id = None
         self.entry_name.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
@@ -253,6 +263,12 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_address.delete(0, 'end')
         self.entry_notes.delete(0, 'end')
         self.btn_save_form.configure(text="ZAPISZ")
+
+        # Przywrócenie paska zakładek
+        if hasattr(self.tabview, "_segmented_button"):
+            self.tabview._segmented_button.pack(side="top", fill="x", padx=10, pady=10)
+
+        self.tabview.set("🔍 Wybierz z listy")
 
     def _save_form_client(self):
         name = self.entry_name.get().strip()
@@ -271,17 +287,9 @@ class ClientSelectionModal(ctk.CTkToplevel):
         else:
             clients_db.add_client(name, phone, nip, email, address, notes)
 
-        # Odświeżamy wątek tła w oknie głównym po zapisie
         if hasattr(self.parent, 'preload_clients_in_background'):
             self.parent.preload_clients_in_background()
 
-        # Zamiast wybierać klienta i zamykać okno: 
-        # 1. Czyścimy formularz
         self._reset_form()
-        
-        # 2. Odświeżamy listę klientów
         self.entry_search.delete(0, 'end')
         self._load_clients_list()
-        
-        # 3. Wracamy na zakładkę z listą
-        self.tabview.set("🔍 Wybierz z listy")
