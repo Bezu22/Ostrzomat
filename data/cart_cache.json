@@ -1,5 +1,54 @@
 {
-    "client_id": null,
-    "client_name": "Nieokreślony klient",
-    "items": []
+    "client_id": 5,
+    "client_name": "JB Motors",
+    "items": [
+        {
+            "type": "Frez prosty",
+            "diam": "10",
+            "z": "4",
+            "qty": "5",
+            "tool_unit": 0.0,
+            "total_tool": 0.0,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "100.0",
+            "coat_unit": 19.38,
+            "total_coat": 96.9,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": true,
+                "polerowanie": false,
+                "zuzycie": false
+            },
+            "opuszczenie_mult": 2,
+            "extra_unit": 20.0,
+            "total_extra": 100.0,
+            "tool_category": "Frezy",
+            "shank_diam": "10",
+            "notes": ""
+        },
+        {
+            "type": "Frez kulisty",
+            "diam": "10",
+            "z": "2",
+            "qty": "3",
+            "tool_unit": 0.0,
+            "total_tool": 0.0,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "100.0",
+            "coat_unit": 19.38,
+            "total_coat": 58.14,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": false,
+                "polerowanie": false,
+                "zuzycie": true
+            },
+            "opuszczenie_mult": 1,
+            "extra_unit": 0.0,
+            "total_extra": 0.0,
+            "tool_category": "Frezy",
+            "shank_diam": "10",
+            "notes": ""
+        }
+    ]
 }
