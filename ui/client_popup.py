@@ -4,10 +4,13 @@ from ui.style import AppStyle
 
 class ClientSelectionModal(ctk.CTkToplevel):
     """
-    Kompaktowe okno wyboru i edycji klienta, zoptymalizowane pod kątem płynności.
+    Kompaktowe okno wyboru i edycji klienta zoptymalizowane pod kątem braku błysków ekranu.
     """
     def __init__(self, parent, on_client_selected_callback, initial_cache=None):
         super().__init__(parent)
+
+        # OPTYMALIZACJA 1: Natychmiast ukrywamy okno, aby nie pokazywać białego tła systemu
+        self.withdraw()
 
         self.parent = parent
         self.on_client_selected = on_client_selected_callback
@@ -23,10 +26,20 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.configure(fg_color=AppStyle.COLOR_CARD_BG)
         self.editing_client_id = None
 
+        # Budujemy całą strukturę widżetów
         self._build_ui()
 
-        # Wyrenderowanie wierszy z opóźnieniem zapobiega błyskom
-        self.after(10, self._initial_render)
+        # Renderujemy wiersze natychmiast w niewidocznym oknie
+        if self.initial_cache:
+            self._render_cards(self.initial_cache)
+        else:
+            self._load_clients_list()
+
+        # Przeprowadzamy przeliczenie geometrii w tle
+        self.update_idletasks()
+
+        # OPTYMALIZACJA 2: Pokazujemy w pełni gotowe i wyrenderowane okno bez błysku
+        self.deiconify()
 
     def _build_ui(self):
         # Nagłówek
@@ -41,7 +54,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
         )
         lbl_title.pack(pady=10, padx=15, side="left")
 
-        # Zakładki z podpiętą reakcją na zmianę (command=self._on_tab_change)
+        # Zakładki z reakcją na zmianę
         self.tabview = ctk.CTkTabview(
             self,
             segmented_button_selected_color=AppStyle.COLOR_PRIMARY,
@@ -136,12 +149,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         entry.grid(row=row, column=1, sticky="ew", pady=3, padx=5)
         parent.grid_columnconfigure(1, weight=1)
         return entry
-
-    def _initial_render(self):
-        if self.initial_cache:
-            self._render_cards(self.initial_cache)
-        else:
-            self._load_clients_list()
 
     def _load_clients_list(self, query=""):
         clients = clients_db.search_clients(query) if query else clients_db.get_all_clients()
@@ -260,14 +267,11 @@ class ClientSelectionModal(ctk.CTkToplevel):
 
     def _reset_form(self):
         """Płynnie przełącza zakładkę, czyszcząc formularz bez mignięcia ekranu."""
-        # 1. Najpierw przełączamy zakładkę na listę klientów
         self.tabview.set("🔍 Wybierz z listy")
 
-        # 2. Przywracamy pasek zakładek
         if hasattr(self.tabview, "_segmented_button"):
             self.tabview._segmented_button.grid()
 
-        # 3. W tle czyścimy wartości i stan edycji
         self.editing_client_id = None
         self.entry_name.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
