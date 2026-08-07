@@ -1,4 +1,5 @@
 import math
+import re
 import customtkinter as ctk
 import database
 from logic import cart_logic
@@ -209,12 +210,71 @@ class FrezModule(ctk.CTkFrame):
         py_small = (0, AppStyle.PAD_SMALL)
 
         if "promieniowy" in selected_type.lower():
-            # Wstawiamy pole promienia tuż pod comboboxem typu
             self.radius_frame.pack(after=self.type_combo, pady=py_small, padx=px, anchor="w", fill="x")
         else:
             self.radius_frame.pack_forget()
 
         self.update_callback()
+
+    def set_item_data(self, item_data):
+        """Wypełnia formularz danymi pozycji przychodzącej do EDYCJI z koszyka."""
+        if not item_data:
+            return
+
+        raw_type = item_data.get("type", "Frez prosty")
+        radius_val = "0.5"
+
+        # Wyciąganie wartości R z nazwy typu (np. 'Frez promieniowy R0.5' -> Typ: 'Frez promieniowy', R: '0.5')
+        match = re.search(r"^(.*?)\s+R([\d\.,]+)$", raw_type, re.IGNORECASE)
+        if match:
+            clean_type = match.group(1).strip()
+            radius_val = match.group(2).replace(',', '.').strip()
+        else:
+            clean_type = raw_type
+
+        # Ustawiamy typ w combo
+        if clean_type in self.type_combo.cget("values"):
+            self.type_combo.set(clean_type)
+        else:
+            self.type_combo.set(raw_type)
+
+        # Uruchamiamy odświeżenie widoczności pola promienia
+        self._on_type_change()
+
+        # Ustawiamy wyciągnięty promień
+        self.radius_entry.delete(0, "end")
+        self.radius_entry.insert(0, radius_val)
+
+        # Wypełniamy pozostałe pola
+        if "diam" in item_data:
+            self.diam_entry.delete(0, "end")
+            self.diam_entry.insert(0, str(item_data["diam"]))
+
+        if "z" in item_data:
+            self.blades_entry.delete(0, "end")
+            self.blades_entry.insert(0, str(item_data["z"]))
+
+        if "qty" in item_data:
+            self.qty_entry.delete(0, "end")
+            self.qty_entry.insert(0, str(item_data["qty"]))
+
+        if "coat_name" in item_data and item_data["coat_name"] in self.coat_combo.cget("values"):
+            self.coat_combo.set(item_data["coat_name"])
+            self.on_coating_change()
+            if "coat_len" in item_data and item_data["coat_len"] in self.len_combo.cget("values"):
+                self.len_combo.set(item_data["coat_len"])
+
+        if "services_status" in item_data:
+            for k, val in item_data["services_status"].items():
+                if k in self.service_vars:
+                    self.service_vars[k].set(val)
+
+        if "opuszczenie_mult" in item_data:
+            self.opuszczenie_mult = item_data["opuszczenie_mult"]
+            mm_text = f"{self.opuszczenie_mult * 10} mm"
+            self.lbl_mult_val.configure(text=f"{mm_text} (x{self.opuszczenie_mult})")
+
+        self._on_service_toggle()
 
     def add_label(self, parent_frame, text, font):
         ctk.CTkLabel(parent_frame, text=text, font=font, text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=(AppStyle.PAD_SMALL, 0), padx=AppStyle.PAD_LARGE, anchor="w")
@@ -288,7 +348,6 @@ class FrezModule(ctk.CTkFrame):
             if not z.isdigit() or not qty.isdigit():
                 raise ValueError()
             
-            # Dodatkowa walidacja promienia jeśli typ jest promieniowy
             if "promieniowy" in self.type_combo.get().lower():
                 r_val = self.radius_entry.get().replace(',', '.').strip()
                 float(r_val)
@@ -340,7 +399,6 @@ class FrezModule(ctk.CTkFrame):
                 "last_diam": diam, "last_shank": shank
             })
 
-            # Formatowanie nazwy wysyłanej do koszyka (np. 'Frez promieniowy R0.5')
             display_type = t_type
             if "promieniowy" in t_type.lower():
                 r_text = self.radius_entry.get().replace(',', '.').strip() or "0.5"

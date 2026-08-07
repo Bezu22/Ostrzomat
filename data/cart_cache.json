@@ -85,6 +85,54 @@
             "tool_category": "Frezy",
             "shank_diam": "12",
             "notes": ""
+        },
+        {
+            "type": "Frez promieniowy R0.5",
+            "diam": "12",
+            "z": "4",
+            "qty": "3",
+            "tool_unit": 0.0,
+            "total_tool": 0.0,
+            "coat_name": "BALINIT TISAFLEX (AlTiN / TiSiXN)",
+            "coat_len": "100.0",
+            "coat_unit": 36.38,
+            "total_coat": 109.14,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": false,
+                "polerowanie": false,
+                "zuzycie": true
+            },
+            "opuszczenie_mult": 1,
+            "extra_unit": 0.0,
+            "total_extra": 0.0,
+            "tool_category": "Frezy",
+            "shank_diam": "12",
+            "notes": ""
+        },
+        {
+            "type": "Frez prosty",
+            "diam": "4",
+            "z": "2",
+            "qty": "2",
+            "tool_unit": 0.0,
+            "total_tool": 0.0,
+            "coat_name": "BALINIT TISAFLEX (AlTiN / TiSiXN)",
+            "coat_len": "150.0",
+            "coat_unit": 18.2,
+            "total_coat": 36.4,
+            "services_status": {
+                "ciecie": false,
+                "opuszczenie": false,
+                "polerowanie": true,
+                "zuzycie": true
+            },
+            "opuszczenie_mult": 1,
+            "extra_unit": 10.0,
+            "total_extra": 20.0,
+            "tool_category": "Frezy",
+            "shank_diam": "4",
+            "notes": ""
         }
     ]
 }
