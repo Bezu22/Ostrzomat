@@ -61,31 +61,46 @@ def get_unique_service_names():
 # --- POBIERANIE CEN (LOGIKA KALKULATORA) ---
 
 def get_tool_price(tool_type, blades_key, diam, qty):
-    """Zwraca cenę jednostkową ostrzenia na podstawie typu, ostrzy, średnicy i ilości."""
+    """Zwraca cenę jednostkową ostrzenia z wbudowanym debugowaniem."""
     if not is_db_accessible(): return 0.0
     try:
         d_val = float(diam)
         q_val = int(qty)
         
+        wiertla_typy = ["Wiertla", "Wiertła", "Wiertlo", "Wiertło", "Wiertła stopniowe", "Wiertło stopniowe"]
+        
+        # Jeśli to wiertło, wymuszamy szukanie dokładnie wartości "2"
+        if tool_type in wiertla_typy:
+            blades_key = "2"
+        
         conn = get_connection()
         cursor = conn.cursor()
         
-        # Wybór kolumny ceny na podstawie ilości
         if q_val >= 11: price_col = "price_11_20"
         elif q_val >= 5: price_col = "price_5_10"
         elif q_val >= 2: price_col = "price_2_4"
         else: price_col = "price_1"
 
+        # TĘ LINIJKĘ DODALIŚMY, ABY ZOBACZYĆ CO DOKŁADNIE PROGRAM WYSYŁA DO BAZY
+        print(f"DEBUG BAZY -> Szukam: typ='{tool_type}', ostrza='{blades_key}', srednica={d_val}, kolumna={price_col}")
+
         query = f"""
             SELECT {price_col} FROM pricelist_tools 
-            WHERE tool_type=? AND blades=? AND diam_min < ? AND diam_max >= ?
+            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
         """
         cursor.execute(query, (tool_type, blades_key, d_val, d_val))
         
         res = cursor.fetchone()
         conn.close()
         
-        return float(res[0]) if (res and res[0] is not None) else 0.0
+        # Informacja o tym, czy znaleziono wynik
+        if res and res[0] is not None:
+            print(f"DEBUG BAZY -> Znaleziono cenę: {float(res[0])}")
+            return float(res[0])
+        else:
+            print("DEBUG BAZY -> Nic nie znaleziono! Baza zwróciła pusty wynik.")
+            return 0.0
+        
     except Exception as e:
         print(f"Błąd bazy (get_tool_price): {e}")
         return 0.0

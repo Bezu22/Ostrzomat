@@ -252,7 +252,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
         if callable(get_data_func):
             data = get_data_func(run_validation=False)
 
-        # Usunięcie ostrzeżeń z VS Code: upewniamy się, że data to w 100% słownik
+        
         if isinstance(data, dict):
             try:
                 t_j = float(data.get("tool_unit", 0.0))

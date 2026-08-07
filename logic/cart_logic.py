@@ -3,12 +3,17 @@ import database as database
 def calculate_tool_price(t_type, blades, diam, qty, heavy_wear=False):
     """Logika obliczania ostrzenia z obsługą parametru mocnego zużycia."""
     try:
-        b_val = int(blades)
         d_val = float(str(diam).replace(',', '.'))
         q_val = int(qty)
         
-        b_key = "2-4" if 2 <= b_val <= 4 else "pozostałe"
+        # Osobna obsługa wierteł zapobiegająca awarii przy pustym polu 'blades'
+        if t_type in ["Wiertla", "Wiertła", "Wiertlo", "Wiertło"]:
+            b_key = "2-4"  # Zakładamy domyślnie, że wiertła mieszczą się w tym kluczu
+        else:
+            b_val = int(blades)
+            b_key = "2-4" if 2 <= b_val <= 4 else "pozostałe"
         
+        # Pobranie ceny z pliku database
         p_unit = database.get_tool_price(t_type, b_key, d_val, q_val)
         
         # DODATKOWA LOGIKA BIZNESOWA: Mocne zużycie (+5%)

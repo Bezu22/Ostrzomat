@@ -1,6 +1,6 @@
 {
-    "client_id": 4,
-    "client_name": "Kacper P",
+    "client_id": 2,
+    "client_name": "Drutex",
     "items": [
         {
             "type": "Frez prosty",
@@ -212,6 +212,30 @@
             "total_extra": 30.0,
             "tool_category": "Frezy",
             "shank_diam": "12",
+            "notes": ""
+        },
+        {
+            "type": "Wiertło",
+            "diam": "5",
+            "z": "2",
+            "qty": "10",
+            "tool_unit": 36.65,
+            "total_tool": 366.5,
+            "coat_name": "ALCRONA PRO/LATUMA",
+            "coat_len": "100.0",
+            "coat_unit": 15.07,
+            "total_coat": 150.7,
+            "services_status": {
+                "ciecie": true,
+                "opuszczenie": true,
+                "polerowanie": true,
+                "zuzycie": true
+            },
+            "opuszczenie_mult": 4,
+            "extra_unit": 62.0,
+            "total_extra": 620.0,
+            "tool_category": "Wiertla",
+            "shank_diam": "6",
             "notes": ""
         }
     ]
