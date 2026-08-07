@@ -20,14 +20,19 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         if os.path.exists(cls.test_cache_path):
             os.remove(cls.test_cache_path)
 
+        # Zachowujemy oryginalne funkcje i oryginalną ścieżkę do cache
         cls.original_save = database.save_cart_to_file
         cls.original_load = database.load_cart_from_file
+        cls.original_cache_path = database.CART_CACHE_PATH
 
-        # Dopasowanie sygnatury funkcji zapisu do database.py
-        database.save_cart_to_file = lambda cart_items, client_id=None, client_name="Nieokreślony", path=cls.test_cache_path: cls.original_save(
-            cart_items, client_id, client_name, path
+        # Podmieniamy domyślną ścieżkę w module database na plik testowy
+        database.CART_CACHE_PATH = cls.test_cache_path
+
+        # Przekierowujemy funkcje zapisu i odczytu na plik testowy
+        database.save_cart_to_file = lambda cart_items, client_id=None, client_name="Nieokreślony", path=None: cls.original_save(
+            cart_items, client_id, client_name, path or cls.test_cache_path
         )
-        database.load_cart_from_file = lambda path=cls.test_cache_path: cls.original_load(path)
+        database.load_cart_from_file = lambda path=None: cls.original_load(path or cls.test_cache_path)
 
         # Inicjalizacja pamięci podręcznej przed uruchomieniem okna
         cache_manager.preload_all_cache()
@@ -37,7 +42,9 @@ class TestOstrzomatComprehensive(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        """Przywraca oryginalne funkcje bazy danych i sprząta po testach."""
+        """Przywraca oryginalne funkcje bazy danych, ścieżki i sprząta po testach."""
+        # Przywracamy oryginalną ścieżkę oraz funkcje w module database
+        database.CART_CACHE_PATH = cls.original_cache_path
         database.save_cart_to_file = cls.original_save
         database.load_cart_from_file = cls.original_load
 
@@ -50,6 +57,7 @@ class TestOstrzomatComprehensive(unittest.TestCase):
             except Exception:
                 pass
 
+        # Usuwamy tymczasowy plik testowy, nie dotykając cart_cache.json
         if os.path.exists(cls.test_cache_path):
             os.remove(cls.test_cache_path)
 
