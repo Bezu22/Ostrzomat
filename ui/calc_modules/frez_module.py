@@ -15,13 +15,11 @@ class FrezModule(ctk.CTkFrame):
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
         self.main_container.pack(fill="both", expand=True)
 
-        # Konfigurujemy sztywną siatkę: 2 kolumny o równej wadze i tym samym identyfikatorze 'uniform'
         self.main_container.grid_columnconfigure(0, weight=1, uniform="kolumna")
         self.main_container.grid_columnconfigure(1, weight=1, uniform="kolumna")
         self.main_container.grid_rowconfigure(0, weight=1)
 
         self.left_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
-        # sticky="nsew" rozciąga zawartość wewnątrz przypisanej komórki
         self.left_col.grid(row=0, column=0, sticky="nsew", padx=(0, 10))
 
         self.right_col = ctk.CTkFrame(self.main_container, fg_color="transparent")
@@ -37,12 +35,28 @@ class FrezModule(ctk.CTkFrame):
             self.left_col, 
             width=300, 
             values=database.get_unique_tool_types("Frezy"), 
-            command=self.update_callback,
+            command=self._on_type_change,
             **AppStyle.get_combo_style()
         )
         self.type_combo.set(settings.get("last_tool_type", "Frez prosty"))
         self.type_combo.configure(state="readonly") 
         self.type_combo.pack(pady=py_small, padx=px, anchor="w")
+
+        # --- POLE PROMIENIA (Dla frezów promieniowych) ---
+        self.radius_frame = ctk.CTkFrame(self.left_col, fg_color="transparent")
+        
+        lbl_r = ctk.CTkLabel(
+            self.radius_frame, 
+            text="Promień (R):", 
+            font=AppStyle.get_bold_font(), 
+            text_color=AppStyle.COLOR_TEXT_DARK
+        )
+        lbl_r.pack(anchor="w")
+        
+        self.radius_entry = ctk.CTkEntry(self.radius_frame, width=300, **AppStyle.get_entry_style())
+        self.radius_entry.insert(0, "0.5")
+        self.radius_entry.pack(pady=py_small, anchor="w")
+        self.radius_entry.bind("<KeyRelease>", lambda e: self.update_callback())
 
         self.add_label(self.left_col, "Liczba ostrzy:", AppStyle.get_bold_font())
         self.blades_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
@@ -103,7 +117,7 @@ class FrezModule(ctk.CTkFrame):
         self.len_combo.configure(state="readonly")
         self.len_combo.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
 
-        # --- 6. ILOŚĆ SZTUK (Przeniesiono do lewej kolumny) ---
+        # --- 6. ILOŚĆ SZTUK ---
         self.add_label(self.left_col, "Ilość sztuk:", AppStyle.get_bold_font())
         self.qty_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
         self.qty_entry.insert(0, "1")
@@ -176,23 +190,36 @@ class FrezModule(ctk.CTkFrame):
                 text="", 
                 font=AppStyle.get_normal_font(), 
                 text_color=AppStyle.COLOR_SUCCESS,
-                width=90,      # Zarezerwowane stałe miejsce
-                anchor="e"     # Wyrównanie do prawej krawędzi
+                width=90,
+                anchor="e"
             )
             lbl_p.pack(side="right", padx=AppStyle.PAD_SMALL)
             self.service_price_labels[key] = lbl_p
 
         # Uruchomienie domyślnych funkcji na starcie
+        self._on_type_change()
         self.on_coating_change()
         self.toggle_shank()
 
     # ================= LOGIKA WIDOKU =================
+    def _on_type_change(self, _=None):
+        """Obsługuje ukrywanie/pokazywanie pola promienia po zmianie typu narzędzia."""
+        selected_type = self.type_combo.get()
+        px = AppStyle.PAD_LARGE
+        py_small = (0, AppStyle.PAD_SMALL)
+
+        if "promieniowy" in selected_type.lower():
+            # Wstawiamy pole promienia tuż pod comboboxem typu
+            self.radius_frame.pack(after=self.type_combo, pady=py_small, padx=px, anchor="w", fill="x")
+        else:
+            self.radius_frame.pack_forget()
+
+        self.update_callback()
+
     def add_label(self, parent_frame, text, font):
-        """Dodano parent_frame, aby wiedzieć, do której kolumny wstawić etykietę."""
         ctk.CTkLabel(parent_frame, text=text, font=font, text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=(AppStyle.PAD_SMALL, 0), padx=AppStyle.PAD_LARGE, anchor="w")
 
     def calculate_shank_value(self, diam_str):
-        """Zwraca bezpiecznie wyliczoną średnicę chwytu parzystą w górę."""
         try:
             val = diam_str.replace(',', '.')
             if not val:
@@ -201,20 +228,15 @@ class FrezModule(ctk.CTkFrame):
             if d <= 0:
                 return ""
             
-            # Jeśli wartość to idealnie parzysta liczba całkowita np. 8.0, 10.0
             if d.is_integer() and int(d) % 2 == 0:
                 return str(int(d))
             
-            # Zaokrąglenie w górę np. 8.5 -> 9,  4.7 -> 5
             c = math.ceil(d)
-            
-            # Jeśli po zaokrągleniu wynik jest nieparzysty, podbijamy do parzystej
             if c % 2 != 0:
                 c += 1
                 
             return str(c)
         except ValueError:
-            # Ignorujemy błąd podczas wpisywania, walidacja przy zapisie go złapie
             return ""
 
     def on_diam_change(self, _=None):
@@ -229,7 +251,6 @@ class FrezModule(ctk.CTkFrame):
         self.update_callback()
 
     def toggle_shank(self):
-        """Przełącza stan pola średnicy chwytu (aktywne / nieaktywne)."""
         if self.shank_override.get():
             self.shank_entry.configure(
                 state="normal", 
@@ -261,12 +282,17 @@ class FrezModule(ctk.CTkFrame):
 
     # ================= LOGIKA DANYCH I WALIDACJA =================
     def validate_all(self, diam, z, qty, shank):
-        """Sprawdza poprawność wpisanych danych liczbowych."""
         try:
             float(diam)
             float(shank)
             if not z.isdigit() or not qty.isdigit():
                 raise ValueError()
+            
+            # Dodatkowa walidacja promienia jeśli typ jest promieniowy
+            if "promieniowy" in self.type_combo.get().lower():
+                r_val = self.radius_entry.get().replace(',', '.').strip()
+                float(r_val)
+
             return True
         except ValueError:
             from ui.components import OstrzomatPopup
@@ -314,8 +340,14 @@ class FrezModule(ctk.CTkFrame):
                 "last_diam": diam, "last_shank": shank
             })
 
+            # Formatowanie nazwy wysyłanej do koszyka (np. 'Frez promieniowy R0.5')
+            display_type = t_type
+            if "promieniowy" in t_type.lower():
+                r_text = self.radius_entry.get().replace(',', '.').strip() or "0.5"
+                display_type = f"{t_type} R{r_text}"
+
             return {
-                "type": t_type, "diam": diam, "z": blades, "qty": qty,
+                "type": display_type, "diam": diam, "z": blades, "qty": qty,
                 "tool_unit": t_j, "total_tool": t_r,
                 "coat_name": coat, "coat_len": coat_len,
                 "coat_unit": c_j, "total_coat": c_r,
