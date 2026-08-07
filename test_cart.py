@@ -17,36 +17,44 @@ class TestOstrzomatComprehensive(unittest.TestCase):
         cls.test_cache_path = os.path.join("data", "cart_cache_test.json")
         os.makedirs("data", exist_ok=True)
 
-        if os.path.exists(cls.test_cache_path):
-            os.remove(cls.test_cache_path)
+        # Tworzymy pusty plik testowy, aby funkcja wczytywania nie szukała plików produkcyjnych
+        with open(cls.test_cache_path, "w", encoding="utf-8") as f:
+            f.write('{"items": [], "client_id": null, "client_name": "Nieokreślony klient"}')
 
-        # Zachowujemy oryginalne funkcje i oryginalną ścieżkę do cache
+        # 1. Tworzymy patche dla funkcji w bazie danych
+        cls.patcher_load = patch('database.load_cart_from_file', lambda path=None: cls.original_load(cls.test_cache_path))
+        cls.patcher_save = patch('database.save_cart_to_file', lambda cart_items, client_id=None, client_name="Nieokreślony", path=None: cls.original_save(cart_items, client_id, client_name, cls.test_cache_path))
+
         cls.original_save = database.save_cart_to_file
         cls.original_load = database.load_cart_from_file
-        cls.original_cache_path = database.CART_CACHE_PATH
 
-        # Podmieniamy domyślną ścieżkę w module database na plik testowy
-        database.CART_CACHE_PATH = cls.test_cache_path
-
-        # Przekierowujemy funkcje zapisu i odczytu na plik testowy
-        database.save_cart_to_file = lambda cart_items, client_id=None, client_name="Nieokreślony", path=None: cls.original_save(
-            cart_items, client_id, client_name, path or cls.test_cache_path
-        )
-        database.load_cart_from_file = lambda path=None: cls.original_load(path or cls.test_cache_path)
+        # Uruchamiamy patche w środowisku testowym
+        cls.patcher_load.start()
+        cls.patcher_save.start()
 
         # Inicjalizacja pamięci podręcznej przed uruchomieniem okna
         cache_manager.preload_all_cache()
 
+        # Instancjonujemy aplikację
         cls.app = OstrzomatApp()
         cls.app.withdraw()
+
+        # 2. DODATKOWE ZABEZPIECZENIE: Przekierowujemy wewnętrzną metodę zapisu w instancji aplikacji
+        cls.app.save_cart_state = lambda path=cls.test_cache_path: database.save_cart_to_file(
+            cart_items=cls.app.cart_items,
+            client_id=cls.app.current_client_id,
+            client_name=cls.app.current_client_name,
+            path=cls.test_cache_path
+        )
 
     @classmethod
     def tearDownClass(cls):
         """Przywraca oryginalne funkcje bazy danych, ścieżki i sprząta po testach."""
-        # Przywracamy oryginalną ścieżkę oraz funkcje w module database
-        database.CART_CACHE_PATH = cls.original_cache_path
-        database.save_cart_to_file = cls.original_save
-        database.load_cart_from_file = cls.original_load
+        # Zatrzymujemy patche
+        if hasattr(cls, 'patcher_load'):
+            cls.patcher_load.stop()
+        if hasattr(cls, 'patcher_save'):
+            cls.patcher_save.stop()
 
         if hasattr(cls, "app") and cls.app:
             try:
@@ -57,9 +65,12 @@ class TestOstrzomatComprehensive(unittest.TestCase):
             except Exception:
                 pass
 
-        # Usuwamy tymczasowy plik testowy, nie dotykając cart_cache.json
+        # Usunięcie wyłącznie pliku testowego (cart_cache.json pozostaje nienaruszone)
         if os.path.exists(cls.test_cache_path):
-            os.remove(cls.test_cache_path)
+            try:
+                os.remove(cls.test_cache_path)
+            except Exception:
+                pass
 
     def setUp(self):
         """Przed każdym testem czyścimy wirtualny koszyk aplikacji."""
