@@ -25,7 +25,7 @@ class ClientSelectionModal(ctk.CTkToplevel):
 
         self._build_ui()
 
-        # OPTYMALIZACJA: Wyrenderowanie wierszy z opóźnieniem zapobiega białym błyskom
+        # Wyrenderowanie wierszy z opóźnieniem zapobiega błyskom
         self.after(10, self._initial_render)
 
     def _build_ui(self):
@@ -41,14 +41,15 @@ class ClientSelectionModal(ctk.CTkToplevel):
         )
         lbl_title.pack(pady=10, padx=15, side="left")
 
-        # Zakładki
+        # Zakładki z podpiętą reakcją na zmianę (command=self._on_tab_change)
         self.tabview = ctk.CTkTabview(
             self,
             segmented_button_selected_color=AppStyle.COLOR_PRIMARY,
             segmented_button_selected_hover_color=AppStyle.COLOR_PRIMARY_HOVER,
             segmented_button_unselected_color=AppStyle.COLOR_MUTED,
             segmented_button_unselected_hover_color=AppStyle.COLOR_MUTED_HOVER,
-            text_color=AppStyle.COLOR_TEXT_LIGHT
+            text_color=AppStyle.COLOR_TEXT_LIGHT,
+            command=self._on_tab_change
         )
         self.tabview.pack(fill="both", expand=True, padx=15, pady=10)
 
@@ -57,6 +58,13 @@ class ClientSelectionModal(ctk.CTkToplevel):
 
         self._setup_search_tab()
         self._setup_form_tab()
+
+    def _on_tab_change(self):
+        """Automatycznie ukrywa pasek zakładek po wejściu w formularz dodawania."""
+        selected_tab = self.tabview.get()
+        if selected_tab == "➕ Dodaj":
+            if hasattr(self.tabview, "_segmented_button"):
+                self.tabview._segmented_button.grid_remove()
 
     def _setup_search_tab(self):
         search_frame = ctk.CTkFrame(self.tab_search, fg_color="transparent")
@@ -91,7 +99,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_address = self._create_form_field(form_frame, "Adres:", 4)
         self.entry_notes = self._create_form_field(form_frame, "Uwagi:", 5)
 
-        # Kontener na przyciski wiersza (ZAPISZ i ANULUJ)
         btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
         btn_frame.grid(row=6, column=0, columnspan=2, pady=15, sticky="ew")
         btn_frame.grid_columnconfigure(0, weight=1)
@@ -239,7 +246,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.btn_save_form.configure(text="ZAPISZ ZMIANY")
         self.tabview.set("➕ Dodaj")
 
-        # Bezpieczne ukrycie paska zakładek za pomocą grid_remove (zamiast pack_forget)
         if hasattr(self.tabview, "_segmented_button"):
             self.tabview._segmented_button.grid_remove()
 
@@ -253,7 +259,15 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.destroy()
 
     def _reset_form(self):
-        """Resetuje formularz, przywraca pasek zakładek i przełącza widok na listę."""
+        """Płynnie przełącza zakładkę, czyszcząc formularz bez mignięcia ekranu."""
+        # 1. Najpierw przełączamy zakładkę na listę klientów
+        self.tabview.set("🔍 Wybierz z listy")
+
+        # 2. Przywracamy pasek zakładek
+        if hasattr(self.tabview, "_segmented_button"):
+            self.tabview._segmented_button.grid()
+
+        # 3. W tle czyścimy wartości i stan edycji
         self.editing_client_id = None
         self.entry_name.delete(0, 'end')
         self.entry_phone.delete(0, 'end')
@@ -262,12 +276,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_address.delete(0, 'end')
         self.entry_notes.delete(0, 'end')
         self.btn_save_form.configure(text="ZAPISZ")
-
-        # Bezpieczne przywrócenie paska zakładek za pomocą grid (zamiast pack)
-        if hasattr(self.tabview, "_segmented_button"):
-            self.tabview._segmented_button.grid()
-
-        self.tabview.set("🔍 Wybierz z listy")
 
     def _save_form_client(self):
         name = self.entry_name.get().strip()
