@@ -216,3 +216,8 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# Dane tymczasowe aplikacji Ostrzomat
+data/cart_cache*.json
+data/user_settings*
+user_settings*
