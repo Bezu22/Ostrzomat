@@ -190,7 +190,6 @@ class ClientSelectionModal(ctk.CTkToplevel):
             btn_frame = ctk.CTkFrame(card, fg_color="transparent")
             btn_frame.pack(side="right", padx=4, pady=1)
 
-            # Dopisano czytelny tekst '✏️ Edytuj'
             btn_edit = ctk.CTkButton(
                 btn_frame,
                 text="✏️ Edytuj",
@@ -240,9 +239,9 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.btn_save_form.configure(text="ZAPISZ ZMIANY")
         self.tabview.set("➕ Dodaj")
 
-        # Ukrycie paska zakładek podczas edycji
+        # Bezpieczne ukrycie paska zakładek za pomocą grid_remove (zamiast pack_forget)
         if hasattr(self.tabview, "_segmented_button"):
-            self.tabview._segmented_button.pack_forget()
+            self.tabview._segmented_button.grid_remove()
 
     def _on_search_change(self, event):
         q = self.entry_search.get().strip()
@@ -264,9 +263,9 @@ class ClientSelectionModal(ctk.CTkToplevel):
         self.entry_notes.delete(0, 'end')
         self.btn_save_form.configure(text="ZAPISZ")
 
-        # Przywrócenie paska zakładek
+        # Bezpieczne przywrócenie paska zakładek za pomocą grid (zamiast pack)
         if hasattr(self.tabview, "_segmented_button"):
-            self.tabview._segmented_button.pack(side="top", fill="x", padx=10, pady=10)
+            self.tabview._segmented_button.grid()
 
         self.tabview.set("🔍 Wybierz z listy")
 
