@@ -39,7 +39,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
         # Zmiana rozmiaru zgodnie z prośbą, dla lepszego rozłożenia kolumn
         width, height = 1200, 800
         x = (self.winfo_screenwidth() // 2) - (width // 2)
-        # Zabezpieczenie, by okno nie wyjechało poza górną krawędź ekranu
         self.geometry(f"{width}x{height}+{x}+10") 
 
         self.attributes("-topmost", True)
@@ -62,31 +61,16 @@ class ToolCalcWindow(ctk.CTkToplevel):
             )
             
         if self.tool_module:
-            # fill="both", expand=True pozwala na ładne rozszerzenie 2 kolumn modułu na całe okno
             self.tool_module.pack(fill="both", expand=True, padx=10, pady=10)
 
-            # --- KLUCZOWA ZMIANA UKŁADU ---
-            # Zamiast pakować podgląd i przyciski na sam dół pod modułem,
-            # sprawdzamy, czy moduł ma prawą kolumnę i pakujemy je bezpośrednio do niej!
             target_parent = getattr(self.tool_module, "right_col", self.main_scroll)
 
             self.setup_price_preview(target_parent)
             self.setup_action_buttons(target_parent)
 
+            # --- DEDYKOWANE WRAŻLIWE ŁADOWANIE DANYCH DO MODUŁU ---
             if self.edit_mode and self.item_data:
                 self.load_item_data_into_form()
-
-                saved_mult = self.item_data.get("opuszczenie_mult", 1)
-                if hasattr(self.tool_module, "opuszczenie_mult"):
-                    setattr(self.tool_module, "opuszczenie_mult", saved_mult)
-
-                lbl_mult = getattr(self.tool_module, "lbl_mult_val", None)
-                if saved_mult > 1 and lbl_mult and hasattr(lbl_mult, "configure"):
-                    lbl_mult.configure(text=f"{saved_mult * 10} mm (x{saved_mult})")
-
-                on_service_toggle = getattr(self.tool_module, "_on_service_toggle", None)
-                if callable(on_service_toggle):
-                    on_service_toggle()
 
             self.update_calculation()
         else:
@@ -101,7 +85,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
         self.preview_frame = ctk.CTkFrame(
             parent_frame, fg_color=AppStyle.COLOR_HEADER_BG
         )
-        # Margines górny (pady=(20, 10)) odsuwa podgląd cen od usług dodatkowych
         self.preview_frame.pack(fill="x", padx=20, pady=(20, 10))
 
         ctk.CTkLabel(
@@ -141,7 +124,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
     def setup_action_buttons(self, parent_frame):
         """Tworzy przyciski akcji i pakuje do wskazanej ramki."""
         btn_frame = ctk.CTkFrame(parent_frame, fg_color="transparent")
-        # Pojawią się na samym dole prawej kolumny
         btn_frame.pack(fill="x", side="bottom", padx=20, pady=(15, 30))
 
         btn_text = "ZAPISZ ZMIANY" if self.edit_mode else "DODAJ DO KOSZYKA"
@@ -174,70 +156,17 @@ class ToolCalcWindow(ctk.CTkToplevel):
         self.close_btn.pack(fill="x", pady=5)
 
     def load_item_data_into_form(self):
-        """Uzupełnia formularz danymi podczas edycji."""
+        """Przekazuje zadanie załadowania danych bezpośrednio do wybranego modułu."""
         try:
             m = self.tool_module
             d = self.item_data
             if not m or not d:
                 return
 
-            type_combo = getattr(m, "type_combo", None)
-            if type_combo and hasattr(type_combo, "set"):
-                type_combo.set(d.get("type", ""))
-
-            blades_entry = getattr(m, "blades_entry", None)
-            if blades_entry and hasattr(blades_entry, "delete"):
-                blades_entry.delete(0, "end")
-                blades_entry.insert(0, str(d.get("z", "")))
-
-            diam_entry = getattr(m, "diam_entry", None)
-            if diam_entry and hasattr(diam_entry, "delete"):
-                diam_entry.delete(0, "end")
-                diam_entry.insert(0, str(d.get("diam", "")))
-
-            qty_entry = getattr(m, "qty_entry", None)
-            if qty_entry and hasattr(qty_entry, "delete"):
-                qty_entry.delete(0, "end")
-                qty_entry.insert(0, str(d.get("qty", "")))
-
-            coat_combo = getattr(m, "coat_combo", None)
-            if coat_combo and hasattr(coat_combo, "set"):
-                coat_combo.set(d.get("coat_name", "Brak"))
-
-                on_coat = getattr(m, "_on_coating_change", getattr(m, "on_coating_change", None))
-                if callable(on_coat):
-                    on_coat()
-
-                if d.get("coat_name") != "Brak":
-                    len_combo = getattr(m, "len_combo", None)
-                    if len_combo and hasattr(len_combo, "set"):
-                        len_combo.set(d.get("coat_len", "100"))
-
-            shank_entry = getattr(m, "shank_entry", None)
-            if shank_entry and hasattr(shank_entry, "delete"):
-                shank_entry.configure(state="normal")
-                shank_entry.delete(0, "end")
-                shank_entry.insert(0, str(d.get("shank_diam", d.get("diam", ""))))
-
-                shank_override = getattr(m, "shank_override", None)
-                if (
-                    shank_override
-                    and hasattr(shank_override, "set")
-                    and d.get("shank_diam")
-                    and d.get("shank_diam") != d.get("diam")
-                ):
-                    shank_override.set(True)
-
-                toggle_shank = getattr(m, "_toggle_shank", getattr(m, "toggle_shank", None))
-                if callable(toggle_shank):
-                    toggle_shank()
-
-            service_vars = getattr(m, "service_vars", {})
-            status = d.get("services_status", {})
-            if isinstance(service_vars, dict):
-                for key, var in service_vars.items():
-                    if key in status and hasattr(var, "set"):
-                        var.set(status[key])
+            # Wywołujemy bezpieczną metodę set_item_data zaimplementowaną w module
+            set_data_func = getattr(m, "set_item_data", None)
+            if callable(set_data_func):
+                set_data_func(d)
 
         except Exception as e:
             print(f"Błąd ładowania danych do formularza edycji: {e}")
@@ -252,7 +181,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
         if callable(get_data_func):
             data = get_data_func(run_validation=False)
 
-        
         if isinstance(data, dict):
             try:
                 t_j = float(data.get("tool_unit", 0.0))
@@ -311,7 +239,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
 
         item_data = get_data_func(run_validation=True)
         
-        # Usunięcie ostrzeżeń z VS Code w tym miejscu
         if not isinstance(item_data, dict):
             return
             
@@ -354,7 +281,6 @@ class ToolCalcWindow(ctk.CTkToplevel):
 
         item_data = get_data_func(run_validation=True)
         
-        # Usunięcie ostrzeżeń z VS Code w tym miejscu
         if not isinstance(item_data, dict) or self.item_index is None:
             return
             

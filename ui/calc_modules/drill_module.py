@@ -11,6 +11,7 @@ class DrillModule(ctk.CTkFrame):
         self.update_callback = update_callback
         self.settings = settings
         self.shank_override = ctk.BooleanVar(value=False)
+        self._is_loading_data = False
 
         # --- GŁÓWNY KONTENER DWUKOLUMNOWY ---
         self.main_container = ctk.CTkFrame(self, fg_color="transparent")
@@ -213,7 +214,8 @@ class DrillModule(ctk.CTkFrame):
             self.diam_entry.pack(after=self.diam_label, pady=(0, AppStyle.PAD_SMALL), padx=AppStyle.PAD_LARGE, anchor="w")
             self.on_diam_change()
 
-        self.update_callback()
+        if not self._is_loading_data:
+            self.update_callback()
 
     def _on_steps_change(self, _=None):
         self._render_step_entries()
@@ -235,7 +237,9 @@ class DrillModule(ctk.CTkFrame):
             lbl.pack(anchor="w")
 
             entry = ctk.CTkEntry(f, width=55, **AppStyle.get_entry_style())
-            entry.insert(0, default_vals[i] if i < len(default_vals) else "10.0")
+            # Wstawiamy domyślne wartości tylko, gdy NIE TRWA wczytywanie edycji
+            if not self._is_loading_data:
+                entry.insert(0, default_vals[i] if i < len(default_vals) else "10.0")
             entry.pack()
             entry.bind("<KeyRelease>", self.on_diam_change)
             self.step_entries.append(entry)
@@ -279,6 +283,10 @@ class DrillModule(ctk.CTkFrame):
             return ""
 
     def on_diam_change(self, _=None):
+        """Automatyczne wyliczanie chwytu podczas pisania (tylko gdy użytkownik nie odblokował chwytu)."""
+        if self._is_loading_data:
+            return
+
         if not self.shank_override.get():
             max_diam = self.get_max_diam()
             new_shank = self.calculate_shank_value(max_diam)
@@ -287,9 +295,13 @@ class DrillModule(ctk.CTkFrame):
             self.shank_entry.delete(0, "end")
             self.shank_entry.insert(0, new_shank)
             self.shank_entry.configure(state="disabled")
+            
         self.update_callback()
 
     def toggle_shank(self):
+        if self._is_loading_data:
+            return
+
         if self.shank_override.get():
             self.shank_entry.configure(
                 state="normal", fg_color=AppStyle.COLOR_BG_LIGHT,
@@ -309,58 +321,108 @@ class DrillModule(ctk.CTkFrame):
         if lengths:
             self.len_combo.configure(values=lengths)
             self.len_combo.set(lengths[0])
-        self.update_callback()
+        if not self._is_loading_data:
+            self.update_callback()
 
     # ================= LOGIKA DANYCH I WALIDACJA =================
     def set_item_data(self, item_data):
-        """Wypełnia formularz danymi pozycji przychodzącej do EDYCJI."""
+        """Precyzyjne i bezpieczne wczytywanie pozycji do edycji z koszyka."""
         if not item_data:
             return
 
-        raw_type = item_data.get("type", "Wiertło N")
-        if raw_type in self.type_combo.cget("values"):
-            self.type_combo.set(raw_type)
+        self._is_loading_data = True
 
-        self._on_type_change()
+        try:
+            # 1. Ustawienie typu narzędzia
+            raw_type = item_data.get("type", "Wiertło N")
+            if raw_type in self.type_combo.cget("values"):
+                self.type_combo.set(raw_type)
 
-        diam_str = str(item_data.get("diam", "10.0"))
-        if self.is_step_drill() and "x" in diam_str:
-            parts = diam_str.split("x")
-            self.steps_combo.set(str(len(parts)))
-            self._render_step_entries()
-            for idx, p in enumerate(parts):
-                if idx < len(self.step_entries):
-                    self.step_entries[idx].delete(0, "end")
-                    self.step_entries[idx].insert(0, p.strip())
-        else:
-            self.diam_entry.delete(0, "end")
-            self.diam_entry.insert(0, diam_str)
+            # 2. Parsowanie średnic roboczych ZANIM wyrenderujemy widok
+            diam_str = str(item_data.get("diam", "10.0")).strip()
 
-        if "z" in item_data:
-            self.blades_entry.delete(0, "end")
-            self.blades_entry.insert(0, str(item_data["z"]))
+            if self.is_step_drill() and "x" in diam_str:
+                parts = [p.strip() for p in diam_str.split("x") if p.strip()]
+                num_parts = len(parts)
 
-        if "qty" in item_data:
-            self.qty_entry.delete(0, "end")
-            self.qty_entry.insert(0, str(item_data["qty"]))
+                # Najpierw ustawiamy odpowiednią krotność w comboboxie stopni!
+                if str(num_parts) in self.steps_combo.cget("values"):
+                    self.steps_combo.set(str(num_parts))
 
-        if "coat_name" in item_data and item_data["coat_name"] in self.coat_combo.cget("values"):
-            self.coat_combo.set(item_data["coat_name"])
-            self.on_coating_change()
-            if "coat_len" in item_data and item_data["coat_len"] in self.len_combo.cget("values"):
-                self.len_combo.set(item_data["coat_len"])
+                # Pokażemy kontener i utworzymy PUSTE pola w odpowiedniej liczbie (num_parts)
+                self.steps_combo.pack(side="left", padx=(10, 0))
+                self.diam_entry.pack_forget()
+                self.step_diams_frame.pack(after=self.diam_label, pady=(0, AppStyle.PAD_SMALL), padx=AppStyle.PAD_LARGE, anchor="w", fill="x")
+                self._render_step_entries()
 
-        if "services_status" in item_data:
-            for k, val in item_data["services_status"].items():
-                if k in self.service_vars:
-                    self.service_vars[k].set(val)
+                # Wpisujemy czyste wartości d1, d2, d3 z koszyka
+                for idx, p in enumerate(parts):
+                    if idx < len(self.step_entries):
+                        self.step_entries[idx].delete(0, "end")
+                        self.step_entries[idx].insert(0, p)
+            else:
+                self.steps_combo.pack_forget()
+                self.step_diams_frame.pack_forget()
+                self.diam_entry.pack(after=self.diam_label, pady=(0, AppStyle.PAD_SMALL), padx=AppStyle.PAD_LARGE, anchor="w")
+                self.diam_entry.delete(0, "end")
+                self.diam_entry.insert(0, diam_str)
 
-        if "opuszczenie_mult" in item_data:
-            self.opuszczenie_mult = item_data["opuszczenie_mult"]
-            mm_text = f"{self.opuszczenie_mult * 10} mm"
-            self.lbl_mult_val.configure(text=f"{mm_text} (x{self.opuszczenie_mult})")
+            # 3. Wypełnienie pozostałych pól
+            if "z" in item_data:
+                self.blades_entry.delete(0, "end")
+                self.blades_entry.insert(0, str(item_data["z"]))
 
-        self._on_service_toggle()
+            if "qty" in item_data:
+                self.qty_entry.delete(0, "end")
+                self.qty_entry.insert(0, str(item_data["qty"]))
+
+            if "coat_name" in item_data and item_data["coat_name"] in self.coat_combo.cget("values"):
+                self.coat_combo.set(item_data["coat_name"])
+                self.on_coating_change()
+                if "coat_len" in item_data and item_data["coat_len"] in self.len_combo.cget("values"):
+                    self.len_combo.set(item_data["coat_len"])
+
+            if "services_status" in item_data:
+                for k, val in item_data["services_status"].items():
+                    if k in self.service_vars:
+                        self.service_vars[k].set(val)
+
+            if "opuszczenie_mult" in item_data:
+                self.opuszczenie_mult = item_data["opuszczenie_mult"]
+                mm_text = f"{self.opuszczenie_mult * 10} mm"
+                self.lbl_mult_val.configure(text=f"{mm_text} (x{self.opuszczenie_mult})")
+
+            self._on_service_toggle()
+
+            # 4. PRECYZYJNA LOGIKA CHWYTU
+            is_overridden = item_data.get("shank_override", False)
+            self.shank_override.set(is_overridden)
+
+            saved_shank = item_data.get("shank_diam")
+            if saved_shank is not None and str(saved_shank).strip() != "":
+                final_shank = str(saved_shank).strip()
+            else:
+                max_d = self.get_max_diam()
+                final_shank = self.calculate_shank_value(max_d)
+
+            self.shank_entry.configure(state="normal")
+            self.shank_entry.delete(0, "end")
+            self.shank_entry.insert(0, final_shank)
+
+            if is_overridden:
+                self.shank_entry.configure(
+                    state="normal", fg_color=AppStyle.COLOR_BG_LIGHT,
+                    border_color=AppStyle.COLOR_SECONDARY, border_width=2
+                )
+            else:
+                self.shank_entry.configure(
+                    state="disabled", fg_color=AppStyle.COLOR_MAIN_BG,
+                    border_color=AppStyle.COLOR_MUTED, border_width=1
+                )
+
+        finally:
+            self._is_loading_data = False
+            self.update_callback()
 
     def validate_all(self, z, qty, shank):
         try:
@@ -381,8 +443,9 @@ class DrillModule(ctk.CTkFrame):
             return False
     
     def get_full_item_data(self, run_validation=False):
+        """Zapisuje bieżący stan formularza do słownika pozycji koszyka."""
         try:
-            shank = self.shank_entry.get().replace(',', '.')
+            shank = self.shank_entry.get().replace(',', '.').strip()
             qty = self.qty_entry.get() or "1" 
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
@@ -401,7 +464,7 @@ class DrillModule(ctk.CTkFrame):
                 diam_display = "x".join(parsed_vals)
                 calc_diam = self.get_max_diam()
             else:
-                diam_display = self.diam_entry.get().replace(',', '.')
+                diam_display = self.diam_entry.get().replace(',', '.').strip()
                 calc_diam = diam_display
 
             heavy_wear_active = self.service_vars["zuzycie"].get()
@@ -432,7 +495,12 @@ class DrillModule(ctk.CTkFrame):
             })
 
             return {
-                "type": t_type, "diam": diam_display, "z": blades, "qty": qty,
+                "type": t_type, 
+                "diam": diam_display, 
+                "shank_diam": shank,
+                "shank_override": self.shank_override.get(),
+                "z": blades, 
+                "qty": qty,
                 "tool_unit": t_j, "total_tool": t_r,
                 "coat_name": coat, "coat_len": coat_len,
                 "coat_unit": c_j, "total_coat": c_r,
@@ -452,7 +520,8 @@ class DrillModule(ctk.CTkFrame):
             self.opuszczenie_mult = 1
             self.lbl_mult_val.configure(text="10 mm (x1)")
             
-        self.update_callback()
+        if not self._is_loading_data:
+            self.update_callback()
     
     def _change_multiplier(self, delta):
         new_val = self.opuszczenie_mult + delta
