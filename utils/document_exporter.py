@@ -104,7 +104,7 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
 
     header_data = [
         [
-            Paragraph("<b>CENTRALA TECHNICZNA</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>", style_title),
+            Paragraph("<b>CENTRALA TECHNICZNA ELTECH</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>", style_title),
             Paragraph(f"<para align='right'><b>WYCENA ZLECENIA</b><br/>Data: {datetime.now().strftime('%d.%m.%Y r.')}</para>", style_normal)
         ]
     ]
@@ -131,7 +131,7 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
 
     headers = [
         "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Ostrza", 
-        "Ilość", "Cena ostrz.", "Wartość", "Powłoka", "Cena powł.", "Wartość", "Usługi", "Wartość dod.", "Uwagi"
+        "Ilość", "Cena ostrz.", "Wartość os.", "Powłoka", "Cena powł.", "Wartość powł.", "Usługi", "Wartość usł.", "Uwagi"
     ]
     
     table_data = [[Paragraph(h, style_cell_header) for h in headers]]
