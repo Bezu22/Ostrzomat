@@ -443,7 +443,7 @@ class DrillModule(ctk.CTkFrame):
             return False
     
     def get_full_item_data(self, run_validation=False):
-        """Zapisuje bieżący stan formularza do słownika pozycji koszyka."""
+        """Zapisuje bieżący stan formularza do słownika pozycji koszyka z ujednoliconym formatowaniem średnic."""
         try:
             shank = self.shank_entry.get().replace(',', '.').strip()
             qty = self.qty_entry.get() or "1" 
@@ -459,12 +459,16 @@ class DrillModule(ctk.CTkFrame):
             if self.is_step_drill():
                 parsed_vals = []
                 for e in self.step_entries:
-                    raw = e.get().replace(',', '.').strip() or "0.0"
-                    parsed_vals.append(raw)
+                    raw = e.get()
+                    # Ujednolicamy formatowanie każdej średnicy stopniowej (3.0 -> 3, 3.5 -> 3.5)
+                    formatted_val = self.format_diam_value(raw)
+                    if formatted_val:
+                        parsed_vals.append(formatted_val)
                 diam_display = "x".join(parsed_vals)
                 calc_diam = self.get_max_diam()
             else:
-                diam_display = self.diam_entry.get().replace(',', '.').strip()
+                raw_diam = self.diam_entry.get()
+                diam_display = self.format_diam_value(raw_diam)
                 calc_diam = diam_display
 
             heavy_wear_active = self.service_vars["zuzycie"].get()
@@ -530,3 +534,16 @@ class DrillModule(ctk.CTkFrame):
             mm_text = f"{new_val * 10} mm"
             self.lbl_mult_val.configure(text=f"{mm_text} (x{new_val})")
             self.update_callback()
+
+    def format_diam_value(self, val_str):
+        """Formatuje średnicę: jeśli jest liczbą całkowitą (np. 3.0), zwraca '3', w przeciwnym razie '3.5'."""
+        try:
+            val_clean = val_str.replace(',', '.').strip()
+            if not val_clean:
+                return ""
+            f_val = float(val_clean)
+            if f_val.is_integer():
+                return str(int(f_val))
+            return str(f_val)
+        except ValueError:
+            return val_str.strip()
