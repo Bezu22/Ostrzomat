@@ -102,9 +102,10 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     style_cell = ParagraphStyle('CellText', parent=styles['Normal'], fontName=font_normal, fontSize=7, leading=8)
     style_cell_header = ParagraphStyle('CellHeader', parent=styles['Normal'], fontName=font_bold, fontSize=7, leading=8, textColor=colors.white, alignment=1)
 
+    # --- NAGŁÓWEK DOKUMENTU ---
     header_data = [
         [
-            Paragraph("<b>CENTRALA TECHNICZNA ELTECH</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>", style_title),
+            Paragraph("<b>CENTRALA TECHNICZNA</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>", style_title),
             Paragraph(f"<para align='right'><b>WYCENA ZLECENIA</b><br/>Data: {datetime.now().strftime('%d.%m.%Y r.')}</para>", style_normal)
         ]
     ]
@@ -113,8 +114,9 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     story.append(header_table)
     story.append(Spacer(1, 10))
 
+    # --- DANE KLIENTA ---
     client_text = (
-        f"<b>DANE KLIENTA:</b> {client_info['name']} (ID: {client_info['id']}) &nbsp;&nbsp;|&nbsp;&nbsp; "
+        f"<b>DANE KLIENTA:</b> {client_info['name']} &nbsp;&nbsp;|&nbsp;&nbsp; "
         f"<b>NIP:</b> {client_info['nip']}<br/>"
         f"<b>Adres:</b> {client_info['address']} &nbsp;&nbsp;|&nbsp;&nbsp; "
         f"<b>Tel:</b> {client_info['phone']} &nbsp;&nbsp;|&nbsp;&nbsp; "
@@ -129,6 +131,7 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     story.append(client_table)
     story.append(Spacer(1, 10))
 
+    # --- NAGŁÓWKI TABELI ---
     headers = [
         "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Ostrza", 
         "Ilość", "Cena ostrz.", "Wartość os.", "Powłoka", "Cena powł.", "Wartość powł.", "Usługi", "Wartość usł.", "Uwagi"
@@ -182,16 +185,24 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
 
     col_widths = [25, 95, 35, 35, 40, 30, 30, 50, 55, 80, 50, 55, 70, 55, 145]
     items_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    items_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,0), colors.HexColor('#1e3a8a')),
-        ('GRID', (0,0), (-1,-1), 0.5, colors.HexColor('#cbd5e1')),
-        ('VALIGN', (0,0), (-1,-1), 'MIDDLE'),
-        ('TOPPADDING', (0,0), (-1,-1), 3),
-        ('BOTTOMPADDING', (0,0), (-1,-1), 3),
-    ]))
+    
+    # BEDZIE STOSOWANE BEZPOŚREDNIE MAPOWANIE TŁA BEZ KONFLIKTU STYLÓW
+    ts = TableStyle()
+    # 1. Tło wierszy danych (od wiersza 1 do końca): biały oraz szary (#cbd5e1)
+    ts.add('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.white, colors.HexColor('#cbd5e1')])
+    # 2. Granatowe tło nagłówka (wiersz 0) nadpisuje tło z ROWBACKGROUNDS
+    ts.add('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#1e3a8a'))
+    # 3. Siatka i wyrównanie
+    ts.add('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#94a3b8'))
+    ts.add('VALIGN', (0, 0), (-1, -1), 'MIDDLE')
+    ts.add('TOPPADDING', (0, 0), (-1, -1), 3)
+    ts.add('BOTTOMPADDING', (0, 0), (-1, -1), 3)
+
+    items_table.setStyle(ts)
     story.append(items_table)
     story.append(Spacer(1, 10))
 
+    # --- PODSUMOWANIE ---
     grand_total = total_tool_val + total_coat_val + total_extra_val
     summary_text = f"""
     <b>Suma sztuk:</b> {total_qty} szt.<br/>
@@ -348,6 +359,9 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
             for run in p.runs:
                 run.font.size = Pt(7)
                 run.font.name = 'Arial'
+            
+            if idx % 2 == 0:
+                set_cell_background(row_cells[i], "E2E8F0")
 
     doc.add_paragraph()
 
