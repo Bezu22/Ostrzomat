@@ -61,39 +61,61 @@ def get_unique_service_names():
 # --- POBIERANIE CEN (LOGIKA KALKULATORA) ---
 
 def get_tool_price(tool_type, blades_key, diam, qty):
-    """Zwraca cenę jednostkową ostrzenia z wbudowanym debugowaniem."""
-    if not is_db_accessible(): return 0.0
+    """
+    Zwraca cenę jednostkową ostrzenia z bazy danych.
+    Dla wierteł zawsze wymusza wartość ostrzy = '2'.
+    Dla frezów pobiera stawkę dla liczby ostrzy podanej przez użytkownika.
+    """
+    if not is_db_accessible(): 
+        return 0.0
     try:
         d_val = float(diam)
         q_val = int(qty)
         
-        wiertla_typy = ["Wiertla", "Wiertła", "Wiertlo", "Wiertło", "Wiertła stopniowe", "Wiertło stopniowe"]
+        # Wyczyszczenie nazwy typu z przedrostków (np. 'Frez promieniowy R0.5' -> 'Frez promieniowy')
+        clean_type = str(tool_type).split(" R")[0].strip()
         
-        # Jeśli to wiertło, wymuszamy szukanie dokładnie wartości "2"
-        if tool_type in wiertla_typy:
+        # Zgodnie z założeniem: dla wierteł zawsze wymuszamy liczbę ostrzy Z = 2
+        wiertla_typy = ["Wiertla", "Wiertła", "Wiertlo", "Wiertło", "Wiertła stopniowe", "Wiertło stopniowe"]
+        if any(w.lower() in clean_type.lower() for w in wiertla_typy):
             blades_key = "2"
         
         conn = get_connection()
         cursor = conn.cursor()
         
-        if q_val >= 11: price_col = "price_11_20"
-        elif q_val >= 5: price_col = "price_5_10"
-        elif q_val >= 2: price_col = "price_2_4"
-        else: price_col = "price_1"
+        # Dobór kolumny cenowej w zależności od progu ilościowego
+        if q_val >= 11: 
+            price_col = "price_11_20"
+        elif q_val >= 5: 
+            price_col = "price_5_10"
+        elif q_val >= 2: 
+            price_col = "price_2_4"
+        else: 
+            price_col = "price_1"
 
-        # TĘ LINIJKĘ DODALIŚMY, ABY ZOBACZYĆ CO DOKŁADNIE PROGRAM WYSYŁA DO BAZY
-        print(f"DEBUG BAZY -> Szukam: typ='{tool_type}', ostrza='{blades_key}', srednica={d_val}, kolumna={price_col}")
+        print(f"DEBUG BAZY -> Szukam: typ='{clean_type}', ostrza='{blades_key}', srednica={d_val}, kolumna={price_col}")
 
-        query = f"""
+        # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
+        query_exact = f"""
             SELECT {price_col} FROM pricelist_tools 
             WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
         """
-        cursor.execute(query, (tool_type, blades_key, d_val, d_val))
-        
+        cursor.execute(query_exact, (clean_type, str(blades_key), d_val, d_val))
         res = cursor.fetchone()
+        
+        # Próba 2 (Fallback dla frezów): Jeśli brak dokładnego wpisu dla danej liczby ostrzy w bazie,
+        # szukamy wpisu bez uwzględniania konkretnej liczby ostrzy
+        if not res or res[0] is None:
+            query_fallback = f"""
+                SELECT {price_col} FROM pricelist_tools 
+                WHERE tool_type=? AND diam_min <= ? AND diam_max >= ?
+                LIMIT 1
+            """
+            cursor.execute(query_fallback, (clean_type, d_val, d_val))
+            res = cursor.fetchone()
+
         conn.close()
         
-        # Informacja o tym, czy znaleziono wynik
         if res and res[0] is not None:
             print(f"DEBUG BAZY -> Znaleziono cenę: {float(res[0])}")
             return float(res[0])

@@ -359,9 +359,10 @@ class FrezModule(ctk.CTkFrame):
             return False
     
     def get_full_item_data(self, run_validation=False):
+        """Zapisuje dane pozycji do słownika koszyka - wycena ZAWSZE na podstawie średnicy roboczej."""
         try:
-            diam = self.diam_entry.get().replace(',', '.')
-            shank = self.shank_entry.get().replace(',', '.')
+            diam = self.diam_entry.get().replace(',', '.').strip()
+            shank = self.shank_entry.get().replace(',', '.').strip()
             qty = self.qty_entry.get() or "1" 
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
@@ -372,14 +373,20 @@ class FrezModule(ctk.CTkFrame):
                 if not self.validate_all(diam, blades, qty, shank):
                     return None
             
+            # Wycena opiera się ZAWSZE na średnicy roboczej (diam)
+            calc_diam = diam
+
             heavy_wear_active = self.service_vars["zuzycie"].get()
-            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, diam, qty, heavy_wear=heavy_wear_active)
-            c_j, c_r = cart_logic.calculate_coating_price(coat, diam, coat_len, qty)
+            
+            # Wyliczanie cen wyłącznie na podstawie średnicy roboczej
+            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, calc_diam, qty, heavy_wear=heavy_wear_active)
+            c_j, c_r = cart_logic.calculate_coating_price(coat, calc_diam, coat_len, qty)
             
             e_j_total, e_r_total, active_labels = cart_logic.calculate_extra_services(
-                self.service_vars, diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
+                self.service_vars, calc_diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
             )
 
+            # Aktualizacja etykiet cenowych dla usług dodatkowych w prawym panelu
             for key in self.service_vars:
                 if key == "zuzycie":
                     self.service_price_labels[key].configure(text="+5% do ostrz." if self.service_vars[key].get() else "")
@@ -387,7 +394,7 @@ class FrezModule(ctk.CTkFrame):
 
                 if self.service_vars[key].get():
                     db_name = "Cięcie" if key == "ciecie" else "Zaniżenie średnicy" if key == "opuszczenie" else "Polerowanie rowka"
-                    price = database.get_service_price_refined(db_name, float(diam))
+                    price = database.get_service_price_refined(db_name, float(calc_diam))
                     if key == "opuszczenie":
                         price = price * self.opuszczenie_mult
                     self.service_price_labels[key].configure(text=f"+{price:.2f} zł")
@@ -399,19 +406,29 @@ class FrezModule(ctk.CTkFrame):
                 "last_diam": diam, "last_shank": shank
             })
 
+            # Dodanie przedrostka promienia do nazwy wyświetlanej w koszyku (np. Frez promieniowy R0.5)
             display_type = t_type
             if "promieniowy" in t_type.lower():
                 r_text = self.radius_entry.get().replace(',', '.').strip() or "0.5"
                 display_type = f"{t_type} R{r_text}"
 
             return {
-                "type": display_type, "diam": diam, "z": blades, "qty": qty,
-                "tool_unit": t_j, "total_tool": t_r,
-                "coat_name": coat, "coat_len": coat_len,
-                "coat_unit": c_j, "total_coat": c_r,
+                "type": display_type, 
+                "diam": diam, 
+                "shank_diam": shank,  # Chwyt zapisujemy czysto informacyjnie
+                "shank_override": self.shank_override.get(),
+                "z": blades, 
+                "qty": qty,
+                "tool_unit": t_j, 
+                "total_tool": t_r,
+                "coat_name": coat, 
+                "coat_len": coat_len,
+                "coat_unit": c_j, 
+                "total_coat": c_r,
                 "services_status": {k: v.get() for k, v in self.service_vars.items()},
                 "opuszczenie_mult": self.opuszczenie_mult,
-                "extra_unit": e_j_total, "total_extra": e_r_total
+                "extra_unit": e_j_total, 
+                "total_extra": e_r_total
             }
         except Exception as e:
             print(f"Błąd w module FrezModule: {e}")
