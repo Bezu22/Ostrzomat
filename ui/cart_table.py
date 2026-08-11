@@ -76,7 +76,7 @@ class CartTable(ctk.CTkFrame):
         return self.selected_idx
     
     def refresh(self, items):
-        """Odświeżanie tabeli z podpięciem zdarzenia kliknięcia."""
+        """Odświeżanie tabeli z podpięciem zdarzenia kliknięcia oraz liczby sztuk w usługach."""
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
@@ -122,28 +122,36 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(3, shank_val, self.font_normal)
             create_cell_label(4, item.get("z", "-"), self.font_normal)
 
+            # --- SEKCJA USŁUG DODATKOWYCH (WYŚWIETLANIE LICZBY SZTUK) ---
             status = item.get("services_status", {})
-            
-            is_wear = status.get("zuzycie", False)
-            create_cell_label(5, "+" if is_wear else "-", self.font_bold, AppStyle.COLOR_DANGER if is_wear else "#555")
+            sq = item.get("services_qty", {})
 
-            is_c = status.get("ciecie", False)
-            create_cell_label(6, "+" if is_c else "-", self.font_bold, AppStyle.COLOR_SUCCESS if is_c else "#555")
+            def get_service_display(key):
+                if status.get(key):
+                    return str(sq.get(key, qty))
+                return "-"
 
-            is_o = status.get("opuszczenie", False)
-            if is_o:
-                mult = item.get("opuszczenie_mult", 1)
-                text_zan = "+" * mult
-                color_zan = AppStyle.COLOR_SUCCESS
-            else:
-                text_zan = "-"
-                color_zan = "#555"
+            # ZUŻYCIE
+            zuzycie_val = get_service_display("zuzycie")
+            is_wear = zuzycie_val != "-"
+            create_cell_label(5, zuzycie_val, self.font_bold, AppStyle.COLOR_DANGER if is_wear else "#555")
 
-            create_cell_label(7, text_zan, self.font_bold, color_zan)
+            # CIĘCIE
+            ciecie_val = get_service_display("ciecie")
+            is_c = ciecie_val != "-"
+            create_cell_label(6, ciecie_val, self.font_bold, AppStyle.COLOR_SUCCESS if is_c else "#555")
 
-            is_p = status.get("polerowanie", False)
-            create_cell_label(8, "+" if is_p else "-", self.font_bold, AppStyle.COLOR_SUCCESS if is_p else "#555")
+            # ZANIŻENIE ŚREDNICY
+            opuszczenie_val = get_service_display("opuszczenie")
+            is_o = opuszczenie_val != "-"
+            create_cell_label(7, opuszczenie_val, self.font_bold, AppStyle.COLOR_SUCCESS if is_o else "#555")
 
+            # POLEROWANIE ROWKA
+            polerowanie_val = get_service_display("polerowanie")
+            is_p = polerowanie_val != "-"
+            create_cell_label(8, polerowanie_val, self.font_bold, AppStyle.COLOR_SUCCESS if is_p else "#555")
+
+            # POZOSTAŁE KOLUMNY
             create_cell_label(9, str(qty), self.font_bold)
             create_cell_label(10, f"{regen_unit:.2f}", self.font_normal)
             create_cell_label(11, f"{regen_total:.2f}", self.font_bold, AppStyle.COLOR_SUCCESS)

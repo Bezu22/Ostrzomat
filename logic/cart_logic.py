@@ -1,50 +1,49 @@
 import database as database
 
-def calculate_tool_price(tool_type, blades, diam, qty, heavy_wear=False):
+def calculate_tool_price(tool_type, blades, diam, qty, heavy_wear_qty=0):
     """
-    Oblicza cenę jednostkową oraz łączną dla narzędzia.
-    Gwarantuje powrót 0.0 dla nieprawidłowych danych (np. diam <= 0, qty <= 0).
+    Oblicza cenę jednostkową bazową oraz łączną dla narzędzia.
+    Uwzględnia dopłatę 5% za ciężkie zużycie wyłącznie dla określonej liczby sztuk (heavy_wear_qty).
     """
     try:
-        # Konwersja i czyśczenie wprowadzonych danych
         d_val = float(str(diam).replace(',', '.').strip())
         q_val = int(str(qty).strip())
+        hw_qty = int(str(heavy_wear_qty).strip()) if heavy_wear_qty else 0
         
-        # WALIDACJA WARTOŚCI BRZEGOWYCH:
-        # Jeśli ilość lub średnica są równe 0 lub ujemne, cena musi wynosić 0.0
         if d_val <= 0.0 or q_val <= 0:
             return 0.0, 0.0
 
     except (ValueError, TypeError):
-        # W przypadku podania tekstu zamiast liczby
         return 0.0, 0.0
 
-    # Pobranie ceny bazowej z bazy danych
+    # Pobranie ceny bazowej ostrzenia jednostkowego z bazy danych
     base_price = database.get_tool_price(tool_type, blades, d_val, q_val)
     
     if base_price <= 0.0:
         return 0.0, 0.0
 
-    # Doliczenie 5% w przypadku ciężkiego zużycia
-    if heavy_wear:
-        base_price = round(base_price * 1.05, 2)
+    # Normalne sztuki (bez zużycia) + sztuki z dopłatą 5%
+    hw_qty = min(hw_qty, q_val)
+    normal_qty = q_val - hw_qty
 
-    total_price = round(base_price * q_val, 2)
-    return base_price, total_price
+    total_price = (normal_qty * base_price) + (hw_qty * base_price * 1.05)
+    unit_avg = total_price / q_val if q_val > 0 else base_price
 
-def calculate_extra_services(services_vars, diam, qty, opuszczenie_multiplier=1):
-    """Oblicza sumaryczną cenę usług dodatkowych z uwzględnieniem mnożnika dla zaniżenia."""
-    import database as database
+    return round(unit_avg, 2), round(total_price, 2)
+
+def calculate_extra_services(services_vars, services_qty, diam, total_qty, opuszczenie_multiplier=1):
+    """
+    Oblicza sumaryczną cenę usług dodatkowych z uwzględnieniem indywidualnej liczby sztuk dla każdej usługi.
+    """
     try:
         d_val = float(str(diam).replace(',', '.'))
-        q_val = int(qty)
+        tot_q = int(total_qty)
     except:
         return 0.0, 0.0, []
 
-    total_unit = 0.0
+    total_extra_sum = 0.0
     active_labels = []
 
-    # Mapowanie techniczne nazw z bazy danych
     name_map = {
         "ciecie": "Cięcie",
         "opuszczenie": "Zaniżenie średnicy",
@@ -52,26 +51,28 @@ def calculate_extra_services(services_vars, diam, qty, opuszczenie_multiplier=1)
     }
 
     for key, var in services_vars.items():
-        if key == "zuzycie":  # Zużycie to dopłata procentowa do ostrzenia, nie usługa stała
+        if key == "zuzycie":
             continue
             
         if var.get():
             db_name = name_map.get(key)
             if db_name:
-                price = database.get_service_price_refined(db_name, d_val)
+                unit_service_price = database.get_service_price_refined(db_name, d_val)
                 
-                # Zastosowanie mnożnika wyłącznie dla usługi zaniżenia średnicy
                 if key == "opuszczenie":
-                    price = price * int(opuszczenie_multiplier)
-                    label_suffix = f" (x{opuszczenie_multiplier})" if opuszczenie_multiplier > 1 else ""
-                    active_labels.append(f"{db_name}{label_suffix}")
-                else:
-                    active_labels.append(db_name)
-                    
-                total_unit += price
+                    unit_service_price *= int(opuszczenie_multiplier)
+                
+                # Pobranie liczby sztuk przypisanej do tej usługi
+                s_qty = int(services_qty.get(key, tot_q))
+                s_qty = min(s_qty, tot_q) # Zabezpieczenie przed wpisaniem wartości większej niż łączna ilość
 
-    total_res = round(total_unit * q_val, 2)
-    return round(total_unit, 2), total_res, active_labels
+                service_total_cost = unit_service_price * s_qty
+                total_extra_sum += service_total_cost
+
+                active_labels.append(f"{db_name} ({s_qty} szt.)")
+
+    extra_unit_avg = total_extra_sum / tot_q if tot_q > 0 else 0.0
+    return round(extra_unit_avg, 2), round(total_extra_sum, 2), active_labels
 
 def calculate_coating_price(coating, diam, length, qty):
     try:
@@ -79,7 +80,7 @@ def calculate_coating_price(coating, diam, length, qty):
             return 0.0, 0.0
         p_unit = database.get_coating_price(coating, diam, length)
         q_val = int(qty)
-        return p_unit, p_unit * q_val
+        return p_unit, round(p_unit * q_val, 2)
     except Exception as e:
         print(f"Błąd w cart_logic (coating): {e}")
         return 0.0, 0.0

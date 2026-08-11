@@ -43,15 +43,9 @@ class FrezModule(ctk.CTkFrame):
         self.type_combo.configure(state="readonly") 
         self.type_combo.pack(pady=py_small, padx=px, anchor="w")
 
-        # --- POLE PROMIENIA (Dla frezów promieniowych) ---
+        # --- POLE PROMIENIA ---
         self.radius_frame = ctk.CTkFrame(self.left_col, fg_color="transparent")
-        
-        lbl_r = ctk.CTkLabel(
-            self.radius_frame, 
-            text="Promień (R):", 
-            font=AppStyle.get_bold_font(), 
-            text_color=AppStyle.COLOR_TEXT_DARK
-        )
+        lbl_r = ctk.CTkLabel(self.radius_frame, text="Promień (R):", font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_DARK)
         lbl_r.pack(anchor="w")
         
         self.radius_entry = ctk.CTkEntry(self.radius_frame, width=300, **AppStyle.get_entry_style())
@@ -82,24 +76,16 @@ class FrezModule(ctk.CTkFrame):
         self.shank_entry.pack(side="left")
         
         self.shank_cb = ctk.CTkCheckBox(
-            s_frame, 
-            text="", 
-            width=24, 
-            variable=self.shank_override, 
-            command=self.toggle_shank,
-            fg_color=AppStyle.COLOR_PRIMARY,
-            hover_color=AppStyle.COLOR_PRIMARY_HOVER
+            s_frame, text="", width=24, variable=self.shank_override, command=self.toggle_shank,
+            fg_color=AppStyle.COLOR_PRIMARY, hover_color=AppStyle.COLOR_PRIMARY_HOVER
         )
         self.shank_cb.pack(side="left", padx=AppStyle.PAD_MEDIUM)
 
         # --- 4. POWŁOKA ---
         self.add_label(self.left_col, "Powłoka:", AppStyle.get_bold_font())
         self.coat_combo = ctk.CTkComboBox(
-            self.left_col, 
-            width=300, 
-            values=["Brak"] + database.get_unique_coating_names(), 
-            command=self.on_coating_change,
-            **AppStyle.get_combo_style()
+            self.left_col, width=300, values=["Brak"] + database.get_unique_coating_names(), 
+            command=self.on_coating_change, **AppStyle.get_combo_style()
         )
         self.coat_combo.set("Brak")
         self.coat_combo.configure(state="readonly")
@@ -108,13 +94,7 @@ class FrezModule(ctk.CTkFrame):
         self.len_label = ctk.CTkLabel(self.left_col, text="Długość (L):", font=AppStyle.get_bold_font(), text_color=AppStyle.COLOR_TEXT_DARK)
         self.len_label.pack(pady=(AppStyle.PAD_SMALL, 0), padx=px, anchor="w")
 
-        self.len_combo = ctk.CTkComboBox(
-            self.left_col, 
-            width=300, 
-            values=[], 
-            command=self.update_callback,
-            **AppStyle.get_combo_style()
-        )
+        self.len_combo = ctk.CTkComboBox(self.left_col, width=300, values=[], command=self.update_callback, **AppStyle.get_combo_style())
         self.len_combo.configure(state="readonly")
         self.len_combo.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
 
@@ -123,7 +103,7 @@ class FrezModule(ctk.CTkFrame):
         self.qty_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
         self.qty_entry.insert(0, "1")
         self.qty_entry.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
-        self.qty_entry.bind("<KeyRelease>", lambda e: self.update_callback())
+        self.qty_entry.bind("<KeyRelease>", self._on_main_qty_change)
 
         # ================= KOLUMNA PRAWA =================
         # --- 5. USŁUGI DODATKOWE ---
@@ -134,6 +114,7 @@ class FrezModule(ctk.CTkFrame):
             "polerowanie": ctk.BooleanVar(),
             "zuzycie": ctk.BooleanVar()
         }
+        self.service_qty_entries = {}
         self.service_price_labels = {}
         self.opuszczenie_mult = 1
 
@@ -149,20 +130,21 @@ class FrezModule(ctk.CTkFrame):
             row_frame.pack(fill="x", padx=px, pady=2, anchor="w")
 
             cb = ctk.CTkCheckBox(
-                row_frame, 
-                text=text, 
-                variable=self.service_vars[key], 
-                command=self._on_service_toggle, 
-                font=AppStyle.get_normal_font(),
-                fg_color=AppStyle.COLOR_PRIMARY,
-                hover_color=AppStyle.COLOR_PRIMARY_HOVER,
+                row_frame, text=text, variable=self.service_vars[key], 
+                command=self._on_service_toggle, font=AppStyle.get_normal_font(),
+                fg_color=AppStyle.COLOR_PRIMARY, hover_color=AppStyle.COLOR_PRIMARY_HOVER,
                 text_color=AppStyle.COLOR_TEXT_DARK
             )
             cb.pack(side="left")
 
+            # Pole do wpisania ilości sztuk dla danej usługi
+            qty_ent = ctk.CTkEntry(row_frame, width=45, **AppStyle.get_entry_style())
+            qty_ent.insert(0, "1")
+            qty_ent.bind("<KeyRelease>", lambda e: self.update_callback())
+            self.service_qty_entries[key] = qty_ent
+
             if key == "opuszczenie":
                 self.mult_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
-                
                 btn_minus = ctk.CTkButton(
                     self.mult_frame, text="-", width=20, height=20, 
                     fg_color=AppStyle.COLOR_MUTED, hover_color=AppStyle.COLOR_MUTED_HOVER, 
@@ -171,11 +153,8 @@ class FrezModule(ctk.CTkFrame):
                 btn_minus.pack(side="left", padx=2)
                 
                 self.lbl_mult_val = ctk.CTkLabel(
-                    self.mult_frame, 
-                    text="10 mm (x1)", 
-                    font=AppStyle.get_bold_font(), 
-                    text_color=AppStyle.COLOR_TEXT_ACCENT, 
-                    width=70
+                    self.mult_frame, text="10 mm (x1)", font=AppStyle.get_bold_font(), 
+                    text_color=AppStyle.COLOR_TEXT_ACCENT, width=70
                 )
                 self.lbl_mult_val.pack(side="left", padx=AppStyle.PAD_SMALL)
                 
@@ -186,25 +165,25 @@ class FrezModule(ctk.CTkFrame):
                 )
                 btn_plus.pack(side="left", padx=2)
 
-            lbl_p = ctk.CTkLabel(
-                row_frame, 
-                text="", 
-                font=AppStyle.get_normal_font(), 
-                text_color=AppStyle.COLOR_SUCCESS,
-                width=90,
-                anchor="e"
-            )
+            lbl_p = ctk.CTkLabel(row_frame, text="", font=AppStyle.get_normal_font(), text_color=AppStyle.COLOR_SUCCESS, width=90, anchor="e")
             lbl_p.pack(side="right", padx=AppStyle.PAD_SMALL)
             self.service_price_labels[key] = lbl_p
 
-        # Uruchomienie domyślnych funkcji na starcie
         self._on_type_change()
         self.on_coating_change()
         self.toggle_shank()
 
-    # ================= LOGIKA WIDOKU =================
+    def _on_main_qty_change(self, _=None):
+        """Po zmianie głównej ilości sztuk automatycznie aktualizuje niewypełnione lub domyślne pola ilości w usługach."""
+        main_qty = self.qty_entry.get().strip() or "1"
+        for key, var in self.service_vars.items():
+            if var.get():
+                ent = self.service_qty_entries[key]
+                ent.delete(0, "end")
+                ent.insert(0, main_qty)
+        self.update_callback()
+
     def _on_type_change(self, _=None):
-        """Obsługuje ukrywanie/pokazywanie pola promienia po zmianie typu narzędzia."""
         selected_type = self.type_combo.get()
         px = AppStyle.PAD_LARGE
         py_small = (0, AppStyle.PAD_SMALL)
@@ -224,7 +203,6 @@ class FrezModule(ctk.CTkFrame):
         raw_type = item_data.get("type", "Frez prosty")
         radius_val = "0.5"
 
-        # Wyciąganie wartości R z nazwy typu (np. 'Frez promieniowy R0.5' -> Typ: 'Frez promieniowy', R: '0.5')
         match = re.search(r"^(.*?)\s+R([\d\.,]+)$", raw_type, re.IGNORECASE)
         if match:
             clean_type = match.group(1).strip()
@@ -232,20 +210,15 @@ class FrezModule(ctk.CTkFrame):
         else:
             clean_type = raw_type
 
-        # Ustawiamy typ w combo
         if clean_type in self.type_combo.cget("values"):
             self.type_combo.set(clean_type)
         else:
             self.type_combo.set(raw_type)
 
-        # Uruchamiamy odświeżenie widoczności pola promienia
         self._on_type_change()
-
-        # Ustawiamy wyciągnięty promień
         self.radius_entry.delete(0, "end")
         self.radius_entry.insert(0, radius_val)
 
-        # Wypełniamy pozostałe pola
         if "diam" in item_data:
             self.diam_entry.delete(0, "end")
             self.diam_entry.insert(0, str(item_data["diam"]))
@@ -269,6 +242,12 @@ class FrezModule(ctk.CTkFrame):
                 if k in self.service_vars:
                     self.service_vars[k].set(val)
 
+        if "services_qty" in item_data:
+            for k, q_val in item_data["services_qty"].items():
+                if k in self.service_qty_entries:
+                    self.service_qty_entries[k].delete(0, "end")
+                    self.service_qty_entries[k].insert(0, str(q_val))
+
         if "opuszczenie_mult" in item_data:
             self.opuszczenie_mult = item_data["opuszczenie_mult"]
             mm_text = f"{self.opuszczenie_mult * 10} mm"
@@ -287,14 +266,11 @@ class FrezModule(ctk.CTkFrame):
             d = float(val)
             if d <= 0:
                 return ""
-            
             if d.is_integer() and int(d) % 2 == 0:
                 return str(int(d))
-            
             c = math.ceil(d)
             if c % 2 != 0:
                 c += 1
-                
             return str(c)
         except ValueError:
             return ""
@@ -332,15 +308,12 @@ class FrezModule(ctk.CTkFrame):
     def on_coating_change(self, _=None):
         selected = self.coat_combo.get()
         lengths = database.get_unique_coating_lengths(selected)
-        
         if not lengths:
-            raise ValueError("Błąd krytyczny bazy danych: Brak jakichkolwiek długości technologicznych w tabeli pricelist_coatings.")
-
+            raise ValueError("Błąd bazy danych: Brak długości w tabeli pricelist_coatings.")
         self.len_combo.configure(values=lengths)
         self.len_combo.set(lengths[0])
         self.update_callback()
 
-    # ================= LOGIKA DANYCH I WALIDACJA =================
     def validate_all(self, diam, z, qty, shank):
         try:
             float(diam)
@@ -355,15 +328,14 @@ class FrezModule(ctk.CTkFrame):
             return True
         except ValueError:
             from ui.components import OstrzomatPopup
-            OstrzomatPopup(self.master, title="Błąd", message="Wprowadzono nieprawidłowe wartości (litery/znaki specjalne). Popraw je przed kalkulacją!", type="error")
+            OstrzomatPopup(self.master, title="Błąd", message="Wprowadzono nieprawidłowe wartości. Popraw je przed kalkulacją!", type="error")
             return False
     
     def get_full_item_data(self, run_validation=False):
-        """Zapisuje dane pozycji do słownika koszyka - wycena ZAWSZE na podstawie średnicy roboczej."""
         try:
             diam = self.diam_entry.get().replace(',', '.').strip()
             shank = self.shank_entry.get().replace(',', '.').strip()
-            qty = self.qty_entry.get() or "1" 
+            qty = self.qty_entry.get().strip() or "1" 
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
             coat = self.coat_combo.get()
@@ -373,23 +345,34 @@ class FrezModule(ctk.CTkFrame):
                 if not self.validate_all(diam, blades, qty, shank):
                     return None
             
-            # Wycena opiera się ZAWSZE na średnicy roboczej (diam)
             calc_diam = diam
 
-            heavy_wear_active = self.service_vars["zuzycie"].get()
+            # Odczyt ilości sztuk dla każdej z usług
+            services_qty_dict = {}
+            for k in self.service_vars:
+                if self.service_vars[k].get():
+                    val_s = self.service_qty_entries[k].get().strip()
+                    services_qty_dict[k] = int(val_s) if val_s.isdigit() else int(qty)
+                else:
+                    services_qty_dict[k] = 0
+
+            heavy_wear_qty = services_qty_dict.get("zuzycie", 0)
             
-            # Wyliczanie cen wyłącznie na podstawie średnicy roboczej
-            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, calc_diam, qty, heavy_wear=heavy_wear_active)
+            # Wycena narzędzia i usług z indywidualnymi ilościami
+            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, calc_diam, qty, heavy_wear_qty=heavy_wear_qty)
             c_j, c_r = cart_logic.calculate_coating_price(coat, calc_diam, coat_len, qty)
             
             e_j_total, e_r_total, active_labels = cart_logic.calculate_extra_services(
-                self.service_vars, calc_diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
+                self.service_vars, services_qty_dict, calc_diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
             )
 
-            # Aktualizacja etykiet cenowych dla usług dodatkowych w prawym panelu
+            # Aktualizacja podglądu cen przy opcjach
             for key in self.service_vars:
                 if key == "zuzycie":
-                    self.service_price_labels[key].configure(text="+5% do ostrz." if self.service_vars[key].get() else "")
+                    if self.service_vars[key].get():
+                        self.service_price_labels[key].configure(text=f"+5% ({services_qty_dict[key]} szt.)")
+                    else:
+                        self.service_price_labels[key].configure(text="")
                     continue
 
                 if self.service_vars[key].get():
@@ -397,7 +380,9 @@ class FrezModule(ctk.CTkFrame):
                     price = database.get_service_price_refined(db_name, float(calc_diam))
                     if key == "opuszczenie":
                         price = price * self.opuszczenie_mult
-                    self.service_price_labels[key].configure(text=f"+{price:.2f} zł")
+                    
+                    s_cost = price * services_qty_dict[key]
+                    self.service_price_labels[key].configure(text=f"+{s_cost:.2f} zł")
                 else:
                     self.service_price_labels[key].configure(text="")
 
@@ -406,7 +391,6 @@ class FrezModule(ctk.CTkFrame):
                 "last_diam": diam, "last_shank": shank
             })
 
-            # Dodanie przedrostka promienia do nazwy wyświetlanej w koszyku (np. Frez promieniowy R0.5)
             display_type = t_type
             if "promieniowy" in t_type.lower():
                 r_text = self.radius_entry.get().replace(',', '.').strip() or "0.5"
@@ -415,7 +399,7 @@ class FrezModule(ctk.CTkFrame):
             return {
                 "type": display_type, 
                 "diam": diam, 
-                "shank_diam": shank,  # Chwyt zapisujemy czysto informacyjnie
+                "shank_diam": shank,
                 "shank_override": self.shank_override.get(),
                 "z": blades, 
                 "qty": qty,
@@ -426,6 +410,7 @@ class FrezModule(ctk.CTkFrame):
                 "coat_unit": c_j, 
                 "total_coat": c_r,
                 "services_status": {k: v.get() for k, v in self.service_vars.items()},
+                "services_qty": services_qty_dict,
                 "opuszczenie_mult": self.opuszczenie_mult,
                 "extra_unit": e_j_total, 
                 "total_extra": e_r_total
@@ -435,6 +420,18 @@ class FrezModule(ctk.CTkFrame):
             return None
     
     def _on_service_toggle(self):
+        main_qty = self.qty_entry.get().strip() or "1"
+
+        for key, var in self.service_vars.items():
+            ent = self.service_qty_entries[key]
+            if var.get():
+                if not ent.get().strip():
+                    ent.delete(0, "end")
+                    ent.insert(0, main_qty)
+                ent.pack(side="left", padx=AppStyle.PAD_SMALL)
+            else:
+                ent.pack_forget()
+
         if self.service_vars["opuszczenie"].get():
             self.mult_frame.pack(side="left", padx=AppStyle.PAD_MEDIUM)
         else:
