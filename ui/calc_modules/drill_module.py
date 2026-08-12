@@ -547,16 +547,19 @@ class DrillModule(ctk.CTkFrame):
             return None
 
     def _on_service_toggle(self):
+        """Zarządza widocznością pól ilości dla usług oraz wstawia aktualną ilość z formularza."""
+        # Pobieramy aktualną ilość sztuk z głównego pola formularza (domyślnie "1" jeśli puste)
         main_qty = self.qty_entry.get().strip() or "1"
 
         for key, var in self.service_vars.items():
             ent = self.service_qty_entries[key]
             if var.get():
-                if not ent.get().strip():
-                    ent.delete(0, "end")
-                    ent.insert(0, main_qty)
+                # Gdy usługa zostaje włączona, zawsze wpisujemy aktualną główną ilość sztuk
+                ent.delete(0, "end")
+                ent.insert(0, main_qty)
                 ent.pack(side="left", padx=AppStyle.PAD_SMALL)
             else:
+                # Gdy usługa zostaje wyłączona, ukrywamy pole
                 ent.pack_forget()
 
         if self.service_vars["opuszczenie"].get():
