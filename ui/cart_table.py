@@ -5,7 +5,7 @@ class CartTable(ctk.CTkFrame):
     def __init__(self, parent, on_notes_click=None):
         super().__init__(parent)
         
-        # Zapamiętujemy funkcję zwrotną otwierającą uwagi
+        # Zapamiętujemy funkcja zwrotną otwierającą uwagi
         self.on_notes_click = on_notes_click
         
         # Pobieranie czcionek z centralnego pliku konfiguracji stylów
@@ -13,26 +13,27 @@ class CartTable(ctk.CTkFrame):
         self.font_normal = AppStyle.get_normal_font()
         self.font_bold   = AppStyle.get_bold_font()     
         
-        # Definicja i sztywne szerokości kolumn
+        # Definicja i sztywne szerokości kolumn - dodano WART. USŁ. przed REGEN./SZT
         self.cols = [
-            ("L.p.", 40),
-            ("TYP NARZĘDZIA", 130),
-            ("Ø ROB.", 70),
-            ("Ø CHWYT", 50),
-            ("Z", 40),
-            ("ZUŻ.", 55),      
-            ("CIAC", 55),
-            ("ZAN.", 55),
-            ("POL.", 55),     
-            ("SZT.", 60),
-            ("REGEN./SZT", 100),
-            ("WARTOŚĆ R.", 110),
-            ("POWŁOKA", 100),
-            ("L", 100),
-            ("POWŁ./SZT", 80),
-            ("WARTOŚĆ P.", 90),
-            ("SUMA POZ.", 100),
-            ("UWAGI", 250)     
+            ("L.p.", 40),          # idx 0
+            ("TYP NARZĘDZIA", 130), # idx 1
+            ("Ø ROB.", 70),        # idx 2
+            ("Ø CHWYT", 50),       # idx 3
+            ("Z", 40),             # idx 4
+            ("ZUŻ.", 55),          # idx 5
+            ("CIAC", 55),          # idx 6
+            ("ZAN.", 55),          # idx 7
+            ("POL.", 55),          # idx 8
+            ("SZT.", 60),          # idx 9
+            ("WART. USŁ.", 90),    # idx 10 (NOWA KOLUMNA)
+            ("REGEN./SZT", 100),   # idx 11
+            ("WARTOŚĆ R.", 110),   # idx 12
+            ("POWŁOKA", 100),      # idx 13
+            ("L", 100),            # idx 14
+            ("POWŁ./SZT", 80),     # idx 15
+            ("WARTOŚĆ P.", 90),    # idx 16
+            ("SUMA POZ.", 100),    # idx 17
+            ("UWAGI", 250)         # idx 18
         ]
         self.selected_idx = None
         self.row_frames = {}
@@ -76,7 +77,7 @@ class CartTable(ctk.CTkFrame):
         return self.selected_idx
     
     def refresh(self, items):
-        """Odświeżanie tabeli z podpięciem zdarzenia kliknięcia oraz liczby sztuk w usługach."""
+        """Odświeżanie tabeli z poprawnym rozdzieleniem wartości regeneracji i usług."""
         for widget in self.scroll_frame.winfo_children():
             widget.destroy()
 
@@ -98,11 +99,16 @@ class CartTable(ctk.CTkFrame):
             def get_v(k): return float(item.get(k, 0.0))
 
             qty = int(item.get("qty", 1))
-            regen_unit = get_v("tool_unit") + get_v("extra_unit")
-            regen_total = regen_unit * qty
-            coat_unit = get_v("coat_unit")
-            coat_total = get_v("total_coat")
-            suma_calkowita_pozycji = regen_total + coat_total
+            
+            # --- POPRAWIONE WYLICZENIA WARTOŚCI ---
+            regen_unit = get_v("tool_unit")      # Czysta cena ostrzenia za 1 sztukę
+            regen_total = get_v("total_tool")    # Czysta wartość ostrzenia (tool_unit * qty)
+            extra_total = get_v("total_extra")   # Łączna wartość usług dodatkowych
+            coat_unit   = get_v("coat_unit")
+            coat_total  = get_v("total_coat")
+            
+            # Suma końcowa pozycji
+            suma_calkowita_pozycji = regen_total + extra_total + coat_total
 
             def create_cell_label(column, text, font, text_color=None):
                 lbl = ctk.CTkLabel(row, text=text, anchor="center", font=font)
@@ -122,7 +128,7 @@ class CartTable(ctk.CTkFrame):
             create_cell_label(3, shank_val, self.font_normal)
             create_cell_label(4, item.get("z", "-"), self.font_normal)
 
-            # --- SEKCJA USŁUG DODATKOWYCH (WYŚWIETLANIE LICZBY SZTUK) ---
+            # --- SEKCJA USŁUG DODATKOWYCH (LICZBA SZTUK) ---
             status = item.get("services_status", {})
             sq = item.get("services_qty", {})
 
@@ -134,7 +140,7 @@ class CartTable(ctk.CTkFrame):
             # ZUŻYCIE
             zuzycie_val = get_service_display("zuzycie")
             is_wear = zuzycie_val != "-"
-            create_cell_label(5, zuzycie_val, self.font_bold, AppStyle.COLOR_DANGER if is_wear else "#555")
+            create_cell_label(5, zuzycie_val, self.font_bold, AppStyle.COLOR_SUCCESS if is_wear else "#555")
 
             # CIĘCIE
             ciecie_val = get_service_display("ciecie")
@@ -151,22 +157,33 @@ class CartTable(ctk.CTkFrame):
             is_p = polerowanie_val != "-"
             create_cell_label(8, polerowanie_val, self.font_bold, AppStyle.COLOR_SUCCESS if is_p else "#555")
 
-            # POZOSTAŁE KOLUMNY
+            # ILOŚĆ SZTUK
             create_cell_label(9, str(qty), self.font_bold)
-            create_cell_label(10, f"{regen_unit:.2f}", self.font_normal)
-            create_cell_label(11, f"{regen_total:.2f}", self.font_bold, AppStyle.COLOR_SUCCESS)
 
+            # --- DANE FINANSKOWE (ZAKTUALIZOWANE KOLUMNY) ---
+            # 10: WART. USŁ. (Łączna wartość usług w pozycji)
+            has_extra = extra_total > 0
+            create_cell_label(10, f"{extra_total:.2f}" if has_extra else "-", self.font_bold if has_extra else self.font_normal, AppStyle.COLOR_SUCCESS if has_extra else None)
+
+            # 11: REGEN./SZT (Sama cena jednostkowa ostrzenia)
+            create_cell_label(11, f"{regen_unit:.2f}", self.font_normal)
+
+            # 12: WARTOŚĆ R. (Wartość ostrzenia dla wszystkich sztuk)
+            create_cell_label(12, f"{regen_total:.2f}", self.font_bold, AppStyle.COLOR_SUCCESS)
+
+            # --- POWŁOKI I SUMA ---
             has_coat = item.get("coat_name") != "Brak"
             
-            lbl_coat = ctk.CTkLabel(row, text=item.get("coat_name", "Brak"), anchor="center", wraplength=self.cols[12][1]-5, justify="center", font=self.font_normal)
+            lbl_coat = ctk.CTkLabel(row, text=item.get("coat_name", "Brak"), anchor="center", wraplength=self.cols[13][1]-5, justify="center", font=self.font_normal)
             lbl_coat.bind("<Button-1>", lambda event, i=idx: self.toggle_select_row(i))
-            lbl_coat.grid(row=0, column=12, padx=2, pady=5, sticky="ew")
+            lbl_coat.grid(row=0, column=13, padx=2, pady=5, sticky="ew")
 
-            create_cell_label(13, item.get("coat_len", "-") if has_coat else "-", self.font_normal)
-            create_cell_label(14, f"{coat_unit:.2f}" if has_coat else "-", self.font_normal)
-            create_cell_label(15, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, "#3498db" if has_coat else None)
-            create_cell_label(16, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
+            create_cell_label(14, item.get("coat_len", "-") if has_coat else "-", self.font_normal)
+            create_cell_label(15, f"{coat_unit:.2f}" if has_coat else "-", self.font_normal)
+            create_cell_label(16, f"{coat_total:.2f}" if has_coat else "-", self.font_bold, "#3498db" if has_coat else None)
+            create_cell_label(17, f"{suma_calkowita_pozycji:.2f} zł", self.font_bold)
             
+            # --- UWAGI ---
             full_notes_text = item.get("notes", "").strip()
             
             if len(full_notes_text) > 80:
@@ -174,12 +191,11 @@ class CartTable(ctk.CTkFrame):
             else:
                 short_notes_text = full_notes_text if full_notes_text else "-"
 
-            # --- TWORZENIE ETYKIETY UWAG Z EFEKTEM HOVER ---
             lbl_notes = ctk.CTkLabel(
                 row, 
                 text=short_notes_text, 
                 anchor="center", 
-                wraplength=self.cols[17][1] - 5, 
+                wraplength=self.cols[18][1] - 5, 
                 justify="center", 
                 text_color=AppStyle.COLOR_WARNING if full_notes_text else AppStyle.COLOR_TEXT_MUTED,
                 font=self.font_normal,
@@ -198,7 +214,7 @@ class CartTable(ctk.CTkFrame):
             lbl_notes.bind("<Leave>", _on_leave)
             lbl_notes.bind("<Button-1>", lambda event, i=idx: self._handle_notes_click(i))
             
-            lbl_notes.grid(row=0, column=17, padx=2, pady=5, sticky="ew")
+            lbl_notes.grid(row=0, column=18, padx=2, pady=5, sticky="ew")
 
         self.update_row_backgrounds()
 
