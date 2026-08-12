@@ -131,7 +131,7 @@ class DrillModule(ctk.CTkFrame):
         self.qty_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
         self.qty_entry.insert(0, "1")
         self.qty_entry.pack(pady=(0, AppStyle.PAD_MEDIUM), padx=px, anchor="w")
-        self.qty_entry.bind("<KeyRelease>", lambda e: self.update_callback())
+        self.qty_entry.bind("<KeyRelease>", self._on_main_qty_change)
 
         # ================= KOLUMNA PRAWA =================
         self.add_label(self.right_col, "Usługi dodatkowe:", AppStyle.get_bold_font())
@@ -141,6 +141,7 @@ class DrillModule(ctk.CTkFrame):
             "polerowanie": ctk.BooleanVar(),
             "zuzycie": ctk.BooleanVar()
         }
+        self.service_qty_entries = {}
         self.service_price_labels = {}
         self.opuszczenie_mult = 1
 
@@ -162,6 +163,12 @@ class DrillModule(ctk.CTkFrame):
                 text_color=AppStyle.COLOR_TEXT_DARK
             )
             cb.pack(side="left")
+
+            # Pole do wpisania ilości sztuk dla danej usługi
+            qty_ent = ctk.CTkEntry(row_frame, width=45, **AppStyle.get_entry_style())
+            qty_ent.insert(0, "1")
+            qty_ent.bind("<KeyRelease>", lambda e: self.update_callback())
+            self.service_qty_entries[key] = qty_ent
 
             if key == "opuszczenie":
                 self.mult_frame = ctk.CTkFrame(row_frame, fg_color="transparent")
@@ -197,6 +204,16 @@ class DrillModule(ctk.CTkFrame):
         self._on_type_change()
         self.on_coating_change()
         self.toggle_shank()
+
+    def _on_main_qty_change(self, _=None):
+        """Po zmianie głównej ilości sztuk automatycznie aktualizuje pola ilości w usługach."""
+        main_qty = self.qty_entry.get().strip() or "1"
+        for key, var in self.service_vars.items():
+            if var.get():
+                ent = self.service_qty_entries[key]
+                ent.delete(0, "end")
+                ent.insert(0, main_qty)
+        self.update_callback()
 
     # ================= LOGIKA WIDOKU =================
     def is_step_drill(self):
@@ -237,7 +254,6 @@ class DrillModule(ctk.CTkFrame):
             lbl.pack(anchor="w")
 
             entry = ctk.CTkEntry(f, width=55, **AppStyle.get_entry_style())
-            # Wstawiamy domyślne wartości tylko, gdy NIE TRWA wczytywanie edycji
             if not self._is_loading_data:
                 entry.insert(0, default_vals[i] if i < len(default_vals) else "10.0")
             entry.pack()
@@ -283,7 +299,6 @@ class DrillModule(ctk.CTkFrame):
             return ""
 
     def on_diam_change(self, _=None):
-        """Automatyczne wyliczanie chwytu podczas pisania (tylko gdy użytkownik nie odblokował chwytu)."""
         if self._is_loading_data:
             return
 
@@ -333,29 +348,24 @@ class DrillModule(ctk.CTkFrame):
         self._is_loading_data = True
 
         try:
-            # 1. Ustawienie typu narzędzia
             raw_type = item_data.get("type", "Wiertło N")
             if raw_type in self.type_combo.cget("values"):
                 self.type_combo.set(raw_type)
 
-            # 2. Parsowanie średnic roboczych ZANIM wyrenderujemy widok
             diam_str = str(item_data.get("diam", "10.0")).strip()
 
             if self.is_step_drill() and "x" in diam_str:
                 parts = [p.strip() for p in diam_str.split("x") if p.strip()]
                 num_parts = len(parts)
 
-                # Najpierw ustawiamy odpowiednią krotność w comboboxie stopni!
                 if str(num_parts) in self.steps_combo.cget("values"):
                     self.steps_combo.set(str(num_parts))
 
-                # Pokażemy kontener i utworzymy PUSTE pola w odpowiedniej liczbie (num_parts)
                 self.steps_combo.pack(side="left", padx=(10, 0))
                 self.diam_entry.pack_forget()
                 self.step_diams_frame.pack(after=self.diam_label, pady=(0, AppStyle.PAD_SMALL), padx=AppStyle.PAD_LARGE, anchor="w", fill="x")
                 self._render_step_entries()
 
-                # Wpisujemy czyste wartości d1, d2, d3 z koszyka
                 for idx, p in enumerate(parts):
                     if idx < len(self.step_entries):
                         self.step_entries[idx].delete(0, "end")
@@ -367,7 +377,6 @@ class DrillModule(ctk.CTkFrame):
                 self.diam_entry.delete(0, "end")
                 self.diam_entry.insert(0, diam_str)
 
-            # 3. Wypełnienie pozostałych pól
             if "z" in item_data:
                 self.blades_entry.delete(0, "end")
                 self.blades_entry.insert(0, str(item_data["z"]))
@@ -387,6 +396,12 @@ class DrillModule(ctk.CTkFrame):
                     if k in self.service_vars:
                         self.service_vars[k].set(val)
 
+            if "services_qty" in item_data:
+                for k, q_val in item_data["services_qty"].items():
+                    if k in self.service_qty_entries:
+                        self.service_qty_entries[k].delete(0, "end")
+                        self.service_qty_entries[k].insert(0, str(q_val))
+
             if "opuszczenie_mult" in item_data:
                 self.opuszczenie_mult = item_data["opuszczenie_mult"]
                 mm_text = f"{self.opuszczenie_mult * 10} mm"
@@ -394,7 +409,6 @@ class DrillModule(ctk.CTkFrame):
 
             self._on_service_toggle()
 
-            # 4. PRECYZYJNA LOGIKA CHWYTU
             is_overridden = item_data.get("shank_override", False)
             self.shank_override.set(is_overridden)
 
@@ -443,10 +457,10 @@ class DrillModule(ctk.CTkFrame):
             return False
     
     def get_full_item_data(self, run_validation=False):
-        """Zapisuje bieżący stan formularza do słownika pozycji koszyka z ujednoliconym formatowaniem średnic."""
+        """Zapisuje bieżący stan formularza do słownika pozycji koszyka."""
         try:
             shank = self.shank_entry.get().replace(',', '.').strip()
-            qty = self.qty_entry.get() or "1" 
+            qty = self.qty_entry.get().strip() or "1" 
             t_type = self.type_combo.get()
             blades = self.blades_entry.get()
             coat = self.coat_combo.get()
@@ -460,7 +474,6 @@ class DrillModule(ctk.CTkFrame):
                 parsed_vals = []
                 for e in self.step_entries:
                     raw = e.get()
-                    # Ujednolicamy formatowanie każdej średnicy stopniowej (3.0 -> 3, 3.5 -> 3.5)
                     formatted_val = self.format_diam_value(raw)
                     if formatted_val:
                         parsed_vals.append(formatted_val)
@@ -471,17 +484,31 @@ class DrillModule(ctk.CTkFrame):
                 diam_display = self.format_diam_value(raw_diam)
                 calc_diam = diam_display
 
-            heavy_wear_active = self.service_vars["zuzycie"].get()
-            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, calc_diam, qty, heavy_wear=heavy_wear_active)
+            # Odczyt ilości sztuk dla każdej z usług
+            services_qty_dict = {}
+            for k in self.service_vars:
+                if self.service_vars[k].get():
+                    val_s = self.service_qty_entries[k].get().strip()
+                    services_qty_dict[k] = int(val_s) if val_s.isdigit() else int(qty)
+                else:
+                    services_qty_dict[k] = 0
+
+            heavy_wear_qty = services_qty_dict.get("zuzycie", 0)
+
+            t_j, t_r = cart_logic.calculate_tool_price(t_type, blades, calc_diam, qty, heavy_wear_qty=heavy_wear_qty)
             c_j, c_r = cart_logic.calculate_coating_price(coat, calc_diam, coat_len, qty)
             
             e_j_total, e_r_total, active_labels = cart_logic.calculate_extra_services(
-                self.service_vars, calc_diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
+                self.service_vars, services_qty_dict, calc_diam, qty, opuszczenie_multiplier=self.opuszczenie_mult
             )
 
+            # Aktualizacja etykiet cenowych
             for key in self.service_vars:
                 if key == "zuzycie":
-                    self.service_price_labels[key].configure(text="+5% do ostrz." if self.service_vars[key].get() else "")
+                    if self.service_vars[key].get():
+                        self.service_price_labels[key].configure(text=f"+5% ({services_qty_dict[key]} szt.)")
+                    else:
+                        self.service_price_labels[key].configure(text="")
                     continue
 
                 if self.service_vars[key].get():
@@ -489,7 +516,9 @@ class DrillModule(ctk.CTkFrame):
                     price = database.get_service_price_refined(db_name, float(calc_diam))
                     if key == "opuszczenie":
                         price = price * self.opuszczenie_mult
-                    self.service_price_labels[key].configure(text=f"+{price:.2f} zł")
+                    
+                    s_cost = price * services_qty_dict[key]
+                    self.service_price_labels[key].configure(text=f"+{s_cost:.2f} zł")
                 else:
                     self.service_price_labels[key].configure(text="")
 
@@ -509,6 +538,7 @@ class DrillModule(ctk.CTkFrame):
                 "coat_name": coat, "coat_len": coat_len,
                 "coat_unit": c_j, "total_coat": c_r,
                 "services_status": {k: v.get() for k, v in self.service_vars.items()},
+                "services_qty": services_qty_dict,
                 "opuszczenie_mult": self.opuszczenie_mult,
                 "extra_unit": e_j_total, "total_extra": e_r_total
             }
@@ -517,6 +547,18 @@ class DrillModule(ctk.CTkFrame):
             return None
 
     def _on_service_toggle(self):
+        main_qty = self.qty_entry.get().strip() or "1"
+
+        for key, var in self.service_vars.items():
+            ent = self.service_qty_entries[key]
+            if var.get():
+                if not ent.get().strip():
+                    ent.delete(0, "end")
+                    ent.insert(0, main_qty)
+                ent.pack(side="left", padx=AppStyle.PAD_SMALL)
+            else:
+                ent.pack_forget()
+
         if self.service_vars["opuszczenie"].get():
             self.mult_frame.pack(side="left", padx=AppStyle.PAD_MEDIUM)
         else:
