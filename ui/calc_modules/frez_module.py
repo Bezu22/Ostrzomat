@@ -174,13 +174,58 @@ class FrezModule(ctk.CTkFrame):
         self.toggle_shank()
 
     def _on_main_qty_change(self, _=None):
-        """Po zmianie głównej ilości sztuk automatycznie aktualizuje niewypełnione lub domyślne pola ilości w usługach."""
-        main_qty = self.qty_entry.get().strip() or "1"
+        """
+        Reaguje na zmianę w głównym polu ilości sztuk.
+        Zmniejsza ilości w usługach tylko wtedy, gdy główna ilość stanie się mniejsza od nich.
+        Puste pole lub niepoprawne znaki są ignorowane, aby nie niszczyć wpisanych wartości.
+        """
+        raw_main_qty = self.qty_entry.get().strip()
+        
+        # Sprawdzamy, czy w głównym polu znajduje się poprawna cyfra
+        if raw_main_qty.isdigit():
+            new_main_qty = int(raw_main_qty)
+            
+            for key, var in self.service_vars.items():
+                if var.get():
+                    ent = self.service_qty_entries[key]
+                    raw_service_qty = ent.get().strip()
+                    
+                    # Jeśli w usłudze jest poprawna cyfra i jest większa od nowej głównej ilości -> zmniejszamy
+                    if raw_service_qty.isdigit():
+                        if int(raw_service_qty) > new_main_qty:
+                            ent.delete(0, "end")
+                            ent.insert(0, str(new_main_qty))
+                            
+        self.update_callback()
+
+    def _on_service_toggle(self):
+        """
+        Obsługuje włączanie/wyłączanie poszczególnych usług.
+        Uzupełnia pole ilości wartością z formularza TYLKO w momencie włączania danej usługi.
+        """
+        main_qty = self.qty_entry.get().strip()
+        fallback_qty = main_qty if main_qty.isdigit() else "1"
+
         for key, var in self.service_vars.items():
+            ent = self.service_qty_entries[key]
+            
             if var.get():
-                ent = self.service_qty_entries[key]
-                ent.delete(0, "end")
-                ent.insert(0, main_qty)
+                # Jeśli pole nie jest jeszcze widoczne na ekranie -> usługa została właśnie włączona!
+                if not ent.winfo_ismapped():
+                    ent.delete(0, "end")
+                    ent.insert(0, fallback_qty)
+                    ent.pack(side="left", padx=AppStyle.PAD_SMALL)
+            else:
+                # Usługa wyłączona -> ukrywamy pole
+                ent.pack_forget()
+
+        if self.service_vars["opuszczenie"].get():
+            self.mult_frame.pack(side="left", padx=AppStyle.PAD_MEDIUM)
+        else:
+            self.mult_frame.pack_forget()
+            self.opuszczenie_mult = 1
+            self.lbl_mult_val.configure(text="10 mm (x1)")
+            
         self.update_callback()
 
     def _on_type_change(self, _=None):
@@ -419,30 +464,6 @@ class FrezModule(ctk.CTkFrame):
             print(f"Błąd w module FrezModule: {e}")
             return None
     
-    def _on_service_toggle(self):
-        """Zarządza widocznością pól ilości dla usług oraz wstawia aktualną ilość z formularza."""
-        # Pobieramy aktualną ilość sztuk z głównego pola formularza (domyślnie "1" jeśli puste)
-        main_qty = self.qty_entry.get().strip() or "1"
-
-        for key, var in self.service_vars.items():
-            ent = self.service_qty_entries[key]
-            if var.get():
-                # Gdy usługa zostaje włączona, zawsze wpisujemy aktualną główną ilość sztuk
-                ent.delete(0, "end")
-                ent.insert(0, main_qty)
-                ent.pack(side="left", padx=AppStyle.PAD_SMALL)
-            else:
-                # Gdy usługa zostaje wyłączona, ukrywamy pole
-                ent.pack_forget()
-
-        if self.service_vars["opuszczenie"].get():
-            self.mult_frame.pack(side="left", padx=AppStyle.PAD_MEDIUM)
-        else:
-            self.mult_frame.pack_forget()
-            self.opuszczenie_mult = 1
-            self.lbl_mult_val.configure(text="10 mm (x1)")
-            
-        self.update_callback()
     
     def _change_multiplier(self, delta):
         new_val = self.opuszczenie_mult + delta
