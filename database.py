@@ -93,8 +93,6 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         else: 
             price_col = "price_1"
 
-        print(f"DEBUG BAZY -> Szukam: typ='{clean_type}', ostrza='{blades_key}', srednica={d_val}, kolumna={price_col}")
-
         # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
         query_exact = f"""
             SELECT {price_col} FROM pricelist_tools 
@@ -117,11 +115,8 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         conn.close()
         
         if res and res[0] is not None:
-            print(f"DEBUG BAZY -> Znaleziono cenę: {float(res[0])}")
             return float(res[0])
-        else:
-            print("DEBUG BAZY -> Nic nie znaleziono! Baza zwróciła pusty wynik.")
-            return 0.0
+        return 0.0
         
     except Exception as e:
         print(f"Błąd bazy (get_tool_price): {e}")
@@ -148,7 +143,7 @@ def get_unique_coating_lengths(coating_name):
         return []
 
 def get_coating_price(name, diam, length):
-    """Zwraca jednostkową cenę nałożenia powłoki. (Oczyszczona z komunikatów debugowania)"""
+    """Zwraca jednostkową cenę nałożenia powłoki."""
     if not is_db_accessible() or name == "Brak": return 0.0
     try:
         d_val = float(str(diam).replace(',', '.'))

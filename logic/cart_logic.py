@@ -29,6 +29,7 @@ def calculate_tool_price(tool_type, blades, diam, qty, heavy_wear=False, heavy_w
     if base_price <= 0.0:
         return 0.0, 0.0
 
+    # Zużycie może dotyczyć najwyżej całego zamówienia i nie może zejść poniżej zera.
     hw_qty = min(max(hw_qty, 0), q_val)
     normal_qty = q_val - hw_qty
 
@@ -56,6 +57,9 @@ def calculate_extra_services(services_vars, services_qty, diam=None, total_qty=N
     except (TypeError, ValueError):
         return 0.0, 0.0, []
 
+    if d_val <= 0.0 or tot_q <= 0:
+        return 0.0, 0.0, []
+
     total_extra_sum = 0.0
     active_labels = []
 
@@ -79,7 +83,11 @@ def calculate_extra_services(services_vars, services_qty, diam=None, total_qty=N
 
                 s_qty = tot_q
                 if isinstance(services_qty, dict):
-                    s_qty = int(services_qty.get(key, tot_q))
+                    try:
+                        s_qty = int(services_qty.get(key, tot_q))
+                    except (TypeError, ValueError):
+                        s_qty = 0
+                # Usługa nie może być naliczona dla większej liczby sztuk niż narzędzie.
                 s_qty = min(max(s_qty, 0), tot_q)
 
                 service_total_cost = unit_service_price * s_qty
@@ -95,9 +103,14 @@ def calculate_coating_price(coating, diam, length, qty):
     try:
         if coating == "Brak" or not coating:
             return 0.0, 0.0
-        p_unit = database.get_coating_price(coating, diam, length)
+        d_val = float(str(diam).replace(',', '.'))
+        l_val = float(str(length).replace(',', '.'))
         q_val = int(qty)
+        if d_val <= 0.0 or l_val <= 0.0 or q_val <= 0:
+            return 0.0, 0.0
+        p_unit = database.get_coating_price(coating, diam, length)
+        if p_unit <= 0.0:
+            return 0.0, 0.0
         return p_unit, round(p_unit * q_val, 2)
-    except Exception as e:
-        print(f"Błąd w cart_logic (coating): {e}")
+    except (TypeError, ValueError):
         return 0.0, 0.0
