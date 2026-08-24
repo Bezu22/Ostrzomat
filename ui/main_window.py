@@ -102,6 +102,17 @@ class OstrzomatApp(ctk.CTk):
         )
         self.btn_drill.pack(pady=10, padx=20, fill="x")
 
+        self.btn_special = ctk.CTkButton(
+            self.sidebar_frame,
+            text="➕ DODAJ SPECJALNE",
+            font=AppStyle.FONT_BOLD,
+            fg_color=AppStyle.COLOR_PRIMARY,
+            hover_color=AppStyle.COLOR_PRIMARY_HOVER,
+            text_color=AppStyle.COLOR_TEXT_LIGHT,
+            command=lambda: self.open_calc("Specjalne")
+        )
+        self.btn_special.pack(pady=10, padx=20, fill="x")
+
         self.edit_price_btn = ctk.CTkButton(
             self.sidebar_frame,
             text="⚙ CENNIK",

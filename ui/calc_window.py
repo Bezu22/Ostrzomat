@@ -4,6 +4,7 @@ import database
 # Importy modułów kalkulacyjnych
 from ui.calc_modules.frez_module import FrezModule
 from ui.calc_modules.drill_module import DrillModule
+from ui.calc_modules.special_module import SpecialModule
 
 from ui.components import OstrzomatPopup
 from ui.style import AppStyle
@@ -57,6 +58,10 @@ class ToolCalcWindow(ctk.CTkToplevel):
             )
         elif tool_category == "Wiertla":
             self.tool_module = DrillModule(
+                self.main_scroll, self.update_calculation, self.settings
+            )
+        elif tool_category == "Specjalne":
+            self.tool_module = SpecialModule(
                 self.main_scroll, self.update_calculation, self.settings
             )
             

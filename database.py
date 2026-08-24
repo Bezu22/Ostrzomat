@@ -228,65 +228,6 @@ def get_filtered_services(name="Wszystkie"):
     conn.close()
     return res
 
-# --- OPERACJE CRUD (DODAWANIE / EDYCJA / USUWANIE) ---
-
-def delete_row(table_name, row_id):
-    """Usuwa rekord z bazy."""
-    try:
-        conn = get_connection()
-        cursor = conn.cursor()
-        cursor.execute(f"DELETE FROM {table_name} WHERE id=?", (row_id,))
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Błąd usuwania: {e}")
-
-def add_tool_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""INSERT INTO pricelist_tools 
-        (category, tool_type, blades, diam_min, diam_max, price_1, price_2_4, price_5_10, price_11_20) 
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""", vals)
-    conn.commit()
-    conn.close()
-
-def update_tool_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""UPDATE pricelist_tools SET 
-        category=?, tool_type=?, blades=?, diam_min=?, diam_max=?, 
-        price_1=?, price_2_4=?, price_5_10=?, price_11_20=? WHERE id=?""", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_coating_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO pricelist_coatings (coating_name, diam_max, length, price) VALUES (?, ?, ?, ?)", vals)
-    conn.commit()
-    conn.close()
-
-def update_coating_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE pricelist_coatings SET coating_name=?, diam_max=?, length=?, price=? WHERE id=?", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
-def add_service_row(vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("INSERT INTO pricelist_services (service_name, param_min, param_max, price) VALUES (?, ?, ?, ?)", vals)
-    conn.commit()
-    conn.close()
-
-def update_service_row(row_id, vals):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("UPDATE pricelist_services SET service_name=?, param_min=?, param_max=?, price=? WHERE id=?", (*vals, row_id))
-    conn.commit()
-    conn.close()
-
 # --- ZARZĄDZANIE USTAWIENIAMI (JSON) ---
 
 def get_user_settings():
