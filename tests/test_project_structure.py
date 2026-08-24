@@ -14,11 +14,11 @@ class TestProjectStructure(unittest.TestCase):
     def test_core_modules_import(self):
         import database
         import logic.cart_logic
-        import logic.db_editor_logic
+        import utils.price_list_excel
 
         self.assertTrue(hasattr(database, "get_connection"))
         self.assertTrue(hasattr(logic.cart_logic, "calculate_tool_price"))
-        self.assertTrue(hasattr(logic.db_editor_logic, "save_record"))
+        self.assertTrue(hasattr(utils.price_list_excel, "import_pricelist"))
 
     def test_ui_module_imports(self):
         from ui.main_window import OstrzomatApp

@@ -17,6 +17,20 @@ def get_connection():
         raise FileNotFoundError(f"Brak bazy w {DB_PATH}")
     return sqlite3.connect(f"file:{DB_PATH}?mode=rw", uri=True)
 
+def ensure_tool_ranges_table(connection):
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS pricelist_tool_ranges (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            tool_type TEXT NOT NULL,
+            blades TEXT NOT NULL,
+            diam_min REAL NOT NULL,
+            diam_max REAL NOT NULL,
+            qty_min INTEGER NOT NULL,
+            qty_max INTEGER NOT NULL,
+            price REAL NOT NULL
+        )
+    """)
+
 # --- FUNKCJE DLA FILTRÓW (COMBOBOXY) ---
 
 def get_unique_tool_types(category="Wszystkie"):
@@ -82,6 +96,19 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         
         conn = get_connection()
         cursor = conn.cursor()
+        ensure_tool_ranges_table(conn)
+        conn.commit()
+
+        cursor.execute("""
+            SELECT price FROM pricelist_tool_ranges
+            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
+              AND qty_min <= ? AND qty_max >= ?
+            ORDER BY diam_min ASC, qty_min DESC LIMIT 1
+        """, (clean_type, str(blades_key), d_val, d_val, q_val, q_val))
+        dynamic_res = cursor.fetchone()
+        if dynamic_res and dynamic_res[0] is not None:
+            conn.close()
+            return float(dynamic_res[0])
         
         # Dobór kolumny cenowej w zależności od progu ilościowego
         if q_val >= 11: 

@@ -1,15 +1,16 @@
 import customtkinter as ctk
+import os
 from tkinter import filedialog
 import database as database
 import utils.clients_db as clients_db
 import utils.cache_manager as cache_manager
 import utils.document_exporter as exporter
+from utils.price_list_excel import DEFAULT_EXCEL_PATH, import_pricelist
 
 from ui.client_popup import ClientSelectionModal
 from ui.cart_table import CartTable
 from ui.cart_footer import CartFooter
 from ui.calc_window import ToolCalcWindow
-from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
 from ui.notes_window import NotesWindow
 from ui.style import AppStyle
@@ -26,7 +27,15 @@ class OstrzomatApp(ctk.CTk):
 
         # 1. Inicjalizacja bazy klientów oraz centralnej pamięci RAM (cache_manager)
         clients_db.init_clients_db()
+        self._price_list_startup_error = None
+        if DEFAULT_EXCEL_PATH.exists():
+            try:
+                import_pricelist(DEFAULT_EXCEL_PATH)
+            except Exception as error:
+                self._price_list_startup_error = str(error)
         cache_manager.preload_all_cache()
+        self._price_list_mtime = None
+        self._watch_price_list()
 
         self.minsize(1450, 800)
         self.after(0, lambda: self.state('zoomed'))
@@ -125,8 +134,29 @@ class OstrzomatApp(ctk.CTk):
         )
         self.edit_price_btn.pack(side="bottom", fill="x", padx=20, pady=20)
 
+        self.reload_price_btn = ctk.CTkButton(
+            self.sidebar_frame,
+            text="↻ SPRAWDŹ I PRZEŁADUJ CENNIK",
+            font=AppStyle.FONT_BOLD,
+            fg_color=AppStyle.COLOR_SUCCESS,
+            hover_color=AppStyle.COLOR_SUCCESS,
+            text_color=AppStyle.COLOR_TEXT_LIGHT,
+            command=self.reload_price_list
+        )
+        self.reload_price_btn.pack(side="bottom", fill="x", padx=20, pady=(0, 10))
+
         # Wczytanie początkowego stanu z pliku cart_cache.json
         self.load_initial_data()
+        if self._price_list_startup_error:
+            self.after(200, self._show_price_list_startup_error)
+
+    def _show_price_list_startup_error(self):
+        OstrzomatPopup(
+            self, title="Błąd cennika", type="error",
+            message="Nie wczytano zmian z pliku Excel.\n"
+                    "Popraw wskazaną komórkę i użyj przeładowania:\n"
+                    + self._price_list_startup_error
+        )
 
     def on_closing(self):
         """Zapisuje bieżący stan do cart_cache.json i zamyka aplikację."""
@@ -291,10 +321,48 @@ class OstrzomatApp(ctk.CTk):
         )
 
     def open_price_editor(self):
-        if not hasattr(self, "editor_window") or not self.editor_window.winfo_exists():
-            self.editor_window = PriceEditor(self)
-        else:
-            self.editor_window.focus()
+        if not DEFAULT_EXCEL_PATH.exists():
+            OstrzomatPopup(
+                self, title="Brak cennika", type="error",
+                message=f"Nie znaleziono pliku {DEFAULT_EXCEL_PATH}."
+            )
+            return
+        try:
+            os.startfile(DEFAULT_EXCEL_PATH)
+        except OSError as error:
+            OstrzomatPopup(
+                self, title="Nie można otworzyć cennika", type="error", message=str(error)
+            )
+
+    def reload_price_list(self):
+        """Waliduje Excel i podmienia cache cen tylko po poprawnym imporcie."""
+        try:
+            counts = import_pricelist(DEFAULT_EXCEL_PATH)
+            self._price_list_mtime = DEFAULT_EXCEL_PATH.stat().st_mtime_ns
+            OstrzomatPopup(
+                self, title="Cennik przeładowany", type="success",
+                message="Cennik jest poprawny i został wczytany do bazy.\n"
+                        + ", ".join(f"{name}: {count}" for name, count in counts.items())
+            )
+        except Exception as error:
+            OstrzomatPopup(
+                self, title="Błąd cennika", type="error",
+                message=f"Nie wczytano zmian. Popraw plik Excel:\n{error}"
+            )
+
+    def _watch_price_list(self):
+        """Przeładowuje ceny po zapisaniu poprawnego pliku Excel."""
+        try:
+            mtime = DEFAULT_EXCEL_PATH.stat().st_mtime_ns
+            if self._price_list_mtime is not None and mtime != self._price_list_mtime:
+                try:
+                    import_pricelist(DEFAULT_EXCEL_PATH)
+                except Exception as error:
+                    print(f"Błąd walidacji cennika Excel: {error}")
+            self._price_list_mtime = mtime
+        except FileNotFoundError:
+            self._price_list_mtime = None
+        self.after(1500, self._watch_price_list)
 
     def open_calc(self, category):
         ToolCalcWindow(self, category)
