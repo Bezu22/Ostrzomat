@@ -92,10 +92,10 @@ class CartFooter(ctk.CTkFrame):
             breakdown_frame, text="PODSUMOWANIE", anchor="w",
             font=AppStyle.get_footer_label_font(), text_color=AppStyle.COLOR_TEXT_MUTED
         )
-        heading.pack(fill="x", padx=10, pady=(4, 1))
+        heading.pack(fill="x", padx=8, pady=(2, 0))
 
         metrics_frame = ctk.CTkFrame(breakdown_frame, fg_color="transparent")
-        metrics_frame.pack(fill="x", padx=10)
+        metrics_frame.pack(fill="x", padx=8)
         self.breakdown_labels = {}
         for key, label_text, value_text in (
             ("qty", "SZTUK", "0"),
@@ -104,7 +104,7 @@ class CartFooter(ctk.CTkFrame):
             ("extra", "USŁUGI", "0.00 zł"),
         ):
             metric = ctk.CTkFrame(metrics_frame, fg_color="transparent")
-            metric.pack(side="left", padx=(0, 14))
+            metric.pack(side="left", padx=(0, 12))
             ctk.CTkLabel(
                 metric, text=label_text, anchor="w", font=AppStyle.get_footer_label_font(),
                 text_color=AppStyle.COLOR_TEXT_MUTED
@@ -117,7 +117,7 @@ class CartFooter(ctk.CTkFrame):
             self.breakdown_labels[key] = value_label
 
         services_frame = ctk.CTkFrame(breakdown_frame, fg_color="transparent")
-        services_frame.pack(fill="x", padx=10, pady=(1, 4))
+        services_frame.pack(fill="x", padx=8, pady=(0, 2))
         self.service_labels = {}
         for key, label_text in (
             ("ciecie", "Cięcie"),
@@ -126,9 +126,9 @@ class CartFooter(ctk.CTkFrame):
         ):
             label = ctk.CTkLabel(
                 services_frame, text=f"{label_text}: 0.00 zł", anchor="w",
-                font=AppStyle.get_small_font(), text_color=AppStyle.COLOR_TEXT_MUTED
+                font=AppStyle.get_footer_service_font(), text_color=AppStyle.COLOR_TEXT_MUTED
             )
-            label.pack(side="left", padx=(0, 12))
+            label.pack(side="left", padx=(0, 10))
             self.service_labels[key] = label
 
         total_frame = ctk.CTkFrame(right_container, fg_color="transparent")
