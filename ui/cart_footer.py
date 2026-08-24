@@ -27,14 +27,14 @@ class CartFooter(ctk.CTkFrame):
         col1.pack(side="left", padx=(0, 10), fill="y")
 
         self.btn_edit = ctk.CTkButton(
-            col1, text="✏️ EDYTUJ", width=100, height=30,
+            col1, text="✏️ EDYTUJ", width=100, height=40,
             font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
             hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_edit
         )
-        self.btn_edit.pack(side="top", pady=(0, 4))
+        self.btn_edit.pack(side="top", pady=(15, 3))
 
         self.btn_delete = ctk.CTkButton(
-            col1, text="🗑️ USUŃ", width=100, height=30,
+            col1, text="🗑️ USUŃ", width=100, height=40,
             font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_DANGER,
             hover_color=AppStyle.COLOR_DANGER_HOVER, command=self.on_delete
         )
@@ -45,16 +45,16 @@ class CartFooter(ctk.CTkFrame):
         col2.pack(side="left", padx=(0, 10), fill="y")
 
         btn_save = ctk.CTkButton(
-            col2, text="💾 ZAPISZ", width=100, height=30,
+            col2, text="💾 ZAPISZ", width=100, height=40,
             font=AppStyle.get_bold_font(),
             fg_color=AppStyle.COLOR_SAVE,
             hover_color=AppStyle.COLOR_SAVE_HOVER,
             command=self.on_save
         )
-        btn_save.pack(side="top", pady=(0, 4))
+        btn_save.pack(side="top", pady=(15, 4))
 
         btn_load = ctk.CTkButton(
-            col2, text="📂 WCZYTAJ", width=100, height=30,
+            col2, text="📂 WCZYTAJ", width=100, height=40,
             font=AppStyle.get_bold_font(),
             fg_color=AppStyle.COLOR_LOAD,
             hover_color=AppStyle.COLOR_LOAD_HOVER,
@@ -73,7 +73,7 @@ class CartFooter(ctk.CTkFrame):
             hover_color=AppStyle.COLOR_CLEAR_HOVER,
             command=self.on_clear
         )
-        btn_clear.pack(side="top")
+        btn_clear.pack(side="top", pady=(15, 0))
 
         # ----------------------------------------------------------------------
         # PRAWA STRONA: szczegółowe podsumowanie oraz kwota końcowa
@@ -157,15 +157,15 @@ class CartFooter(ctk.CTkFrame):
 
         if self.on_export_pdf:
             btn_pdf = ctk.CTkButton(
-                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=28,
+                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=45,
                 font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
                 hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_pdf
             )
-            btn_pdf.pack(side="top", pady=(0, 3))
+            btn_pdf.pack(side="top", pady=(15, 3))
 
         if self.on_export_docx:
             btn_docx = ctk.CTkButton(
-                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=28,
+                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=45,
                 font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
                 hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_docx
             )
