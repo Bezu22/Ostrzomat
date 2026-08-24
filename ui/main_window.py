@@ -1,5 +1,6 @@
 import customtkinter as ctk
 import os
+import re
 from tkinter import filedialog
 import database as database
 import utils.clients_db as clients_db
@@ -339,16 +340,58 @@ class OstrzomatApp(ctk.CTk):
         try:
             counts = import_pricelist(DEFAULT_EXCEL_PATH)
             self._price_list_mtime = DEFAULT_EXCEL_PATH.stat().st_mtime_ns
-            OstrzomatPopup(
-                self, title="Cennik przeładowany", type="success",
-                message="Cennik jest poprawny i został wczytany do bazy.\n"
-                        + ", ".join(f"{name}: {count}" for name, count in counts.items())
-            )
+            self._after_price_list_reload(counts)
         except Exception as error:
             OstrzomatPopup(
                 self, title="Błąd cennika", type="error",
                 message=f"Nie wczytano zmian. Popraw plik Excel:\n{error}"
             )
+
+    def _after_price_list_reload(self, counts):
+        summary = "Cennik jest poprawny i został wczytany do bazy.\n" + ", ".join(
+            f"{name}: {count}" for name, count in counts.items()
+        )
+        if not self.cart_items:
+            OstrzomatPopup(self, title="Cennik przeładowany", type="success", message=summary)
+            return
+
+        OstrzomatPopup(
+            self,
+            title="Cennik przeładowany",
+            type="confirm",
+            message=summary + "\n\nCzy przeliczyć istniejące pozycje koszyka według nowych cen?",
+            on_confirm=self.recalculate_cart_prices,
+        )
+
+    def recalculate_cart_prices(self):
+        for item in self.cart_items:
+            try:
+                quantity = int(str(item.get("qty", 0)).strip())
+                diameter_values = re.findall(r"\d+(?:[.,]\d+)?", str(item.get("diam", "")))
+                diameter = max(float(value.replace(",", ".")) for value in diameter_values)
+                services_qty = item.get("services_qty", {})
+                heavy_wear_qty = services_qty.get("zuzycie", 0) if isinstance(services_qty, dict) else 0
+                if item.get("tool_category") != "Specjalne":
+                    tool_unit, tool_total = cart_logic.calculate_tool_price(
+                        item.get("type", ""), item.get("z", ""), diameter, quantity,
+                        heavy_wear_qty=heavy_wear_qty,
+                    )
+                    item["tool_unit"], item["total_tool"] = tool_unit, tool_total
+                coat_unit, coat_total = cart_logic.calculate_coating_price(
+                    item.get("coat_name", "Brak"), diameter, item.get("coat_len", 0), quantity
+                )
+                extra_unit, extra_total, _ = cart_logic.calculate_extra_services(
+                    item.get("services_status", {}), services_qty, diameter, quantity,
+                    opuszczenie_multiplier=item.get("opuszczenie_mult", 1),
+                )
+                item.update({
+                    "coat_unit": coat_unit, "total_coat": coat_total,
+                    "extra_unit": extra_unit, "total_extra": extra_total,
+                })
+            except (TypeError, ValueError):
+                continue
+        self.refresh_cart_ui()
+        self.save_cart_state()
 
     def _watch_price_list(self):
         """Przeładowuje ceny po zapisaniu poprawnego pliku Excel."""
@@ -356,7 +399,8 @@ class OstrzomatApp(ctk.CTk):
             mtime = DEFAULT_EXCEL_PATH.stat().st_mtime_ns
             if self._price_list_mtime is not None and mtime != self._price_list_mtime:
                 try:
-                    import_pricelist(DEFAULT_EXCEL_PATH)
+                    counts = import_pricelist(DEFAULT_EXCEL_PATH)
+                    self._after_price_list_reload(counts)
                 except Exception as error:
                     print(f"Błąd walidacji cennika Excel: {error}")
             self._price_list_mtime = mtime

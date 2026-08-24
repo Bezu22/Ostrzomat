@@ -22,13 +22,49 @@ def ensure_tool_ranges_table(connection):
         CREATE TABLE IF NOT EXISTS pricelist_tool_ranges (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             tool_type TEXT NOT NULL,
-            blades TEXT NOT NULL,
+            blades_min INTEGER NOT NULL,
+            blades_max INTEGER NOT NULL,
             diam_min REAL NOT NULL,
             diam_max REAL NOT NULL,
             qty_min INTEGER NOT NULL,
             qty_max INTEGER NOT NULL,
             price REAL NOT NULL
         )
+    """)
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(pricelist_tool_ranges)")}
+    if "blades_min" not in columns:
+        connection.execute("ALTER TABLE pricelist_tool_ranges ADD COLUMN blades_min INTEGER")
+        connection.execute("ALTER TABLE pricelist_tool_ranges ADD COLUMN blades_max INTEGER")
+    if "blades" in columns:
+        connection.execute("""
+            UPDATE pricelist_tool_ranges SET blades_min=CASE
+                WHEN blades IN ('2-4', '1-4') OR blades_min IN ('2-4', '1-4') THEN 1
+                WHEN blades IN ('pozostałe', '5-99') OR blades_min IN ('pozostałe', '5-99', '0-99') THEN 5
+                ELSE CAST(blades_min AS INTEGER) END,
+                blades_max=CASE
+                WHEN blades IN ('2-4', '1-4') OR blades_min IN ('2-4', '1-4') THEN 4
+                WHEN blades IN ('pozostałe', '5-99') OR blades_min IN ('pozostałe', '5-99', '0-99') THEN 99
+                ELSE CAST(blades_max AS INTEGER) END
+                WHERE blades_min IS NULL OR blades_max IS NULL
+                    OR typeof(blades_min) != 'integer' OR typeof(blades_max) != 'integer'
+        """)
+
+def ensure_tool_blade_columns(connection):
+    columns = {row[1] for row in connection.execute("PRAGMA table_info(pricelist_tools)")}
+    if "blades_min" not in columns:
+        connection.execute("ALTER TABLE pricelist_tools ADD COLUMN blades_min INTEGER")
+    if "blades_max" not in columns:
+        connection.execute("ALTER TABLE pricelist_tools ADD COLUMN blades_max INTEGER")
+    connection.execute("""
+        UPDATE pricelist_tools SET blades_min=CASE
+            WHEN blades IN ('2-4', '1-4') THEN 1
+            WHEN blades IN ('pozostałe', '5-99', '0-99') OR (blades_min=0 AND blades_max IN (0, 99)) THEN 5
+            ELSE CAST(blades AS INTEGER) END,
+            blades_max=CASE
+            WHEN blades IN ('2-4', '1-4') THEN 4
+            WHEN blades IN ('pozostałe', '5-99', '0-99') OR (blades_min=0 AND blades_max IN (0, 99)) THEN 99
+            ELSE CAST(blades AS INTEGER) END
+        WHERE blades_min IS NULL OR blades_max IS NULL OR (blades_min=0 AND blades_max IN (0, 99))
     """)
 
 # --- FUNKCJE DLA FILTRÓW (COMBOBOXY) ---
@@ -96,15 +132,18 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         
         conn = get_connection()
         cursor = conn.cursor()
+        ensure_tool_blade_columns(conn)
         ensure_tool_ranges_table(conn)
         conn.commit()
 
         cursor.execute("""
             SELECT price FROM pricelist_tool_ranges
-            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
+                        WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
               AND qty_min <= ? AND qty_max >= ?
+                            AND NOT ((qty_min=1 AND qty_max=1) OR (qty_min=2 AND qty_max=4)
+                                    OR (qty_min=5 AND qty_max=10) OR (qty_min=11 AND qty_max=999999))
             ORDER BY diam_min ASC, qty_min DESC LIMIT 1
-        """, (clean_type, str(blades_key), d_val, d_val, q_val, q_val))
+                """, (clean_type, int(blades_key), int(blades_key), d_val, d_val, q_val, q_val))
         dynamic_res = cursor.fetchone()
         if dynamic_res and dynamic_res[0] is not None:
             conn.close()
@@ -123,9 +162,9 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
         query_exact = f"""
             SELECT {price_col} FROM pricelist_tools 
-            WHERE tool_type=? AND blades=? AND diam_min <= ? AND diam_max >= ?
+            WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
         """
-        cursor.execute(query_exact, (clean_type, str(blades_key), d_val, d_val))
+        cursor.execute(query_exact, (clean_type, int(blades_key), int(blades_key), d_val, d_val))
         res = cursor.fetchone()
         
         # Próba 2 (Fallback dla frezów): Jeśli brak dokładnego wpisu dla danej liczby ostrzy w bazie,
