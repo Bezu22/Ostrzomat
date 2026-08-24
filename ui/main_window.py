@@ -111,7 +111,7 @@ class OstrzomatApp(ctk.CTk):
             text_color=AppStyle.COLOR_TEXT_LIGHT,
             command=lambda: self.open_calc("Specjalne")
         )
-        self.btn_special.pack(pady=10, padx=20, fill="x")
+        self.btn_special.pack(pady=8, padx=20, fill="x")
 
         self.edit_price_btn = ctk.CTkButton(
             self.sidebar_frame,

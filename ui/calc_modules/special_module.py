@@ -46,12 +46,6 @@ class SpecialModule(ctk.CTkFrame):
         self.diam_entry.pack(pady=py_small, padx=px, anchor="w")
         self.diam_entry.bind("<KeyRelease>", self.on_diam_change)
 
-        self.add_label(self.left_col, "Promień (R):", AppStyle.get_bold_font())
-        self.radius_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
-        self.radius_entry.insert(0, settings.get("last_special_radius", "0.5"))
-        self.radius_entry.pack(pady=py_small, padx=px, anchor="w")
-        self.radius_entry.bind("<KeyRelease>", lambda e: self.update_callback())
-
         self.add_label(self.left_col, "Średnica chwytu:", AppStyle.get_bold_font())
         s_frame = ctk.CTkFrame(self.left_col, fg_color="transparent")
         s_frame.pack(fill="x", pady=py_small, padx=px)
@@ -72,16 +66,21 @@ class SpecialModule(ctk.CTkFrame):
         self.shank_cb.pack(side="left", padx=AppStyle.PAD_MEDIUM)
 
         self.add_label(self.left_col, "Powłoka:", AppStyle.get_bold_font())
-        self.coat_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
-        self.coat_entry.insert(0, settings.get("last_special_coating", "Brak"))
-        self.coat_entry.pack(pady=py_small, padx=px, anchor="w")
-        self.coat_entry.bind("<KeyRelease>", lambda e: self.update_callback())
+        self.coat_combo = ctk.CTkComboBox(
+            self.left_col,
+            width=300,
+            values=["Brak"] + database.get_unique_coating_names(),
+            command=self.on_coating_change,
+            **AppStyle.get_combo_style(),
+        )
+        self.coat_combo.set("Brak")
+        self.coat_combo.configure(state="readonly")
+        self.coat_combo.pack(pady=py_small, padx=px, anchor="w")
 
         self.add_label(self.left_col, "Długość powłoki (L):", AppStyle.get_bold_font())
-        self.len_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
-        self.len_entry.insert(0, settings.get("last_special_length", "100"))
-        self.len_entry.pack(pady=py_small, padx=px, anchor="w")
-        self.len_entry.bind("<KeyRelease>", lambda e: self.update_callback())
+        self.len_combo = ctk.CTkComboBox(self.left_col, width=300, values=[], command=self.update_callback, **AppStyle.get_combo_style())
+        self.len_combo.configure(state="readonly")
+        self.len_combo.pack(pady=py_small, padx=px, anchor="w")
 
         self.add_label(self.left_col, "Ilość sztuk:", AppStyle.get_bold_font())
         self.qty_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
@@ -170,23 +169,52 @@ class SpecialModule(ctk.CTkFrame):
             lbl_p.pack(side="right", padx=AppStyle.PAD_SMALL)
             self.service_price_labels[key] = lbl_p
 
+        self.on_coating_change()
         self.toggle_shank()
         self._on_service_toggle()
 
     def add_label(self, parent_frame, text, font):
         ctk.CTkLabel(parent_frame, text=text, font=font, text_color=AppStyle.COLOR_TEXT_DARK).pack(pady=(AppStyle.PAD_SMALL, 0), padx=AppStyle.PAD_LARGE, anchor="w")
 
-    def _on_main_qty_change(self, _=None):
+    def _sync_shank_from_diam(self):
+        if self.shank_override.get():
+            return
+
+        raw_val = self.diam_entry.get()
+        try:
+            d = float(raw_val.replace(',', '.'))
+            if d <= 0:
+                self.shank_entry.delete(0, "end")
+                self.shank_entry.insert(0, "")
+                return
+
+            value = math.ceil(d)
+            if value % 2 != 0:
+                value += 1
+
+            self.shank_entry.configure(state="normal")
+            self.shank_entry.delete(0, "end")
+            self.shank_entry.insert(0, str(int(value)))
+            self.shank_entry.configure(state="disabled")
+        except ValueError:
+            pass
+
+    def _sync_service_qty_from_main(self):
         raw_main_qty = self.qty_entry.get().strip()
-        if raw_main_qty.isdigit():
-            new_main_qty = int(raw_main_qty)
-            for key, var in self.service_vars.items():
-                if var.get():
-                    ent = self.service_qty_entries[key]
-                    raw_service_qty = ent.get().strip()
-                    if raw_service_qty.isdigit() and int(raw_service_qty) > new_main_qty:
-                        ent.delete(0, "end")
-                        ent.insert(0, str(new_main_qty))
+        if not raw_main_qty.isdigit():
+            return
+
+        new_main_qty = int(raw_main_qty)
+        for key, var in self.service_vars.items():
+            if var.get():
+                ent = self.service_qty_entries[key]
+                raw_service_qty = ent.get().strip()
+                if raw_service_qty.isdigit() and int(raw_service_qty) > new_main_qty:
+                    ent.delete(0, "end")
+                    ent.insert(0, str(new_main_qty))
+
+    def _on_main_qty_change(self, _=None):
+        self._sync_service_qty_from_main()
         self.update_callback()
 
     def _on_service_toggle(self):
@@ -219,29 +247,25 @@ class SpecialModule(ctk.CTkFrame):
             self.lbl_mult_val.configure(text=f"{new_val * 10} mm (x{new_val})")
             self.update_callback()
 
+    def on_coating_change(self, _=None):
+        selected = self.coat_combo.get()
+        lengths = database.get_unique_coating_lengths(selected)
+        if not lengths:
+            lengths = ["100"]
+        self.len_combo.configure(values=lengths)
+        self.len_combo.set(lengths[0])
+        self.update_callback()
+
     def toggle_shank(self):
         if self.shank_override.get():
             self.shank_entry.configure(state="normal", fg_color=AppStyle.COLOR_BG_LIGHT, border_color=AppStyle.COLOR_SECONDARY, border_width=2)
         else:
             self.shank_entry.configure(state="disabled", fg_color=AppStyle.COLOR_MAIN_BG, border_color=AppStyle.COLOR_MUTED, border_width=1)
+            self._sync_shank_from_diam()
         self.update_callback()
 
     def on_diam_change(self, _=None):
-        if not self.shank_override.get():
-            raw_val = self.diam_entry.get()
-            try:
-                d = float(raw_val.replace(',', '.'))
-                if d <= 0:
-                    self.shank_entry.delete(0, "end")
-                    self.shank_entry.insert(0, "")
-                else:
-                    value = math.ceil(d)
-                    if value % 2 != 0:
-                        value += 1
-                    self.shank_entry.delete(0, "end")
-                    self.shank_entry.insert(0, str(int(value)))
-            except ValueError:
-                pass
+        self._sync_shank_from_diam()
         self.update_callback()
 
     def validate_all(self, diam, z, qty, shank, unit_price):
@@ -281,13 +305,11 @@ class SpecialModule(ctk.CTkFrame):
             self.shank_entry.delete(0, "end")
             self.shank_entry.insert(0, str(item_data["shank_diam"]))
 
-        if "coat_name" in item_data:
-            self.coat_entry.delete(0, "end")
-            self.coat_entry.insert(0, str(item_data["coat_name"]))
-
-        if "coat_len" in item_data:
-            self.len_entry.delete(0, "end")
-            self.len_entry.insert(0, str(item_data["coat_len"]))
+        if "coat_name" in item_data and item_data["coat_name"] in self.coat_combo.cget("values"):
+            self.coat_combo.set(item_data["coat_name"])
+            self.on_coating_change()
+            if "coat_len" in item_data and str(item_data["coat_len"]) in self.len_combo.cget("values"):
+                self.len_combo.set(str(item_data["coat_len"]))
 
         if "tool_unit" in item_data:
             self.unit_price_entry.delete(0, "end")
@@ -317,8 +339,8 @@ class SpecialModule(ctk.CTkFrame):
             qty = self.qty_entry.get().strip() or "1"
             t_type = self.type_entry.get().strip() or "Specjalne"
             blades = self.blades_entry.get().strip() or "1"
-            coat = self.coat_entry.get().strip() or "Brak"
-            coat_len = self.len_entry.get().replace(',', '.').strip() or "0"
+            coat = self.coat_combo.get() or "Brak"
+            coat_len = self.len_combo.get().replace(',', '.').strip() if self.len_combo.get() else "0"
             unit_price = self.unit_price_entry.get().replace(',', '.').strip() or "0"
 
             if run_validation:
@@ -371,7 +393,6 @@ class SpecialModule(ctk.CTkFrame):
                 "last_special_type": t_type,
                 "last_special_blades": blades,
                 "last_special_diam": diam,
-                "last_special_radius": self.radius_entry.get().strip(),
                 "last_special_shank": shank,
                 "last_special_coating": coat,
                 "last_special_length": coat_len,
@@ -380,13 +401,6 @@ class SpecialModule(ctk.CTkFrame):
             })
 
             display_type = t_type
-            radius_val = self.radius_entry.get().replace(',', '.').strip()
-            if radius_val:
-                try:
-                    float(radius_val)
-                    display_type = f"{t_type} R{radius_val}"
-                except ValueError:
-                    pass
 
             return {
                 "type": display_type,
