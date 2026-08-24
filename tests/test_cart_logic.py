@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import patch
 
 from logic import cart_logic
+from ui.main_window import OstrzomatApp
 
 
 class BooleanValue:
@@ -54,6 +55,36 @@ class TestCartLogic(unittest.TestCase):
 
         self.assertEqual((unit, total), (10.0, 30.0))
         self.assertEqual(labels, ["Cięcie", "Zaniżenie średnicy"])
+
+    def test_extra_services_accept_saved_boolean_statuses(self):
+        services = {"ciecie": True, "opuszczenie": False, "polerowanie": True}
+        with patch("logic.cart_logic.database.get_service_price_refined", return_value=10.0):
+            result = cart_logic.calculate_extra_services(services, {}, "8", 2)
+
+        self.assertEqual(result, (20.0, 40.0, ["Cięcie", "Polerowanie rowka"]))
+
+    def test_recalculate_saved_cart_item_updates_all_price_components(self):
+        app = OstrzomatApp.__new__(OstrzomatApp)
+        app.cart_items = [{
+            "tool_category": "Frezy", "type": "Frez prosty", "z": "4",
+            "diam": "10", "qty": "2", "coat_name": "TiN", "coat_len": "100",
+            "services_status": {"ciecie": True, "opuszczenie": False, "polerowanie": False},
+            "services_qty": {"ciecie": 2}, "opuszczenie_mult": 1,
+            "tool_unit": 1.0, "total_tool": 2.0,
+            "coat_unit": 1.0, "total_coat": 2.0,
+            "extra_unit": 1.0, "total_extra": 2.0,
+        }]
+        app.refresh_cart_ui = lambda: None
+        app.save_cart_state = lambda: None
+
+        with patch("ui.main_window.cart_logic.calculate_tool_price", return_value=(20.0, 40.0)), \
+             patch("ui.main_window.cart_logic.calculate_coating_price", return_value=(5.0, 10.0)), \
+             patch("ui.main_window.cart_logic.calculate_extra_services", return_value=(3.0, 6.0, ["Cięcie"])):
+            OstrzomatApp.recalculate_cart_prices(app)
+
+        self.assertEqual(app.cart_items[0]["total_tool"], 40.0)
+        self.assertEqual(app.cart_items[0]["total_coat"], 10.0)
+        self.assertEqual(app.cart_items[0]["total_extra"], 6.0)
 
     def test_extra_services_bad_quantity_does_not_crash_preview(self):
         services = {"ciecie": BooleanValue(True)}

@@ -73,7 +73,8 @@ def calculate_extra_services(services_vars, services_qty, diam=None, total_qty=N
         if key == "zuzycie":
             continue
 
-        if var.get():
+        enabled = var.get() if hasattr(var, "get") else bool(var)
+        if enabled:
             db_name = name_map.get(key)
             if db_name:
                 unit_service_price = database.get_service_price_refined(db_name, d_val)
