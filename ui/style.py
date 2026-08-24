@@ -17,6 +17,10 @@ class AppStyle:
     FONT_BOLD = (FONT_FAMILY, BASE_FONT_SIZE, "bold")
     FONT_ITALIC = (FONT_FAMILY, BASE_FONT_SIZE, "italic")
     FONT_SMALL = (FONT_FAMILY, 10)
+    FONT_FOOTER_LABEL = (FONT_FAMILY, 9, "bold")
+    FONT_FOOTER_VALUE = (FONT_FAMILY, 12, "bold")
+    FONT_SUMMARY = (FONT_FAMILY, 11, "bold")
+    FONT_SUMMARY_TOTAL = (FONT_FAMILY, 22, "bold")
     FONT_TOTAL = (FONT_FAMILY, 22, "bold")
 
     # --- METODY CZCIONEK ---
@@ -43,6 +47,22 @@ class AppStyle:
     @classmethod
     def get_small_font(cls):
         return cls.FONT_SMALL
+
+    @classmethod
+    def get_footer_label_font(cls):
+        return cls.FONT_FOOTER_LABEL
+
+    @classmethod
+    def get_footer_value_font(cls):
+        return cls.FONT_FOOTER_VALUE
+
+    @classmethod
+    def get_summary_font(cls):
+        return cls.FONT_SUMMARY
+
+    @classmethod
+    def get_summary_total_font(cls):
+        return cls.FONT_SUMMARY_TOTAL
 
     @classmethod
     def get_total_font(cls):

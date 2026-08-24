@@ -13,6 +13,7 @@ from ui.price_editor import PriceEditor
 from ui.components import OstrzomatPopup
 from ui.notes_window import NotesWindow
 from ui.style import AppStyle
+from logic import cart_logic
 
 
 class OstrzomatApp(ctk.CTk):
@@ -186,12 +187,28 @@ class OstrzomatApp(ctk.CTk):
     def refresh_cart_ui(self):
         self.cart_table.refresh(self.cart_items)
         total = 0.0
+        breakdown = {"qty": 0, "tool": 0.0, "coat": 0.0, "extra": 0.0,
+                     "ciecie": 0.0, "opuszczenie": 0.0, "polerowanie": 0.0}
         for item in self.cart_items:
             def clean_val(k):
                 return float(str(item.get(k, "0")).replace(' zł', '').replace(',', '.').strip())
-            total += clean_val("total_tool") + clean_val("total_coat") + clean_val("total_extra")
+            tool_value = clean_val("total_tool")
+            coat_value = clean_val("total_coat")
+            extra_value = clean_val("total_extra")
+            total += tool_value + coat_value + extra_value
+            breakdown["qty"] += int(item.get("qty", 0))
+            breakdown["tool"] += tool_value
+            breakdown["coat"] += coat_value
+            breakdown["extra"] += extra_value
 
-        self.cart_footer.update_total(total)
+            service_values = cart_logic.calculate_service_breakdown(
+                item.get("services_status", {}), item.get("services_qty", {}),
+                item.get("diam", 0), item.get("qty", 0), item.get("opuszczenie_mult", 1)
+            )
+            for key in ("ciecie", "opuszczenie", "polerowanie"):
+                breakdown[key] += service_values[key]
+
+        self.cart_footer.update_total(total, breakdown)
 
     def add_item_to_cart(self, item):
         self.cart_items.append(item)

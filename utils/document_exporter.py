@@ -133,8 +133,8 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
 
     # --- NAGŁÓWKI TABELI ---
     headers = [
-        "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Ostrza", 
-        "Ilość", "Cena ostrz.", "Wartość os.", "Powłoka", "Cena powł.", "Wartość powł.", "Usługi", "Wartość usł.", "Uwagi"
+        "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Z",
+        "Ilość", "Cena ostrz.", "Wartość os.", "Powłoka", "Cena powł.", "Wartość powł.", "Usługi", "Wartość usł.", "Suma P", "Uwagi"
     ]
     
     table_data = [[Paragraph(h, style_cell_header) for h in headers]]
@@ -150,6 +150,7 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
         t_tool = float(item.get("total_tool", 0.0))
         t_coat = float(item.get("total_coat", 0.0))
         t_extra = float(item.get("total_extra", 0.0))
+        position_total = t_tool + t_coat + t_extra
 
         total_qty += qty
         total_tool_val += t_tool
@@ -179,11 +180,13 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
             Paragraph(f"{t_coat:.2f} zł", style_cell),
             Paragraph(uslugi_str, style_cell),
             Paragraph(f"{t_extra:.2f} zł", style_cell),
+            Paragraph(f"{position_total:.2f} zł", style_cell),
             Paragraph(str(item.get('notes', '')), style_cell)
         ]
         table_data.append(row)
 
-    col_widths = [25, 95, 35, 35, 40, 30, 30, 50, 55, 80, 50, 55, 70, 55, 145]
+    # Suma pozycji jest ważniejsza od szerokiego pola uwag, dlatego uwagi zajmują mniej miejsca.
+    col_widths = [25, 95, 35, 35, 40, 25, 30, 50, 55, 80, 50, 55, 70, 55, 55, 95]
     items_table = Table(table_data, colWidths=col_widths, repeatRows=1)
     
     # BEDZIE STOSOWANE BEZPOŚREDNIE MAPOWANIE TŁA BEZ KONFLIKTU STYLÓW
@@ -289,13 +292,17 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
     doc.add_paragraph()
 
     headers = [
-        "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Ostrza", 
-        "Ilość", "Cena ostrz.", "Wartość", "Powłoka", "Cena powł.", "Wartość", "Usługi", "Wartość dod.", "Uwagi"
+        "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Z",
+        "Ilość", "Cena ostrz.", "Wartość", "Powłoka", "Cena powł.", "Wartość", "Usługi", "Wartość dod.", "Suma P", "Uwagi"
     ]
 
     items = cart_data.get("items", [])
-    items_table = doc.add_table(rows=len(items) + 1, cols=15)
+    items_table = doc.add_table(rows=len(items) + 1, cols=16)
     items_table.style = 'Table Grid'
+    items_table.autofit = False
+    item_widths = [0.35, 1.25, 0.45, 0.45, 0.55, 0.35, 0.45, 0.65, 0.7, 1.0, 0.65, 0.75, 0.9, 0.75, 0.7, 1.0]
+    for column, width in zip(items_table.columns, item_widths):
+        column.width = Inches(width)
 
     hdr_cells = items_table.rows[0].cells
     for i, title in enumerate(headers):
@@ -321,6 +328,7 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
         t_tool = float(item.get("total_tool", 0.0))
         t_coat = float(item.get("total_coat", 0.0))
         t_extra = float(item.get("total_extra", 0.0))
+        position_total = t_tool + t_coat + t_extra
 
         total_qty += qty
         total_tool_val += t_tool
@@ -350,6 +358,7 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
             f"{t_coat:.2f} zł",
             uslugi_str,
             f"{t_extra:.2f} zł",
+            f"{position_total:.2f} zł",
             str(item.get('notes', ''))
         ]
 

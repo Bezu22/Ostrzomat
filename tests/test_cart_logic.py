@@ -70,6 +70,18 @@ class TestCartLogic(unittest.TestCase):
                 (0.0, 0.0, []),
             )
 
+    def test_service_breakdown_returns_each_component(self):
+        statuses = {"ciecie": True, "opuszczenie": True, "polerowanie": True}
+        quantities = {"ciecie": "2", "opuszczenie": "99", "polerowanie": "1"}
+
+        def service_price(name, _diam):
+            return {"Cięcie": 4.0, "Zaniżenie średnicy": 5.0, "Polerowanie rowka": 6.0}[name]
+
+        with patch("logic.cart_logic.database.get_service_price_refined", side_effect=service_price):
+            breakdown = cart_logic.calculate_service_breakdown(statuses, quantities, "8", 3, 2)
+
+        self.assertEqual(breakdown, {"ciecie": 8.0, "opuszczenie": 30.0, "polerowanie": 6.0})
+
     def test_coating_price_handles_decimal_inputs_and_invalid_values(self):
         with patch("logic.cart_logic.database.get_coating_price", return_value=25.555):
             self.assertEqual(

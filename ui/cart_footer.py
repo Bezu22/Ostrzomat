@@ -3,7 +3,7 @@ from ui.style import AppStyle
 
 class CartFooter(ctk.CTkFrame):
     def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete, on_export_pdf=None, on_export_docx=None):
-        super().__init__(parent, fg_color=AppStyle.COLOR_HEADER_BG, height=85, corner_radius=8)
+        super().__init__(parent, fg_color=AppStyle.COLOR_HEADER_BG, height=90, corner_radius=8)
         
         self.on_save = on_save
         self.on_load = on_load
@@ -20,7 +20,7 @@ class CartFooter(ctk.CTkFrame):
         # LEWA STRONA: PRZYCISKI W KOLUMNACH (Bez zmian)
         # ----------------------------------------------------------------------
         left_container = ctk.CTkFrame(self, fg_color="transparent")
-        left_container.pack(side="left", padx=15, pady=8, fill="y")
+        left_container.pack(side="left", padx=15, pady=4, fill="y")
 
         # Kolumna 1: Edytuj / Usuń
         col1 = ctk.CTkFrame(left_container, fg_color="transparent")
@@ -76,30 +76,78 @@ class CartFooter(ctk.CTkFrame):
         btn_clear.pack(side="top")
 
         # ----------------------------------------------------------------------
-        # PRAWA STRONA: ZIELONY NAPIS + KWOTA W JEDNEJ DOLNEJ LINII
+        # PRAWA STRONA: szczegółowe podsumowanie oraz kwota końcowa
         # ----------------------------------------------------------------------
         right_container = ctk.CTkFrame(self, fg_color="transparent")
-        right_container.pack(side="right", padx=15, pady=8, fill="y")
+        right_container.pack(side="right", padx=15, pady=2, fill="y")
 
-        # Kontener na podsumowanie finansowe
+        # Podsumowanie ma osobną hierarchię: główne wartości oraz szczegóły usług.
+        breakdown_frame = ctk.CTkFrame(
+            right_container, fg_color=AppStyle.COLOR_CARD_BG,
+            border_width=1, border_color=AppStyle.COLOR_MUTED, corner_radius=6
+        )
+        breakdown_frame.pack(side="left", padx=(0, 16), pady=1, fill="y")
+
+        heading = ctk.CTkLabel(
+            breakdown_frame, text="PODSUMOWANIE", anchor="w",
+            font=AppStyle.get_footer_label_font(), text_color=AppStyle.COLOR_TEXT_MUTED
+        )
+        heading.pack(fill="x", padx=10, pady=(4, 1))
+
+        metrics_frame = ctk.CTkFrame(breakdown_frame, fg_color="transparent")
+        metrics_frame.pack(fill="x", padx=10)
+        self.breakdown_labels = {}
+        for key, label_text, value_text in (
+            ("qty", "SZTUK", "0"),
+            ("tool", "OSTRZENIE", "0.00 zł"),
+            ("coat", "POWLEKANIE", "0.00 zł"),
+            ("extra", "USŁUGI", "0.00 zł"),
+        ):
+            metric = ctk.CTkFrame(metrics_frame, fg_color="transparent")
+            metric.pack(side="left", padx=(0, 14))
+            ctk.CTkLabel(
+                metric, text=label_text, anchor="w", font=AppStyle.get_footer_label_font(),
+                text_color=AppStyle.COLOR_TEXT_MUTED
+            ).pack(anchor="w")
+            value_label = ctk.CTkLabel(
+                metric, text=value_text, anchor="w", font=AppStyle.get_footer_value_font(),
+                text_color=AppStyle.COLOR_TEXT_DARK
+            )
+            value_label.pack(anchor="w")
+            self.breakdown_labels[key] = value_label
+
+        services_frame = ctk.CTkFrame(breakdown_frame, fg_color="transparent")
+        services_frame.pack(fill="x", padx=10, pady=(1, 4))
+        self.service_labels = {}
+        for key, label_text in (
+            ("ciecie", "Cięcie"),
+            ("opuszczenie", "Zaniżenie"),
+            ("polerowanie", "Polerowanie"),
+        ):
+            label = ctk.CTkLabel(
+                services_frame, text=f"{label_text}: 0.00 zł", anchor="w",
+                font=AppStyle.get_small_font(), text_color=AppStyle.COLOR_TEXT_MUTED
+            )
+            label.pack(side="left", padx=(0, 12))
+            self.service_labels[key] = label
+
         total_frame = ctk.CTkFrame(right_container, fg_color="transparent")
         total_frame.pack(side="left", padx=(0, 15), fill="y")
 
-        # Ramka dolna - wyrównana do dołu (side="bottom"), góra zostaje pusta
         bottom_row = ctk.CTkFrame(total_frame, fg_color="transparent")
-        bottom_row.pack(side="bottom")
+        bottom_row.pack(expand=True)
 
         # 1. Etykieta "RAZEM:"
         lbl_title = ctk.CTkLabel(
             bottom_row, text="RAZEM: ",
-            font=AppStyle.get_total_font(), text_color=AppStyle.COLOR_SUCCESS
+            font=AppStyle.get_summary_total_font(), text_color=AppStyle.COLOR_SUCCESS
         )
         lbl_title.pack(side="left")
 
         # 2. Kwota w tej samej linii
         self.lbl_total = ctk.CTkLabel(
             bottom_row, text="0.00 zł",
-            font=AppStyle.get_total_font(), text_color=AppStyle.COLOR_SUCCESS
+            font=AppStyle.get_summary_total_font(), text_color=AppStyle.COLOR_SUCCESS
         )
         self.lbl_total.pack(side="left")
 
@@ -109,20 +157,29 @@ class CartFooter(ctk.CTkFrame):
 
         if self.on_export_pdf:
             btn_pdf = ctk.CTkButton(
-                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=30,
+                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=28,
                 font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
                 hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_pdf
             )
-            btn_pdf.pack(side="top", pady=(0, 4))
+            btn_pdf.pack(side="top", pady=(0, 3))
 
         if self.on_export_docx:
             btn_docx = ctk.CTkButton(
-                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=30,
+                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=28,
                 font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
                 hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_docx
             )
             btn_docx.pack(side="top")
 
-    def update_total(self, total_val: float):
-        """Aktualizuje cenę całkowitą."""
+    def update_total(self, total_val: float, breakdown=None):
+        """Aktualizuje kwotę końcową i jej rozbicie na składniki."""
         self.lbl_total.configure(text=f"{total_val:.2f} zł")
+        if breakdown is None:
+            return
+        self.breakdown_labels["qty"].configure(text=str(breakdown["qty"]))
+        self.breakdown_labels["tool"].configure(text=f"{breakdown['tool']:.2f} zł")
+        self.breakdown_labels["coat"].configure(text=f"{breakdown['coat']:.2f} zł")
+        self.breakdown_labels["extra"].configure(text=f"{breakdown['extra']:.2f} zł")
+        self.service_labels["ciecie"].configure(text=f"Cięcie: {breakdown['ciecie']:.2f} zł")
+        self.service_labels["opuszczenie"].configure(text=f"Zaniżenie: {breakdown['opuszczenie']:.2f} zł")
+        self.service_labels["polerowanie"].configure(text=f"Polerowanie: {breakdown['polerowanie']:.2f} zł")

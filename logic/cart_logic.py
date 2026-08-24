@@ -99,6 +99,39 @@ def calculate_extra_services(services_vars, services_qty, diam=None, total_qty=N
     return round(extra_unit_avg, 2), round(total_extra_sum, 2), active_labels
 
 
+def calculate_service_breakdown(services_status, services_qty, diam, total_qty, opuszczenie_multiplier=1):
+    """Zwraca koszt każdej aktywnej usługi osobno, w tej samej kolejności co kalkulator."""
+    try:
+        d_val = float(str(diam).replace(',', '.'))
+        tot_q = int(total_qty)
+    except (TypeError, ValueError):
+        return {"ciecie": 0.0, "opuszczenie": 0.0, "polerowanie": 0.0}
+
+    if d_val <= 0.0 or tot_q <= 0:
+        return {"ciecie": 0.0, "opuszczenie": 0.0, "polerowanie": 0.0}
+
+    service_names = {
+        "ciecie": "Cięcie",
+        "opuszczenie": "Zaniżenie średnicy",
+        "polerowanie": "Polerowanie rowka",
+    }
+    breakdown = {}
+    for key, name in service_names.items():
+        if not services_status.get(key):
+            breakdown[key] = 0.0
+            continue
+        try:
+            service_qty = int(services_qty.get(key, tot_q))
+        except (AttributeError, TypeError, ValueError):
+            service_qty = 0
+        service_qty = min(max(service_qty, 0), tot_q)
+        multiplier = int(opuszczenie_multiplier) if key == "opuszczenie" else 1
+        unit_price = database.get_service_price_refined(name, d_val) * multiplier
+        breakdown[key] = round(unit_price * service_qty, 2)
+
+    return breakdown
+
+
 def calculate_coating_price(coating, diam, length, qty):
     try:
         if coating == "Brak" or not coating:
