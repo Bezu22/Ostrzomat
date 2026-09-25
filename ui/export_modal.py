@@ -1,4 +1,5 @@
 import os
+import re
 from tkinter import filedialog
 import customtkinter as ctk
 
@@ -182,13 +183,29 @@ class ExportReportModal(ctk.CTkToplevel):
 
         ext = ".pdf" if is_pdf else ".docx"
         filter_desc = "Plik PDF" if is_pdf else "Dokument Word"
-        default_filename = f"Wycena_{report_num or 'zlecenie'}{ext}"
 
-        save_path = filedialog.asksaveasfilename(
-            defaultextension=ext,
-            filetypes=[(filter_desc, f"*{ext}")],
-            initialfile=default_filename
-        )
+        # Pobranie i oczyszczenie nazwy klienta do nazwy pliku
+        raw_client = getattr(self.parent, "current_client_name", "") or "Klient"
+        clean_client = re.sub(r'[\\/*?:"<>|]', '', str(raw_client)).strip()
+        clean_client = re.sub(r'\s+', '_', clean_client)
+        if not clean_client or clean_client.lower() in ["nieokreslony_klient", "nieokreślony_klient", "nieokreslony", "nieokreślony"]:
+            clean_client = "Klient"
+
+        report_suffix = f"_{report_num}" if report_num else ""
+        default_filename = f"Wycena_{clean_client}{report_suffix}{ext}"
+
+        # Wyłączamy topmost na czas okna eksploratora, aby nie chował się pod spodem
+        self.attributes("-topmost", False)
+        try:
+            save_path = filedialog.asksaveasfilename(
+                parent=self,
+                defaultextension=ext,
+                filetypes=[(filter_desc, f"*{ext}")],
+                initialfile=default_filename
+            )
+        finally:
+            if self.winfo_exists():
+                self.attributes("-topmost", True)
 
         if not save_path:
             return
