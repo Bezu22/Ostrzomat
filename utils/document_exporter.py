@@ -41,20 +41,43 @@ def register_custom_fonts():
 
 
 def fetch_client_data(client_id: Optional[int], db_path: Optional[str] = None) -> dict:
+    """
+    Pobiera dane klienta do wygenerowania nagłówka wyceny (PDF / Word).
+    Korzysta bezpośrednio ze scentralizowanego modułu utils.clients_db.
+    """
+    default_client = {
+        "id": client_id or 0,
+        "name": "Nieokreślony klient",
+        "phone": "-",
+        "nip": "-",
+        "email": "-",
+        "address": "-"
+    }
     if not client_id:
-        return {
-            "id": 0,
-            "name": "Nieokreślony klient",
-            "phone": "-",
-            "nip": "-",
-            "email": "-",
-            "address": "-"
-        }
+        return default_client
 
     if db_path is None:
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        db_path = os.path.join(os.path.dirname(script_dir), "data", "clients.db")
+        try:
+            import utils.clients_db as clients_db
+            client = clients_db.get_client_by_id(client_id)
+            if client:
+                return {
+                    "id": client.get("id", client_id),
+                    "name": client.get("name") or "Brak nazwy",
+                    "phone": client.get("phone") or "-",
+                    "nip": client.get("nip") or "-",
+                    "email": client.get("email") or "-",
+                    "address": client.get("address") or "-"
+                }
+            return {
+                "id": client_id,
+                "name": "Nieznany klient",
+                "phone": "-", "nip": "-", "email": "-", "address": "-"
+            }
+        except Exception:
+            return default_client
 
+    # Ścieżka niestandardowa (np. w testach)
     if not os.path.exists(db_path):
         return {
             "id": client_id,

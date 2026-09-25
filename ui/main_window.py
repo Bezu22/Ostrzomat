@@ -26,8 +26,9 @@ class OstrzomatApp(ctk.CTk):
         self.title("Ostrzomat v0.2")
         self.configure(fg_color=AppStyle.COLOR_BG_DARK)
 
-        # 1. Inicjalizacja bazy klientów oraz centralnej pamięci RAM (cache_manager)
+        # 1. Inicjalizacja bazy klientów, bazy cennika oraz centralnej pamięci RAM (cache_manager)
         clients_db.init_clients_db()
+        database.init_db()
         self._price_list_startup_error = None
         if DEFAULT_EXCEL_PATH.exists():
             try:

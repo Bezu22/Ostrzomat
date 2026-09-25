@@ -17,6 +17,36 @@ def get_connection():
         raise FileNotFoundError(f"Brak bazy w {DB_PATH}")
     return sqlite3.connect(f"file:{DB_PATH}?mode=rw", uri=True)
 
+_initialized_db_path = None
+
+def init_db(connection=None):
+    """
+    Inicjalizuje i weryfikuje schemat bazy cennika SQLite.
+    Wykonuje ewentualne migracje kolumn i tabel raz przy starcie aplikacji
+    lub po zmianie pliku bazy, eliminując kosztowne operacje DDL z zapytań o cenę.
+    """
+    global _initialized_db_path
+    should_close = False
+    if connection is None:
+        if not is_db_accessible():
+            return
+        connection = get_connection()
+        should_close = True
+    try:
+        ensure_tool_blade_columns(connection)
+        ensure_tool_ranges_table(connection)
+        connection.commit()
+        _initialized_db_path = DB_PATH
+    finally:
+        if should_close:
+            connection.close()
+
+def ensure_schema_ready():
+    """Upewnia się, że schemat bazy pod aktualną ścieżką DB_PATH został zainicjalizowany."""
+    global _initialized_db_path
+    if _initialized_db_path != DB_PATH:
+        init_db()
+
 def ensure_tool_ranges_table(connection):
     connection.execute("""
         CREATE TABLE IF NOT EXISTS pricelist_tool_ranges (
@@ -130,11 +160,9 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         if any(w.lower() in clean_type.lower() for w in wiertla_typy):
             blades_key = "2"
         
+        ensure_schema_ready()
         conn = get_connection()
         cursor = conn.cursor()
-        ensure_tool_blade_columns(conn)
-        ensure_tool_ranges_table(conn)
-        conn.commit()
 
         cursor.execute("""
             SELECT price FROM pricelist_tool_ranges
