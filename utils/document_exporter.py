@@ -108,7 +108,15 @@ def fetch_client_data(client_id: Optional[int], db_path: Optional[str] = None) -
     }
 
 
-def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
+def generate_pdf(
+    cart_data: dict,
+    client_info: dict,
+    output_pdf_path: str,
+    report_number: Optional[str] = None,
+    include_client: bool = True,
+    include_summary: bool = True,
+    include_logo: bool = True,
+):
     font_normal, font_bold = register_custom_fonts()
 
     doc = SimpleDocTemplate(
@@ -126,10 +134,14 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     style_cell_header = ParagraphStyle('CellHeader', parent=styles['Normal'], fontName=font_bold, fontSize=7, leading=8, textColor=colors.white, alignment=1)
 
     # --- NAGŁÓWEK DOKUMENTU ---
+    title_text = "<b>CENTRALA TECHNICZNA</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>" if include_logo else ""
+    rep_num_text = f" nr {report_number}" if report_number else ""
+    doc_type_text = f"<para align='right'><b>WYCENA ZLECENIA{rep_num_text}</b><br/>Data: {datetime.now().strftime('%d.%m.%Y r.')}</para>"
+
     header_data = [
         [
-            Paragraph("<b>CENTRALA TECHNICZNA</b><br/><font size=8 color='#475569'>REGENERACJA NARZĘDZI</font>", style_title),
-            Paragraph(f"<para align='right'><b>WYCENA ZLECENIA</b><br/>Data: {datetime.now().strftime('%d.%m.%Y r.')}</para>", style_normal)
+            Paragraph(title_text, style_title),
+            Paragraph(doc_type_text, style_normal)
         ]
     ]
     header_table = Table(header_data, colWidths=[400, 400])
@@ -138,21 +150,22 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     story.append(Spacer(1, 10))
 
     # --- DANE KLIENTA ---
-    client_text = (
-        f"<b>DANE KLIENTA:</b> {client_info['name']} &nbsp;&nbsp;|&nbsp;&nbsp; "
-        f"<b>NIP:</b> {client_info['nip']}<br/>"
-        f"<b>Adres:</b> {client_info['address']} &nbsp;&nbsp;|&nbsp;&nbsp; "
-        f"<b>Tel:</b> {client_info['phone']} &nbsp;&nbsp;|&nbsp;&nbsp; "
-        f"<b>Email:</b> {client_info['email']}"
-    )
-    client_table = Table([[Paragraph(client_text, style_normal)]], colWidths=[800])
-    client_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
-        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#cbd5e1')),
-        ('PADDING', (0,0), (-1,-1), 6),
-    ]))
-    story.append(client_table)
-    story.append(Spacer(1, 10))
+    if include_client and client_info:
+        client_text = (
+            f"<b>DANE KLIENTA:</b> {client_info.get('name', 'Nieokreślony')} &nbsp;&nbsp;|&nbsp;&nbsp; "
+            f"<b>NIP:</b> {client_info.get('nip', '-')}<br/>"
+            f"<b>Adres:</b> {client_info.get('address', '-')} &nbsp;&nbsp;|&nbsp;&nbsp; "
+            f"<b>Tel:</b> {client_info.get('phone', '-')} &nbsp;&nbsp;|&nbsp;&nbsp; "
+            f"<b>Email:</b> {client_info.get('email', '-')}"
+        )
+        client_table = Table([[Paragraph(client_text, style_normal)]], colWidths=[800])
+        client_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f8fafc')),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#cbd5e1')),
+            ('PADDING', (0,0), (-1,-1), 6),
+        ]))
+        story.append(client_table)
+        story.append(Spacer(1, 10))
 
     # --- NAGŁÓWKI TABELI ---
     headers = [
@@ -229,24 +242,25 @@ def generate_pdf(cart_data: dict, client_info: dict, output_pdf_path: str):
     story.append(Spacer(1, 10))
 
     # --- PODSUMOWANIE ---
-    grand_total = total_tool_val + total_coat_val + total_extra_val
-    summary_text = f"""
-    <b>Suma sztuk:</b> {total_qty} szt.<br/>
-    Wartość regeneracji: {total_tool_val:.2f} zł<br/>
-    Wartość powlekania: {total_coat_val:.2f} zł<br/>
-    Wartość usług dod.: {total_extra_val:.2f} zł<br/>
-    <font size=10 color='#1e3a8a'><b>RAZEM NETTO: {grand_total:.2f} zł</b></font>
-    """
-    summary_table = Table([[Paragraph(summary_text, style_normal)]], colWidths=[250])
-    summary_table.setStyle(TableStyle([
-        ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f1f5f9')),
-        ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#cbd5e1')),
-        ('PADDING', (0,0), (-1,-1), 8),
-        ('ALIGN', (0,0), (-1,-1), 'RIGHT')
-    ]))
-    
-    layout_summary = Table([["", summary_table]], colWidths=[550, 250])
-    story.append(layout_summary)
+    if include_summary:
+        grand_total = total_tool_val + total_coat_val + total_extra_val
+        summary_text = f"""
+        <b>Suma sztuk:</b> {total_qty} szt.<br/>
+        Wartość regeneracji: {total_tool_val:.2f} zł<br/>
+        Wartość powlekania: {total_coat_val:.2f} zł<br/>
+        Wartość usług dod.: {total_extra_val:.2f} zł<br/>
+        <font size=10 color='#1e3a8a'><b>RAZEM NETTO: {grand_total:.2f} zł</b></font>
+        """
+        summary_table = Table([[Paragraph(summary_text, style_normal)]], colWidths=[250])
+        summary_table.setStyle(TableStyle([
+            ('BACKGROUND', (0,0), (-1,-1), colors.HexColor('#f1f5f9')),
+            ('BOX', (0,0), (-1,-1), 1, colors.HexColor('#cbd5e1')),
+            ('PADDING', (0,0), (-1,-1), 8),
+            ('ALIGN', (0,0), (-1,-1), 'RIGHT')
+        ]))
+        
+        layout_summary = Table([["", summary_table]], colWidths=[550, 250])
+        story.append(layout_summary)
 
     doc.build(story)
 
@@ -256,7 +270,15 @@ def set_cell_background(cell, fill_hex: str):
     cell._tc.get_or_add_tcPr().append(shading_elm)
 
 
-def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
+def generate_docx(
+    cart_data: dict,
+    client_info: dict,
+    output_docx_path: str,
+    report_number: Optional[str] = None,
+    include_client: bool = True,
+    include_summary: bool = True,
+    include_logo: bool = True,
+):
     doc = Document()
 
     section = doc.sections[0]
@@ -275,19 +297,21 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
 
     cell_left = header_table.cell(0, 0)
     p_left = cell_left.paragraphs[0]
-    run_title = p_left.add_run("CENTRALA TECHNICZNA\n")
-    run_title.bold = True
-    run_title.font.size = Pt(14)
-    run_title.font.color.rgb = RGBColor(0x1E, 0x3A, 0x8A)
+    if include_logo:
+        run_title = p_left.add_run("CENTRALA TECHNICZNA\n")
+        run_title.bold = True
+        run_title.font.size = Pt(14)
+        run_title.font.color.rgb = RGBColor(0x1E, 0x3A, 0x8A)
 
-    run_sub = p_left.add_run("REGENERACJA NARZĘDZI")
-    run_sub.font.size = Pt(8)
-    run_sub.font.color.rgb = RGBColor(0x47, 0x55, 0x69)
+        run_sub = p_left.add_run("REGENERACJA NARZĘDZI")
+        run_sub.font.size = Pt(8)
+        run_sub.font.color.rgb = RGBColor(0x47, 0x55, 0x69)
 
     cell_right = header_table.cell(0, 1)
     p_right = cell_right.paragraphs[0]
     p_right.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    run_doc_title = p_right.add_run("WYCENA ZLECENIA\n")
+    rep_num_text = f" nr {report_number}\n" if report_number else "\n"
+    run_doc_title = p_right.add_run(f"WYCENA ZLECENIA{rep_num_text}")
     run_doc_title.bold = True
     run_doc_title.font.size = Pt(14)
     
@@ -296,23 +320,25 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
 
     doc.add_paragraph()
 
-    client_table = doc.add_table(rows=1, cols=1)
-    client_cell = client_table.cell(0, 0)
-    set_cell_background(client_cell, "F8FAFC")
+    if include_client and client_info:
+        client_table = doc.add_table(rows=1, cols=1)
+        client_cell = client_table.cell(0, 0)
+        set_cell_background(client_cell, "F8FAFC")
 
-    p_client = client_cell.paragraphs[0]
-    p_client.paragraph_format.space_after = Pt(2)
-    p_client.paragraph_format.space_before = Pt(2)
-    
-    client_str = (
-        f"DANE KLIENTA: {client_info['name']} (ID: {client_info['id']})   |   NIP: {client_info['nip']}\n"
-        f"Adres: {client_info['address']}   |   Tel: {client_info['phone']}   |   Email: {client_info['email']}"
-    )
-    run_client = p_client.add_run(client_str)
-    run_client.font.size = Pt(8.5)
-    run_client.font.name = 'Arial'
+        p_client = client_cell.paragraphs[0]
+        p_client.paragraph_format.space_after = Pt(2)
+        p_client.paragraph_format.space_before = Pt(2)
+        
+        client_id_val = f" (ID: {client_info['id']})" if client_info.get('id') else ""
+        client_str = (
+            f"DANE KLIENTA: {client_info.get('name', 'Nieokreślony')}{client_id_val}   |   NIP: {client_info.get('nip', '-')}\n"
+            f"Adres: {client_info.get('address', '-')}   |   Tel: {client_info.get('phone', '-')}   |   Email: {client_info.get('email', '-')}"
+        )
+        run_client = p_client.add_run(client_str)
+        run_client.font.size = Pt(8.5)
+        run_client.font.name = 'Arial'
 
-    doc.add_paragraph()
+        doc.add_paragraph()
 
     headers = [
         "Lp.", "Typ narzędzia", "Ø narz.", "Ø trz.", "L [mm]", "Z",
@@ -395,35 +421,36 @@ def generate_docx(cart_data: dict, client_info: dict, output_docx_path: str):
             if idx % 2 == 0:
                 set_cell_background(row_cells[i], "E2E8F0")
 
-    doc.add_paragraph()
+    if include_summary:
+        doc.add_paragraph()
 
-    grand_total = total_tool_val + total_coat_val + total_extra_val
+        grand_total = total_tool_val + total_coat_val + total_extra_val
 
-    sum_table = doc.add_table(rows=1, cols=2)
-    sum_table.autofit = False
-    sum_table.columns[0].width = Inches(7.0)
-    sum_table.columns[1].width = Inches(3.5)
+        sum_table = doc.add_table(rows=1, cols=2)
+        sum_table.autofit = False
+        sum_table.columns[0].width = Inches(7.0)
+        sum_table.columns[1].width = Inches(3.5)
 
-    sum_cell = sum_table.cell(0, 1)
-    set_cell_background(sum_cell, "F1F5F9")
-    
-    p_sum = sum_cell.paragraphs[0]
-    p_sum.alignment = WD_ALIGN_PARAGRAPH.RIGHT
-    
-    sum_text = (
-        f"Suma sztuk: {total_qty} szt.\n"
-        f"Wartość regeneracji: {total_tool_val:.2f} zł\n"
-        f"Wartość powlekania: {total_coat_val:.2f} zł\n"
-        f"Wartość usług dod.: {total_extra_val:.2f} zł\n"
-    )
-    r_sum = p_sum.add_run(sum_text)
-    r_sum.font.size = Pt(8)
-    r_sum.font.name = 'Arial'
+        sum_cell = sum_table.cell(0, 1)
+        set_cell_background(sum_cell, "F1F5F9")
+        
+        p_sum = sum_cell.paragraphs[0]
+        p_sum.alignment = WD_ALIGN_PARAGRAPH.RIGHT
+        
+        sum_text = (
+            f"Suma sztuk: {total_qty} szt.\n"
+            f"Wartość regeneracji: {total_tool_val:.2f} zł\n"
+            f"Wartość powlekania: {total_coat_val:.2f} zł\n"
+            f"Wartość usług dod.: {total_extra_val:.2f} zł\n"
+        )
+        r_sum = p_sum.add_run(sum_text)
+        r_sum.font.size = Pt(8)
+        r_sum.font.name = 'Arial'
 
-    r_total = p_sum.add_run(f"RAZEM NETTO: {grand_total:.2f} zł")
-    r_total.bold = True
-    r_total.font.size = Pt(10)
-    r_total.font.color.rgb = RGBColor(0x1E, 0x3A, 0x8A)
-    r_total.font.name = 'Arial'
+        r_total = p_sum.add_run(f"RAZEM NETTO: {grand_total:.2f} zł")
+        r_total.bold = True
+        r_total.font.size = Pt(10)
+        r_total.font.color.rgb = RGBColor(0x1E, 0x3A, 0x8A)
+        r_total.font.name = 'Arial'
 
     doc.save(output_docx_path)

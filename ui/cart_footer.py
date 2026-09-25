@@ -2,7 +2,7 @@ import customtkinter as ctk
 from ui.style import AppStyle
 
 class CartFooter(ctk.CTkFrame):
-    def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete, on_export_pdf=None, on_export_docx=None):
+    def __init__(self, parent, on_save, on_load, on_clear, on_edit, on_delete, on_export_report=None, on_export_pdf=None, on_export_docx=None):
         super().__init__(parent, fg_color=AppStyle.COLOR_HEADER_BG, height=90, corner_radius=8)
         
         self.on_save = on_save
@@ -10,6 +10,7 @@ class CartFooter(ctk.CTkFrame):
         self.on_clear = on_clear
         self.on_edit = on_edit
         self.on_delete = on_delete
+        self.on_export_report = on_export_report
         self.on_export_pdf = on_export_pdf
         self.on_export_docx = on_export_docx
 
@@ -151,25 +152,23 @@ class CartFooter(ctk.CTkFrame):
         )
         self.lbl_total.pack(side="left")
 
-        # Sekcja przycisków generowania w kolumnie (po prawej stronie kwoty)
+        # Sekcja przycisku generowania raportu (po prawej stronie kwoty)
         gen_buttons_frame = ctk.CTkFrame(right_container, fg_color="transparent")
         gen_buttons_frame.pack(side="right", fill="y")
 
-        if self.on_export_pdf:
-            btn_pdf = ctk.CTkButton(
-                gen_buttons_frame, text="📄 Generuj PDF", width=130, height=45,
-                font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
-                hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_pdf
+        export_cmd = self.on_export_report or self.on_export_pdf or self.on_export_docx
+        if export_cmd:
+            self.btn_export = ctk.CTkButton(
+                gen_buttons_frame,
+                text="📊 RAPORT / WYCENA",
+                width=150,
+                height=64,
+                font=AppStyle.get_bold_font(),
+                fg_color=AppStyle.COLOR_SECONDARY,
+                hover_color=AppStyle.COLOR_SECONDARY_HOVER,
+                command=export_cmd
             )
-            btn_pdf.pack(side="top", pady=(15, 3))
-
-        if self.on_export_docx:
-            btn_docx = ctk.CTkButton(
-                gen_buttons_frame, text="📝 Generuj DOCX", width=130, height=45,
-                font=AppStyle.get_bold_font(), fg_color=AppStyle.COLOR_SECONDARY,
-                hover_color=AppStyle.COLOR_SECONDARY_HOVER, command=self.on_export_docx
-            )
-            btn_docx.pack(side="top")
+            self.btn_export.pack(side="top", pady=(15, 0))
 
     def update_total(self, total_val: float, breakdown=None):
         """Aktualizuje kwotę końcową i jej rozbicie na składniki."""

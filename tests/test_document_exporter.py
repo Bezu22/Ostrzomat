@@ -51,11 +51,27 @@ class TestDocumentExporter(unittest.TestCase):
         self.assertEqual(headers[14], "Suma P")
         self.assertEqual(values[14], "18.00 zł")
 
-    def test_pdf_is_generated_with_position_total_data(self):
+    def test_docx_supports_custom_report_number_and_optional_sections(self):
         with tempfile.TemporaryDirectory() as directory:
-            output_path = Path(directory) / "raport.pdf"
-            generate_pdf(self.cart_data, self.client_info, str(output_path))
+            output_path = Path(directory) / "raport_custom.docx"
+            generate_docx(
+                self.cart_data, self.client_info, str(output_path),
+                report_number="115", include_client=False, include_summary=False, include_logo=False
+            )
+            document = Document(output_path)
 
+        # Bez sekcji klienta i podsumowania mamy tylko tabelę nagłówka i tabelę pozycji
+        self.assertEqual(len(document.tables), 2)
+        header_text = document.tables[0].cell(0, 1).text
+        self.assertIn("nr 115", header_text)
+
+    def test_pdf_supports_custom_report_number_and_options(self):
+        with tempfile.TemporaryDirectory() as directory:
+            output_path = Path(directory) / "raport_custom.pdf"
+            generate_pdf(
+                self.cart_data, self.client_info, str(output_path),
+                report_number="115", include_client=False, include_summary=False
+            )
             self.assertTrue(output_path.exists())
             self.assertGreater(output_path.stat().st_size, 0)
 

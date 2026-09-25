@@ -86,44 +86,60 @@ class OstrzomatApp(ctk.CTk):
             on_clear=self.clear_cart,
             on_edit=self.edit_selected_item,
             on_delete=self.delete_selected_item,
+            on_export_report=self.open_export_modal,
             on_export_pdf=self.export_to_pdf,
             on_export_docx=self.export_to_docx
         )
         self.cart_footer.pack(fill="x", pady=(10, 0))
 
-        # Przyciski Sidebar
+        # Górny nagłówek panelu bocznego (zrównany wysokością z panelem klienta po prawej)
+        self.sidebar_header = ctk.CTkFrame(self.sidebar_frame, height=60, fg_color=AppStyle.COLOR_HEADER_BG)
+        self.sidebar_header.pack(fill="x", pady=(0, 10))
+
+        lbl_menu = ctk.CTkLabel(
+            self.sidebar_header,
+            text="⚙️ MENU",
+            font=AppStyle.FONT_SUBTITLE,
+            text_color=AppStyle.COLOR_TEXT_DARK
+        )
+        lbl_menu.pack(side="left", padx=AppStyle.PAD_LARGE, pady=10)
+
+        # Przyciski Sidebar z ujednoliconą wysokością i równymi odstępami
         self.btn_frez = ctk.CTkButton(
             self.sidebar_frame,
             text="➕ DODAJ FREZ",
+            height=44,
             font=AppStyle.FONT_BOLD,
             fg_color=AppStyle.COLOR_PRIMARY,
             hover_color=AppStyle.COLOR_PRIMARY_HOVER,
             text_color=AppStyle.COLOR_TEXT_LIGHT,
             command=lambda: self.open_calc("Frezy")
         )
-        self.btn_frez.pack(pady=20, padx=20, fill="x")
+        self.btn_frez.pack(fill="x", padx=15, pady=(0, 10))
 
         self.btn_drill = ctk.CTkButton(
             self.sidebar_frame,
             text="➕ DODAJ WIERTŁO",
+            height=44,
             font=AppStyle.FONT_BOLD,
             fg_color=AppStyle.COLOR_PRIMARY,
             hover_color=AppStyle.COLOR_PRIMARY_HOVER,
             text_color=AppStyle.COLOR_TEXT_LIGHT,
             command=lambda: self.open_calc("Wiertla")
         )
-        self.btn_drill.pack(pady=10, padx=20, fill="x")
+        self.btn_drill.pack(fill="x", padx=15, pady=(0, 10))
 
         self.btn_special = ctk.CTkButton(
             self.sidebar_frame,
             text="➕ DODAJ SPECJALNE",
+            height=44,
             font=AppStyle.FONT_BOLD,
             fg_color=AppStyle.COLOR_PRIMARY,
             hover_color=AppStyle.COLOR_PRIMARY_HOVER,
             text_color=AppStyle.COLOR_TEXT_LIGHT,
             command=lambda: self.open_calc("Specjalne")
         )
-        self.btn_special.pack(pady=8, padx=20, fill="x")
+        self.btn_special.pack(fill="x", padx=15, pady=(0, 10))
 
         self.edit_price_btn = ctk.CTkButton(
             self.sidebar_frame,
@@ -429,6 +445,14 @@ class OstrzomatApp(ctk.CTk):
             self.save_cart_state()
 
         NotesWindow(self, current_notes, save_notes_callback)
+
+    def open_export_modal(self):
+        """Otwiera okno konfiguracji i generowania raportu wyceny."""
+        if not self.cart_items:
+            OstrzomatPopup(self, title="Brak danych", message="Koszyk jest pusty!", type="error")
+            return
+        from ui.export_modal import ExportReportModal
+        ExportReportModal(self)
 
     def export_to_pdf(self):
         if not self.cart_items:
