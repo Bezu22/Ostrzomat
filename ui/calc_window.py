@@ -167,7 +167,7 @@ class ToolCalcWindow(ctk.CTkToplevel):
             d = self.item_data
             if not m or not d:
                 return
-
+            
             # Wywołujemy bezpieczną metodę set_item_data zaimplementowaną w module
             set_data_func = getattr(m, "set_item_data", None)
             if callable(set_data_func):

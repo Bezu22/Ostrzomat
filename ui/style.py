@@ -84,8 +84,8 @@ class AppStyle:
     COLOR_HEADER_BG = "#2E2428"     # Tło nagłówków i pasków tytułowych
 
     # Przyciski i akcje główne
-    COLOR_PRIMARY = "#8B0000"        # Głęboki Crimson / Krwista Czerwień
-    COLOR_PRIMARY_HOVER = "#A00000"  # Jasniejszy Crimson po najechaniu
+    COLOR_PRIMARY = "#D66A6A"        # Blady, pastelowy czerwony dla głównego menu
+    COLOR_PRIMARY_HOVER = "#E07E7E"  # Jaśniejszy odcień po najechaniu
     
     COLOR_SECONDARY = "#D97706"      # Bursztyn / Ciepły Amber
     COLOR_SECONDARY_HOVER = "#F59E0B"# Jasny Bursztyn po najechaniu
