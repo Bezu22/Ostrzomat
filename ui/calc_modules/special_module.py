@@ -74,31 +74,35 @@ class SpecialModule(BaseToolModule):
         if not item_data:
             return
 
-        raw_type = item_data.get("type", "Specjalne")
-        clean_type, tag = self.parse_type_and_tag(
-            raw_type,
-            explicit_tag=item_data.get("tag"),
-        )
-        self.type_entry.delete(0, "end")
-        self.type_entry.insert(0, clean_type)
+        self._is_loading_data = True
+        try:
+            raw_type = item_data.get("type", "Specjalne")
+            clean_type, tag = self.parse_type_and_tag(
+                raw_type,
+                explicit_tag=item_data.get("tag"),
+            )
+            self.type_entry.delete(0, "end")
+            self.type_entry.insert(0, clean_type)
 
-        if hasattr(self, "tag_var"):
-            self.tag_var.set(tag)
+            if hasattr(self, "tag_var"):
+                self.tag_var.set(tag)
 
-        if "z" in item_data:
-            self.blades_entry.delete(0, "end")
-            self.blades_entry.insert(0, str(item_data["z"]))
+            if "z" in item_data:
+                self.blades_entry.delete(0, "end")
+                self.blades_entry.insert(0, str(item_data["z"]))
 
-        if "diam" in item_data:
-            self.diam_entry.delete(0, "end")
-            self.diam_entry.insert(0, str(item_data["diam"]))
+            if "diam" in item_data:
+                self.diam_entry.delete(0, "end")
+                self.diam_entry.insert(0, str(item_data["diam"]))
 
-        if "tool_unit" in item_data:
-            self.unit_price_entry.delete(0, "end")
-            self.unit_price_entry.insert(0, str(item_data["tool_unit"]))
+            if "tool_unit" in item_data:
+                self.unit_price_entry.delete(0, "end")
+                self.unit_price_entry.insert(0, str(item_data["tool_unit"]))
 
-        # Załadowanie wspólnych pól (ilość, chwyt, powłoka, usługi)
-        self.load_base_item_data(item_data)
+            # Załadowanie wspólnych pól (ilość, chwyt, powłoka, usługi)
+            self.load_base_item_data(item_data)
+        finally:
+            self._is_loading_data = False
 
     def validate_all(self, diam, z, qty, shank, unit_price):
         """Waliduje poprawność wprowadzonych wartości liczbowych."""
@@ -106,7 +110,7 @@ class SpecialModule(BaseToolModule):
             float(diam)
             float(shank)
             float(unit_price)
-            if not z.isdigit() or not qty.isdigit():
+            if not str(z).strip().isdigit() or not str(qty).strip().isdigit():
                 raise ValueError()
             return True
         except (ValueError, TypeError):

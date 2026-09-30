@@ -77,45 +77,53 @@ class FrezModule(BaseToolModule):
         if "promieniowy" in selected_type.lower():
             if hasattr(self, "tag_var") and not self.tag_var.get().strip():
                 self.tag_var.set("R0.5")
-        self.update_callback()
+        else:
+            if hasattr(self, "tag_var") and self.tag_var.get().strip() == "R0.5":
+                self.tag_var.set("")
+        if not getattr(self, "_is_loading_data", False):
+            self.update_callback()
 
     def set_item_data(self, item_data):
         """Ładuje dane edytowanej pozycji frezu z koszyka do formularza."""
         if not item_data:
             return
 
-        frez_types = self.type_combo.cget("values")
-        clean_type, tag = self.parse_type_and_tag(
-            item_data.get("type", "Frez walcowo-czołowy"),
-            known_types=frez_types,
-            explicit_tag=item_data.get("tag"),
-        )
+        self._is_loading_data = True
+        try:
+            frez_types = self.type_combo.cget("values")
+            clean_type, tag = self.parse_type_and_tag(
+                item_data.get("type", "Frez walcowo-czołowy"),
+                known_types=frez_types,
+                explicit_tag=item_data.get("tag"),
+            )
 
-        if clean_type in frez_types:
-            self.type_combo.set(clean_type)
-        else:
-            self.type_combo.set(item_data.get("type", clean_type))
+            if clean_type in frez_types:
+                self.type_combo.set(clean_type)
+            else:
+                self.type_combo.set(item_data.get("type", clean_type))
 
-        if hasattr(self, "tag_var"):
-            self.tag_var.set(tag)
+            if hasattr(self, "tag_var"):
+                self.tag_var.set(tag)
 
-        if "diam" in item_data:
-            self.diam_entry.delete(0, "end")
-            self.diam_entry.insert(0, str(item_data["diam"]))
+            if "diam" in item_data:
+                self.diam_entry.delete(0, "end")
+                self.diam_entry.insert(0, str(item_data["diam"]))
 
-        if "z" in item_data:
-            self.blades_entry.delete(0, "end")
-            self.blades_entry.insert(0, str(item_data["z"]))
+            if "z" in item_data:
+                self.blades_entry.delete(0, "end")
+                self.blades_entry.insert(0, str(item_data["z"]))
 
-        # Załadowanie wspólnych pól (ilość, chwyt, powłoka, usługi)
-        self.load_base_item_data(item_data)
+            # Załadowanie wspólnych pól (ilość, chwyt, powłoka, usługi)
+            self.load_base_item_data(item_data)
+        finally:
+            self._is_loading_data = False
 
     def validate_all(self, diam, z, qty, shank):
         """Weryfikuje poprawność wprowadzonych wartości liczbowych."""
         try:
             float(diam)
             float(shank)
-            if not z.isdigit() or not qty.isdigit():
+            if not str(z).strip().isdigit() or not str(qty).strip().isdigit():
                 raise ValueError()
             return True
         except (ValueError, TypeError):
@@ -135,7 +143,7 @@ class FrezModule(BaseToolModule):
             shank = self.shank_entry.get().replace(",", ".").strip()
             qty = self.qty_entry.get().strip() or "1"
             t_type = self.type_combo.get()
-            blades = self.blades_entry.get()
+            blades = self.blades_entry.get().strip() or "4"
             coat = self.coat_combo.get()
             coat_len = self.len_combo.get() if hasattr(self, "len_combo") else "100"
 

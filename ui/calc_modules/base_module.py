@@ -20,6 +20,7 @@ class BaseToolModule(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.update_callback = update_callback
         self.settings = settings
+        self._is_loading_data = False
 
         # Flaga ręcznego wpisywania średnicy chwytu
         self.shank_override = ctk.BooleanVar(value=False)
@@ -74,11 +75,14 @@ class BaseToolModule(ctk.CTkFrame):
         self.tag_var = ctk.StringVar(value="")
 
         def _on_tag_change(*args):
+            if getattr(self, "_is_loading_data", False):
+                return
             val = self.tag_var.get()
             if len(val) > 6:
                 self.tag_var.set(val[:6])
                 return
-            self.update_callback()
+            if callable(self.update_callback):
+                self.update_callback()
 
         self.tag_var.trace_add("write", _on_tag_change)
 

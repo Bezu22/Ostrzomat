@@ -154,8 +154,51 @@ class TestCalcModules(unittest.TestCase):
         data = module.get_full_item_data(run_validation=False)
         self.assertEqual(data["tool_unit"], 150.0)
         self.assertEqual(data["total_tool"], 450.0)
-        module.destroy()
+    def test_set_item_data_across_modules(self):
+        """Weryfikuje poprawne ładowanie pozycji do formularza w każdym module."""
+        dummy_cb = lambda: None
+        settings = {}
+        sample_item = {
+            "type": "Frez z czołem kulistym K12",
+            "tag": "K12",
+            "diam": "12.0",
+            "shank_diam": "12",
+            "shank_override": False,
+            "z": "4",
+            "qty": "3",
+            "coat_name": "Brak",
+            "coat_len": "100",
+            "services_status": {"ciecie": True},
+            "services_qty": {"ciecie": 3},
+            "opuszczenie_mult": 1,
+        }
+
+        frez_mod = FrezModule(self.root, dummy_cb, settings)
+        frez_mod.set_item_data(sample_item)
+        self.assertEqual(frez_mod.tag_var.get(), "K12")
+        self.assertEqual(frez_mod.qty_entry.get(), "3")
+        frez_mod.destroy()
+
+        drill_mod = DrillModule(self.root, dummy_cb, settings)
+        sample_drill = dict(sample_item, type="Wiertło kręte D10")
+        drill_mod.set_item_data(sample_drill)
+        self.assertEqual(drill_mod.qty_entry.get(), "3")
+        drill_mod.destroy()
+
+        other_mod = OtherModule(self.root, dummy_cb, settings)
+        sample_other = dict(sample_item, type="Fazownik 90ST")
+        other_mod.set_item_data(sample_other)
+        self.assertEqual(other_mod.qty_entry.get(), "3")
+        other_mod.destroy()
+
+        special_mod = SpecialModule(self.root, dummy_cb, settings)
+        sample_special = dict(sample_item, type="Narzędzie niestandardowe", tool_unit=120.0)
+        special_mod.set_item_data(sample_special)
+        self.assertEqual(special_mod.unit_price_entry.get(), "120.0")
+        special_mod.destroy()
 
 
 if __name__ == "__main__":
+    unittest.main()
+
     unittest.main()

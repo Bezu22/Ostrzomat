@@ -192,14 +192,22 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         columns = {row[1] for row in cursor.execute("PRAGMA table_info(pricelist_tools)")}
         base_col = "price_base" if "price_base" in columns else "price_1"
 
-        # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
-        query_exact = f"""
-            SELECT {base_col} FROM pricelist_tools 
-            WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
-            LIMIT 1
-        """
-        cursor.execute(query_exact, (clean_type, int(blades_key), int(blades_key), d_val, d_val))
-        res = cursor.fetchone()
+        b_val = None
+        try:
+            b_val = int(float(str(blades_key).strip()))
+        except (ValueError, TypeError):
+            pass
+
+        res = None
+        if b_val is not None:
+            # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
+            query_exact = f"""
+                SELECT {base_col} FROM pricelist_tools 
+                WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
+                LIMIT 1
+            """
+            cursor.execute(query_exact, (clean_type, b_val, b_val, d_val, d_val))
+            res = cursor.fetchone()
         
         # Próba 2 (Fallback dla frezów): Jeśli brak dokładnego wpisu dla danej liczby ostrzy w bazie,
         # szukamy wpisu bez uwzględniania konkretnej liczby ostrzy

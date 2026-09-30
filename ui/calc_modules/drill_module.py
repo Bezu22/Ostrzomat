@@ -161,7 +161,7 @@ class DrillModule(BaseToolModule):
     def _on_type_change(self, _=None):
         """Przełącza widok między pojedynczą średnicą a polami stopni d1..d4."""
         if self.is_step_drill():
-            self.steps_combo.pack(side="left", padx=(6, 0))
+            self.steps_combo.pack(after=self.type_combo, side="left", padx=(6, 0))
             self.diam_entry.pack_forget()
             self.step_diams_frame.pack(
                 after=self.diam_label,
@@ -246,7 +246,7 @@ class DrillModule(BaseToolModule):
                 float(diam)
 
             float(shank)
-            if not z.isdigit() or not qty.isdigit():
+            if not str(z).strip().isdigit() or not str(qty).strip().isdigit():
                 raise ValueError()
             return True
         except (ValueError, TypeError):
@@ -273,7 +273,7 @@ class DrillModule(BaseToolModule):
             shank = self.shank_entry.get().replace(",", ".").strip()
             qty = self.qty_entry.get().strip() or "1"
             t_type = self.type_combo.get()
-            blades = self.blades_entry.get()
+            blades = self.blades_entry.get().strip() or "2"
             coat = self.coat_combo.get()
             coat_len = self.len_combo.get() if hasattr(self, "len_combo") else "100"
 
