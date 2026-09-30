@@ -11,7 +11,7 @@ from utils.price_list_excel import export_pricelist, import_pricelist
 
 
 class TestPriceListExcel(unittest.TestCase):
-    def test_excel_round_trip_supports_new_tool_range(self):
+    def test_excel_round_trip_supports_new_tool_and_quantity_discount(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             db_path = temp_path / "ostrzomat.db"
@@ -24,26 +24,22 @@ class TestPriceListExcel(unittest.TestCase):
                 export_pricelist(excel_path)
                 workbook = load_workbook(excel_path)
                 workbook["Narzędzia"].append(
-                    ["Frezy", "Frez testowy", 1, 4, 20.1, 25.0, 80, 70, 60, 50]
+                    ["Frezy", "Frez testowy", 1, 4, 20.1, 25.0, 100.0]
                 )
-                workbook["Zakresy ilościowe"].append(
-                    ["Frez testowy", 1, 4, 20.1, 25.0, 21, 30, 33]
+                # Zmieniamy poprzedni zakres 11+ na 11-20, aby zrobić miejsce dla 21-50
+                workbook["Rabaty ilościowe"]["B5"] = 20
+                workbook["Rabaty ilościowe"].append(
+                    [21, 50, 30]
                 )
                 workbook.save(excel_path)
                 workbook.close()
 
                 counts = import_pricelist(excel_path)
                 self.assertGreater(counts["Narzędzia"], 0)
-                self.assertGreater(counts["Zakresy ilościowe"], 0)
-                self.assertEqual(
-                    sqlite3.connect(db_path).execute(
-                        "SELECT price FROM pricelist_tool_ranges WHERE tool_type=? "
-                        "AND blades_min=? AND blades_max=? AND qty_min=? AND qty_max=?",
-                        ("Frez testowy", 1, 4, 21, 30),
-                    ).fetchone()[0],
-                    33.0,
-                )
-                self.assertEqual(database.get_tool_price("Frez testowy", "4", 22, 25), 33.0)
+                self.assertGreater(counts["Rabaty ilościowe"], 0)
+                
+                # Frez testowy cena bazowa 100 zł; dla partii 25 sztuk rabat 30% -> 70.0 zł
+                self.assertEqual(database.get_tool_price("Frez testowy", "4", 22, 25), 70.0)
                 self.assertEqual(
                     sqlite3.connect(db_path).execute(
                         "SELECT COUNT(*) FROM pricelist_tools WHERE tool_type=?", ("Frez testowy",)
@@ -65,24 +61,25 @@ class TestPriceListExcel(unittest.TestCase):
             try:
                 export_pricelist(excel_path)
                 workbook = load_workbook(excel_path)
-                workbook["Zakresy ilościowe"]["F2"] = 30
-                workbook["Zakresy ilościowe"]["G2"] = 20
+                # Ustawienie min > max w Rabaty ilościowe (np. od 30 do 20 szt.)
+                workbook["Rabaty ilościowe"]["A2"] = 30
+                workbook["Rabaty ilościowe"]["B2"] = 20
                 workbook.save(excel_path)
                 workbook.close()
 
                 before = sqlite3.connect(db_path).execute(
-                    "SELECT COUNT(*) FROM pricelist_tool_ranges"
+                    "SELECT COUNT(*) FROM pricelist_quantity_discounts"
                 ).fetchone()[0]
-                with self.assertRaisesRegex(ValueError, r"Zakresy ilościowe!F2/G2"):
+                with self.assertRaisesRegex(ValueError, r"Rabaty ilościowe!A2/B2"):
                     import_pricelist(excel_path)
                 after = sqlite3.connect(db_path).execute(
-                    "SELECT COUNT(*) FROM pricelist_tool_ranges"
+                    "SELECT COUNT(*) FROM pricelist_quantity_discounts"
                 ).fetchone()[0]
                 self.assertEqual(before, after)
             finally:
                 database.DB_PATH = original_db_path
 
-    def test_editing_standard_tool_price_is_not_hidden_by_quantity_sheet(self):
+    def test_editing_standard_tool_price_reflects_in_calculated_price(self):
         with tempfile.TemporaryDirectory() as temp_dir:
             temp_path = Path(temp_dir)
             db_path = temp_path / "ostrzomat.db"
@@ -94,11 +91,13 @@ class TestPriceListExcel(unittest.TestCase):
             try:
                 export_pricelist(excel_path)
                 workbook = load_workbook(excel_path)
+                # Kolumna G to 'Cena bazowa' w arkuszu Narzędzia
                 workbook["Narzędzia"]["G2"] = 999
                 workbook.save(excel_path)
                 workbook.close()
 
                 import_pricelist(excel_path)
+                # Dla 1 sztuki (rabat 0%) cena wynosi dokładnie 999.0
                 self.assertEqual(database.get_tool_price("Frez prosty", "1", 5, 1), 999.0)
             finally:
                 database.DB_PATH = original_db_path

@@ -242,64 +242,56 @@ def calculate_tool_price(tool_type, blades, diam, qty, heavy_wear=False, heavy_w
 
 ### 4.2. Automatyczna synchronizacja i walidacja cennika Excel $\rightarrow$ SQLite
 **Plik:** `utils/price_list_excel.py`  
-**Opis:** Kluczowy mechanizm architektury hybrydowej. Otwiera skorowidz `cennik.xlsx`, waliduje nazwy arkuszy i nagłówków, a następnie w jednej transakcji SQLite (`connection.commit()`) czyści i zasila tabele bazy danych.
+**Opis:** Kluczowy mechanizm architektury hybrydowej. Otwiera skorowidz `cennik.xlsx`, waliduje nazwy arkuszy i nagłówków, a następnie w jednej transakcji SQLite (`connection.commit()`) czyści i zasila tabele bazy danych (`pricelist_tools`, `pricelist_quantity_discounts`, `pricelist_coatings`, `pricelist_services`).
 
 ```python
 def import_pricelist(path=DEFAULT_EXCEL_PATH):
     """Waliduje i importuje wszystkie arkusze XLSX do SQLite w jednej transakcji."""
-    path = Path(path)
-    if not path.exists():
-        raise FileNotFoundError(f"Brak pliku cennika: {path}")
+    parsed = read_pricelist(path)
 
-    workbook = load_workbook(path, data_only=True)
     connection = database.get_connection()
     try:
         database.ensure_tool_blade_columns(connection)
-        database.ensure_tool_ranges_table(connection)
+        database.ensure_quantity_discounts_table(connection)
+        connection.commit()
 
-        # Walidacja wymaganych arkuszy
-        for sheet_name, expected_headers in HEADERS.items():
-            if sheet_name not in workbook.sheetnames:
-                raise ValueError(f"W pliku Excel brakuje arkusza: '{sheet_name}'")
-            sheet = workbook[sheet_name]
-            actual_headers = tuple(cell.value for cell in sheet[1][:len(expected_headers)])
-            if actual_headers != expected_headers:
-                raise ValueError(f"Niepoprawny nagłówek w arkuszu '{sheet_name}'.")
-
-        # Zasilenie bazy danych w transakcji atomowej
-        with connection:
-            for sheet_name, columns in SHEETS.items():
-                table = TABLES[sheet_name]
-                connection.execute(f"DELETE FROM {table}")
-                sheet = workbook[sheet_name]
-                rows_to_insert = []
-                for row in sheet.iter_rows(min_row=2, values_only=True):
-                    # Pomijanie pustych wierszy
-                    if not any(row):
-                        continue
-                    rows_to_insert.append(row[:len(columns)])
-
-                placeholders = ", ".join(["?"] * len(columns))
-                connection.executemany(
-                    f"INSERT INTO {table} ({', '.join(columns)}) VALUES ({placeholders})",
-                    rows_to_insert
-                )
+        connection.execute("BEGIN")
+        for sheet_name, rows in parsed.items():
+            table = TABLES[sheet_name]
+            connection.execute(f"DELETE FROM {table}")
+            insert_columns = list(SHEETS[sheet_name])
+            insert_rows = rows
+            table_columns = {row[1] for row in connection.execute(f"PRAGMA table_info({table})")}
+            if sheet_name == "Narzędzia" and "blades" in table_columns:
+                insert_columns.insert(4, "blades")
+                insert_rows = [row[:4] + (_blade_label(row[2], row[3]),) + row[4:] for row in rows]
+            placeholders = ", ".join("?" for _ in insert_columns)
+            connection.executemany(
+                f"INSERT INTO {table} ({', '.join(insert_columns)}) VALUES ({placeholders})",
+                insert_rows,
+            )
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
     finally:
         connection.close()
+    return {sheet_name: len(rows) for sheet_name, rows in parsed.items()}
 ```
 
 ---
 
-### 4.3. Wielowymiarowe odpytywanie bazy danych z tolerancją geometrii
+### 4.3. Dynamiczne odpytywanie bazy danych i silnik rabatów ilościowych
 **Plik:** `database.py`  
-**Opis:** Pobranie stawki za ostrzenie narzędzia wymaga dopasowania typu, liczby ostrzy, przedziału średnic oraz progu ilościowego zamówienia.
+**Opis:** Pobranie stawki za ostrzenie narzędzia realizowane jest dwuetapowo: najpierw silnik pobiera stawkę bazową (`price_base`) dla zdefiniowanej geometrii narzędzia, a następnie odpytuje tabelę `pricelist_quantity_discounts` o rabat przypisany do wielkości partii $Q$ i dynamicznie wylicza ostateczną cenę jednostkową.
 
 ```python
 def get_tool_price(tool_type, blades_key, diam, qty):
     """
     Zwraca cenę jednostkową ostrzenia z bazy danych SQLite.
     Dla wierteł zawsze wymusza wartość ostrzy Z = '2'.
-    Dla frezów sprawdza przedziały ostrzy oraz średnic [diam_min, diam_max].
+    Dla frezów pobiera stawkę dla liczby ostrzy podanej przez użytkownika.
+    Cena bazowa pobierana jest z pricelist_tools, a rabat ilościowy z pricelist_quantity_discounts.
     """
     if not is_db_accessible(): 
         return 0.0
@@ -317,34 +309,47 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         conn = get_connection()
         cursor = conn.cursor()
 
-        # 1. Sprawdzenie zaawansowanych tabeli zakresów ilościowych
-        cursor.execute("""
-            SELECT price FROM pricelist_tool_ranges
-            WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? 
-              AND diam_min <= ? AND diam_max >= ?
-              AND qty_min <= ? AND qty_max >= ?
-            ORDER BY diam_min ASC, qty_min DESC LIMIT 1
-        """, (clean_type, int(blades_key), int(blades_key), d_val, d_val, q_val, q_val))
-        
-        res = cursor.fetchone()
-        if res and res[0] is not None:
-            conn.close()
-            return float(res[0])
-            
-        # 2. Rezerwowe odpytanie tabeli standardowej pricelist_tools
-        col = "price_1" if q_val == 1 else "price_2_4" if q_val <= 4 else "price_5_10" if q_val <= 10 else "price_11_20"
-        cursor.execute(f"""
-            SELECT {col} FROM pricelist_tools
-            WHERE tool_type=? AND blades_min <= ? AND blades_max >= ?
-              AND diam_min <= ? AND diam_max >= ?
+        # 1. Pobranie ceny bazowej narzędzia dla danej geometrii
+        query_exact = """
+            SELECT price_base FROM pricelist_tools 
+            WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
             LIMIT 1
-        """, (clean_type, int(blades_key), int(blades_key), d_val, d_val))
+        """
+        cursor.execute(query_exact, (clean_type, int(blades_key), int(blades_key), d_val, d_val))
+        res = cursor.fetchone()
         
-        res2 = cursor.fetchone()
+        # Fallback dla liczby ostrzy dla frezów
+        if not res or res[0] is None:
+            query_fallback = """
+                SELECT price_base FROM pricelist_tools 
+                WHERE tool_type=? AND diam_min <= ? AND diam_max >= ?
+                LIMIT 1
+            """
+            cursor.execute(query_fallback, (clean_type, d_val, d_val))
+            res = cursor.fetchone()
+
+        if not res or res[0] is None or float(res[0]) <= 0:
+            conn.close()
+            return 0.0
+
+        base_price = float(res[0])
+
+        # 2. Pobranie rabatu ilościowego z tabeli rabatów
+        cursor.execute("""
+            SELECT discount_pct FROM pricelist_quantity_discounts
+            WHERE qty_min <= ? AND qty_max >= ?
+            ORDER BY qty_min DESC LIMIT 1
+        """, (q_val, q_val))
+        disc_row = cursor.fetchone()
+        discount_pct = float(disc_row[0]) if disc_row and disc_row[0] is not None else 0.0
+
         conn.close()
-        return float(res2[0]) if res2 and res2[0] is not None else 0.0
+
+        # Obliczenie ceny po rabacie ilościowym
+        discounted_price = base_price * (1.0 - (discount_pct / 100.0))
+        return round(max(discounted_price, 0.0), 2)
     except Exception as e:
-        print(f"Błąd bazy (tool_price): {e}")
+        print(f"Błąd bazy (get_tool_price): {e}")
         return 0.0
 ```
 

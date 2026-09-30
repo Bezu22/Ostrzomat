@@ -34,6 +34,7 @@ def init_db(connection=None):
         should_close = True
     try:
         ensure_tool_blade_columns(connection)
+        ensure_quantity_discounts_table(connection)
         ensure_tool_ranges_table(connection)
         connection.commit()
         _initialized_db_path = DB_PATH
@@ -46,6 +47,16 @@ def ensure_schema_ready():
     global _initialized_db_path
     if _initialized_db_path != DB_PATH:
         init_db()
+
+def ensure_quantity_discounts_table(connection):
+    connection.execute("""
+        CREATE TABLE IF NOT EXISTS pricelist_quantity_discounts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            qty_min INTEGER NOT NULL,
+            qty_max INTEGER NOT NULL,
+            discount_pct REAL NOT NULL
+        )
+    """)
 
 def ensure_tool_ranges_table(connection):
     connection.execute("""
@@ -85,6 +96,10 @@ def ensure_tool_blade_columns(connection):
         connection.execute("ALTER TABLE pricelist_tools ADD COLUMN blades_min INTEGER")
     if "blades_max" not in columns:
         connection.execute("ALTER TABLE pricelist_tools ADD COLUMN blades_max INTEGER")
+    if "price_base" not in columns:
+        connection.execute("ALTER TABLE pricelist_tools ADD COLUMN price_base REAL")
+        if "price_1" in columns:
+            connection.execute("UPDATE pricelist_tools SET price_base = price_1 WHERE price_base IS NULL")
     connection.execute("""
         UPDATE pricelist_tools SET blades_min=CASE
             WHEN blades IN ('2-4', '1-4') THEN 1
@@ -145,6 +160,7 @@ def get_tool_price(tool_type, blades_key, diam, qty):
     Zwraca cenę jednostkową ostrzenia z bazy danych.
     Dla wierteł zawsze wymusza wartość ostrzy = '2'.
     Dla frezów pobiera stawkę dla liczby ostrzy podanej przez użytkownika.
+    Cena bazowa jest pobierana z pricelist_tools, a rabat ilościowy z pricelist_quantity_discounts.
     """
     if not is_db_accessible(): 
         return 0.0
@@ -164,33 +180,15 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         conn = get_connection()
         cursor = conn.cursor()
 
-        cursor.execute("""
-            SELECT price FROM pricelist_tool_ranges
-                        WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
-              AND qty_min <= ? AND qty_max >= ?
-                            AND NOT ((qty_min=1 AND qty_max=1) OR (qty_min=2 AND qty_max=4)
-                                    OR (qty_min=5 AND qty_max=10) OR (qty_min=11 AND qty_max=999999))
-            ORDER BY diam_min ASC, qty_min DESC LIMIT 1
-                """, (clean_type, int(blades_key), int(blades_key), d_val, d_val, q_val, q_val))
-        dynamic_res = cursor.fetchone()
-        if dynamic_res and dynamic_res[0] is not None:
-            conn.close()
-            return float(dynamic_res[0])
-        
-        # Dobór kolumny cenowej w zależności od progu ilościowego
-        if q_val >= 11: 
-            price_col = "price_11_20"
-        elif q_val >= 5: 
-            price_col = "price_5_10"
-        elif q_val >= 2: 
-            price_col = "price_2_4"
-        else: 
-            price_col = "price_1"
+        # Sprawdzenie obecności kolumny price_base lub starszej price_1
+        columns = {row[1] for row in cursor.execute("PRAGMA table_info(pricelist_tools)")}
+        base_col = "price_base" if "price_base" in columns else "price_1"
 
         # Próba 1: Dokładne szukanie według typu, liczby ostrzy oraz zakresu średnic
         query_exact = f"""
-            SELECT {price_col} FROM pricelist_tools 
+            SELECT {base_col} FROM pricelist_tools 
             WHERE tool_type=? AND blades_min <= ? AND blades_max >= ? AND diam_min <= ? AND diam_max >= ?
+            LIMIT 1
         """
         cursor.execute(query_exact, (clean_type, int(blades_key), int(blades_key), d_val, d_val))
         res = cursor.fetchone()
@@ -199,18 +197,39 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         # szukamy wpisu bez uwzględniania konkretnej liczby ostrzy
         if not res or res[0] is None:
             query_fallback = f"""
-                SELECT {price_col} FROM pricelist_tools 
+                SELECT {base_col} FROM pricelist_tools 
                 WHERE tool_type=? AND diam_min <= ? AND diam_max >= ?
                 LIMIT 1
             """
             cursor.execute(query_fallback, (clean_type, d_val, d_val))
             res = cursor.fetchone()
 
+        if not res or res[0] is None or float(res[0]) <= 0:
+            conn.close()
+            return 0.0
+
+        base_price = float(res[0])
+
+        # Pobranie rabatu ilościowego z tabeli pricelist_quantity_discounts
+        has_disc_table = cursor.execute(
+            "SELECT count(*) FROM sqlite_master WHERE type='table' AND name='pricelist_quantity_discounts'"
+        ).fetchone()[0] > 0
+
+        discount_pct = 0.0
+        if has_disc_table:
+            cursor.execute("""
+                SELECT discount_pct FROM pricelist_quantity_discounts
+                WHERE qty_min <= ? AND qty_max >= ?
+                ORDER BY qty_min DESC LIMIT 1
+            """, (q_val, q_val))
+            disc_row = cursor.fetchone()
+            if disc_row and disc_row[0] is not None:
+                discount_pct = float(disc_row[0])
+
         conn.close()
-        
-        if res and res[0] is not None:
-            return float(res[0])
-        return 0.0
+
+        discounted_price = base_price * (1.0 - (discount_pct / 100.0))
+        return round(max(discounted_price, 0.0), 2)
         
     except Exception as e:
         print(f"Błąd bazy (get_tool_price): {e}")
