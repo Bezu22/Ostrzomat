@@ -5,57 +5,57 @@ from ui.calc_modules.base_module import BaseToolModule
 from ui.style import AppStyle
 
 
-class FrezModule(BaseToolModule):
+class OtherModule(BaseToolModule):
     """
-    Moduł kalkulatora dla frezów (walcowe, czołowe, promieniowe, kuliste itp.).
-    
+    Moduł kalkulatora dla kategorii 'Inne' (Fazowniki, Frezy z promieniem wewnętrznym itp.).
+
     Dziedziczy z BaseToolModule obsługę chwytu, powłok oraz usług dodatkowych.
-    Specyfika frezów:
-    - Wybór profilu/typu frezu z bazy danych
-    - Stałe pole identyfikacji / oznaczenia (maks. 6 znaków, np. R0.5, ALU)
+    Specyfika kategorii Inne:
+    - Wybór typu narzędzia z bazy danych (kategoria 'Inne')
+    - Stałe pole identyfikacji / oznaczenia (maks. 6 znaków, np. K90, R1.0, ALU)
     - Konfiguracja liczby ostrzy (Z) i średnicy roboczej
     """
 
     def __init__(self, parent, update_callback, settings):
         super().__init__(parent, update_callback, settings)
 
-        # ================= KOLUMNA LEWA: PARAMETRY FREZU =================
-        # 1. Typ narzędzia oraz stałe pole oznaczenia / identyfikacji (tag)
+        # ================= KOLUMNA LEWA: PARAMETRY NARZĘDZIA =================
+        # 1. Typ narzędzia oraz oznaczenie (tag)
         self.add_label(self.left_col, "Typ narzędzia / Oznaczenie (max 6 znaków):", AppStyle.get_bold_font())
         type_row = ctk.CTkFrame(self.left_col, fg_color="transparent")
         type_row.pack(fill="x", pady=self.py_small, padx=self.px)
 
-        frez_types = database.get_unique_tool_types("Frezy")
-        default_type = frez_types[0] if frez_types else "Frez walcowo-czołowy"
+        other_types = database.get_unique_tool_types("Inne")
+        default_type = other_types[0] if other_types else "Fazownik"
         self.type_combo = ctk.CTkComboBox(
             type_row,
             width=215,
-            values=frez_types if frez_types else ["Frez walcowo-czołowy"],
+            values=other_types if other_types else ["Fazownik"],
             command=self._on_type_change,
             **AppStyle.get_combo_style(),
         )
-        self.type_combo.set(settings.get("last_tool_type", default_type))
+        self.type_combo.set(settings.get("last_other_type", default_type))
         self.type_combo.configure(state="readonly")
         self.type_combo.pack(side="left")
 
         self.setup_tag_control(type_row, width=75)
 
         # 2. Liczba ostrzy (Z)
-        self.add_label(self.left_col, "Liczba ostrzy:", AppStyle.get_bold_font())
+        self.add_label(self.left_col, "Liczba ostrzy (Z):", AppStyle.get_bold_font())
         self.blades_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
-        self.blades_entry.insert(0, settings.get("last_blades", "4"))
+        self.blades_entry.insert(0, settings.get("last_other_blades", "4"))
         self.blades_entry.pack(pady=self.py_small, padx=self.px, anchor="w")
         self.blades_entry.bind("<KeyRelease>", lambda e: self.update_callback())
 
         # 3. Średnica robocza
         self.add_label(self.left_col, "Średnica robocza:", AppStyle.get_bold_font())
         self.diam_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
-        self.diam_entry.insert(0, settings.get("last_diam", "10.0"))
+        self.diam_entry.insert(0, settings.get("last_other_diam", "10.0"))
         self.diam_entry.pack(pady=self.py_small, padx=self.px, anchor="w")
         self.diam_entry.bind("<KeyRelease>", self.on_diam_change)
 
         # 4. Średnica chwytu (wspólna kontrolka z klasy bazowej)
-        self.setup_shank_controls(self.left_col, default_shank=settings.get("last_shank", "10.0"))
+        self.setup_shank_controls(self.left_col, default_shank=settings.get("last_other_shank", "10.0"))
 
         # 5. Powłoka i długość (wspólne kontrolki)
         self.setup_coating_controls(self.left_col)
@@ -72,26 +72,22 @@ class FrezModule(BaseToolModule):
         self.toggle_shank()
 
     def _on_type_change(self, _=None):
-        """Jeśli wybrano frez promieniowy i tag jest pusty, sugeruje domyślne 'R0.5'."""
-        selected_type = self.type_combo.get()
-        if "promieniowy" in selected_type.lower():
-            if hasattr(self, "tag_var") and not self.tag_var.get().strip():
-                self.tag_var.set("R0.5")
+        """Obsługa zmiany wybranego typu narzędzia."""
         self.update_callback()
 
     def set_item_data(self, item_data):
-        """Ładuje dane edytowanej pozycji frezu z koszyka do formularza."""
+        """Ładuje dane edytowanej pozycji z koszyka do formularza."""
         if not item_data:
             return
 
-        frez_types = self.type_combo.cget("values")
+        other_types = self.type_combo.cget("values")
         clean_type, tag = self.parse_type_and_tag(
-            item_data.get("type", "Frez walcowo-czołowy"),
-            known_types=frez_types,
+            item_data.get("type", other_types[0] if other_types else "Fazownik"),
+            known_types=other_types,
             explicit_tag=item_data.get("tag"),
         )
 
-        if clean_type in frez_types:
+        if clean_type in other_types:
             self.type_combo.set(clean_type)
         else:
             self.type_combo.set(item_data.get("type", clean_type))
@@ -158,10 +154,10 @@ class FrezModule(BaseToolModule):
 
             # Zapisanie ostatnich ustawień do pamięci podręcznej
             database.save_user_settings({
-                "last_tool_type": t_type,
-                "last_blades": blades,
-                "last_diam": diam,
-                "last_shank": shank,
+                "last_other_type": t_type,
+                "last_other_blades": blades,
+                "last_other_diam": diam,
+                "last_other_shank": shank,
             })
 
             tag = self.tag_var.get().strip() if hasattr(self, "tag_var") else ""
@@ -170,7 +166,7 @@ class FrezModule(BaseToolModule):
             return {
                 "type": display_type,
                 "tag": tag,
-                "tool_category": "Frezy",
+                "tool_category": "Inne",
                 "diam": diam,
                 "shank_diam": shank,
                 "shank_override": self.shank_override.get(),
@@ -189,5 +185,5 @@ class FrezModule(BaseToolModule):
                 "total_extra": e_r_total,
             }
         except Exception as e:
-            print(f"Błąd w module FrezModule: {e}")
+            print(f"Błąd w module OtherModule: {e}")
             return None

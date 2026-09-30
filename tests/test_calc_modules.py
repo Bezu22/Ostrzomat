@@ -4,6 +4,7 @@ import customtkinter as ctk
 from ui.calc_modules.base_module import BaseToolModule
 from ui.calc_modules.frez_module import FrezModule
 from ui.calc_modules.drill_module import DrillModule
+from ui.calc_modules.other_module import OtherModule
 from ui.calc_modules.special_module import SpecialModule
 
 
@@ -37,6 +38,7 @@ class TestCalcModules(unittest.TestCase):
         data = module.get_full_item_data(run_validation=False)
         self.assertIsInstance(data, dict)
         self.assertIn("type", data)
+        self.assertIn("tag", data)
         self.assertIn("diam", data)
         self.assertIn("shank_diam", data)
         self.assertIn("z", data)
@@ -46,6 +48,69 @@ class TestCalcModules(unittest.TestCase):
         self.assertIn("coat_name", data)
         self.assertIn("services_status", data)
         self.assertIn("services_qty", data)
+        module.destroy()
+
+    def test_other_module_data_structure_and_tag(self):
+        """Weryfikuje moduł kategorii Inne (Fazownik, Frez z prom. wew.) oraz dołączanie taga."""
+        dummy_cb = lambda: None
+        settings = {}
+        module = OtherModule(self.root, dummy_cb, settings)
+
+        module.type_combo.set("Fazownik")
+        module.tag_var.set("K90")
+        module.diam_entry.delete(0, "end")
+        module.diam_entry.insert(0, "10.0")
+        module.blades_entry.delete(0, "end")
+        module.blades_entry.insert(0, "4")
+        module.qty_entry.delete(0, "end")
+        module.qty_entry.insert(0, "2")
+
+        data = module.get_full_item_data(run_validation=False)
+        self.assertIsInstance(data, dict)
+        self.assertEqual(data["tool_category"], "Inne")
+        self.assertEqual(data["tag"], "K90")
+        self.assertEqual(data["type"], "Fazownik K90")
+        self.assertGreater(data["tool_unit"], 0.0)
+        self.assertGreater(data["total_tool"], 0.0)
+        module.destroy()
+
+    def test_tag_length_limit(self):
+        """Weryfikuje ograniczenie pola identyfikacyjnego do maksymalnie 6 znaków."""
+        dummy_cb = lambda: None
+        settings = {}
+        module = FrezModule(self.root, dummy_cb, settings)
+
+        module.tag_var.set("123456789")
+        self.assertEqual(module.tag_var.get(), "123456")
+        module.destroy()
+
+    def test_parse_type_and_tag(self):
+        """Weryfikuje rozdzielanie nazwy na typ i krótki tag identyfikacyjny."""
+        dummy_cb = lambda: None
+        settings = {}
+        module = FrezModule(self.root, dummy_cb, settings)
+
+        known = ["Fazownik", "Frez prosty", "Frez promieniowy"]
+        clean, tag = module.parse_type_and_tag("Fazownik K90", known_types=known)
+        self.assertEqual(clean, "Fazownik")
+        self.assertEqual(tag, "K90")
+
+        clean, tag = module.parse_type_and_tag("Frez prosty ALU", known_types=known)
+        self.assertEqual(clean, "Frez prosty")
+        self.assertEqual(tag, "ALU")
+
+        clean, tag = module.parse_type_and_tag("Frez promieniowy R0.5", known_types=known)
+        self.assertEqual(clean, "Frez promieniowy")
+        self.assertEqual(tag, "R0.5")
+
+        clean, tag = module.parse_type_and_tag("Frez prosty", known_types=known)
+        self.assertEqual(clean, "Frez prosty")
+        self.assertEqual(tag, "")
+
+        clean, tag = module.parse_type_and_tag("Specjalne KORPUS", explicit_tag="KORPUS")
+        self.assertEqual(clean, "Specjalne")
+        self.assertEqual(tag, "KORPUS")
+
         module.destroy()
 
     def test_drill_module_standard_and_step(self):

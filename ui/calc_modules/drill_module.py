@@ -21,15 +21,15 @@ class DrillModule(BaseToolModule):
         self._is_loading_data = False
 
         # ================= KOLUMNA LEWA: PARAMETRY WIERTŁA =================
-        # 1. Typ narzędzia oraz wybór stopni (dla stopniowych)
-        self.add_label(self.left_col, "Typ narzędzia:", AppStyle.get_bold_font())
+        # 1. Typ narzędzia, oznaczenie oraz wybór stopni (dla stopniowych)
+        self.add_label(self.left_col, "Typ narzędzia / Oznaczenie (max 6 znaków):", AppStyle.get_bold_font())
         type_frame = ctk.CTkFrame(self.left_col, fg_color="transparent")
         type_frame.pack(fill="x", pady=self.py_small, padx=self.px)
 
         drill_types = database.get_unique_tool_types("Wiertla")
         self.type_combo = ctk.CTkComboBox(
             type_frame,
-            width=200,
+            width=150,
             values=drill_types if drill_types else ["Wiertło N"],
             command=self._on_type_change,
             **AppStyle.get_combo_style(),
@@ -38,10 +38,13 @@ class DrillModule(BaseToolModule):
         self.type_combo.configure(state="readonly")
         self.type_combo.pack(side="left")
 
+        # Stałe pole oznaczenia (maks. 6 znaków, np. ALU, D12)
+        self.setup_tag_control(type_frame, width=70)
+
         # Wybór liczby stopni (2, 3, 4) dla wiertła stopniowego
         self.steps_combo = ctk.CTkComboBox(
             type_frame,
-            width=80,
+            width=65,
             values=["2", "3", "4"],
             command=self._on_steps_change,
             **AppStyle.get_combo_style(),
@@ -158,7 +161,7 @@ class DrillModule(BaseToolModule):
     def _on_type_change(self, _=None):
         """Przełącza widok między pojedynczą średnicą a polami stopni d1..d4."""
         if self.is_step_drill():
-            self.steps_combo.pack(side="left", padx=(10, 0))
+            self.steps_combo.pack(side="left", padx=(6, 0))
             self.diam_entry.pack_forget()
             self.step_diams_frame.pack(
                 after=self.diam_label,
@@ -189,11 +192,19 @@ class DrillModule(BaseToolModule):
 
         self._is_loading_data = True
         try:
-            t_type = item_data.get("type", "Wiertło N")
-            if t_type in self.type_combo.cget("values"):
-                self.type_combo.set(t_type)
+            drill_types = self.type_combo.cget("values")
+            clean_type, tag = self.parse_type_and_tag(
+                item_data.get("type", "Wiertło N"),
+                known_types=drill_types,
+                explicit_tag=item_data.get("tag"),
+            )
+            if clean_type in drill_types:
+                self.type_combo.set(clean_type)
             else:
-                self.type_combo.set("Wiertło N")
+                self.type_combo.set(item_data.get("type", clean_type))
+
+            if hasattr(self, "tag_var"):
+                self.tag_var.set(tag)
 
             self._on_type_change()
 
@@ -290,8 +301,13 @@ class DrillModule(BaseToolModule):
                 "last_drill_shank": shank,
             })
 
+            tag = self.tag_var.get().strip() if hasattr(self, "tag_var") else ""
+            display_type = self.format_tool_type_with_tag(t_type)
+
             return {
-                "type": t_type,
+                "type": display_type,
+                "tag": tag,
+                "tool_category": "Wiertla",
                 "diam": diam,
                 "shank_diam": shank,
                 "shank_override": self.shank_override.get(),

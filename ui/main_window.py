@@ -129,6 +129,18 @@ class OstrzomatApp(ctk.CTk):
         )
         self.btn_drill.pack(fill="x", padx=15, pady=(0, 10))
 
+        self.btn_other = ctk.CTkButton(
+            self.sidebar_frame,
+            text="➕ DODAJ INNE",
+            height=44,
+            font=AppStyle.FONT_BOLD,
+            fg_color=AppStyle.COLOR_PRIMARY,
+            hover_color=AppStyle.COLOR_PRIMARY_HOVER,
+            text_color=AppStyle.COLOR_TEXT_LIGHT,
+            command=lambda: self.open_calc("Inne")
+        )
+        self.btn_other.pack(fill="x", padx=15, pady=(0, 10))
+
         self.btn_special = ctk.CTkButton(
             self.sidebar_frame,
             text="➕ DODAJ SPECJALNE",

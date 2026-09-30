@@ -66,6 +66,71 @@ class BaseToolModule(ctk.CTkFrame):
         lbl.pack(pady=(AppStyle.PAD_SMALL, 0), padx=self.px, anchor="w")
         return lbl
 
+    def setup_tag_control(self, parent_row_frame, width=80):
+        """
+        Tworzy małe, stałe pole identyfikacji narzędzia (maks. 6 znaków, np. R0.5, ALU, K90).
+        Wartość ta trafia do opisu narzędzia w koszyku i na wycenie.
+        """
+        self.tag_var = ctk.StringVar(value="")
+
+        def _on_tag_change(*args):
+            val = self.tag_var.get()
+            if len(val) > 6:
+                self.tag_var.set(val[:6])
+                return
+            self.update_callback()
+
+        self.tag_var.trace_add("write", _on_tag_change)
+
+        self.tag_entry = ctk.CTkEntry(
+            parent_row_frame,
+            width=width,
+            textvariable=self.tag_var,
+            placeholder_text="Oznacz.",
+            **AppStyle.get_entry_style(),
+        )
+        self.tag_entry.pack(side="left", padx=(8, 0))
+        return self.tag_entry
+
+    def format_tool_type_with_tag(self, base_type):
+        """Dołącza wpisaną krótką identyfikację (np. 'ALU', 'K90', 'R0.5') do nazwy typu."""
+        tag = ""
+        if hasattr(self, "tag_var"):
+            tag = self.tag_var.get().strip()
+        elif hasattr(self, "tag_entry"):
+            tag = self.tag_entry.get().strip()
+        if tag:
+            return f"{base_type} {tag}"
+        return base_type
+
+    def parse_type_and_tag(self, raw_type, known_types=None, explicit_tag=None):
+        """
+        Rozdziela pełną nazwę narzędzia na czysty typ bazowy oraz krótki identyfikator (tag).
+        Obsługuje zarówno nowe pozycje z polem 'tag', jak i starsze zapisy (np. 'Frez promieniowy R0.5').
+        """
+        if explicit_tag is not None and str(explicit_tag).strip():
+            tag = str(explicit_tag).strip()
+            clean_type = str(raw_type).strip()
+            if clean_type.endswith(" " + tag):
+                clean_type = clean_type[:-len(tag)-1].strip()
+            return clean_type, tag[:6]
+
+        raw_type = str(raw_type or "").strip()
+        if known_types:
+            for kt in sorted(known_types, key=len, reverse=True):
+                if raw_type == kt:
+                    return kt, ""
+                if raw_type.startswith(kt + " "):
+                    return kt, raw_type[len(kt)+1:].strip()[:6]
+
+        # Fallback dla starszych zapisów promienia R
+        import re
+        match = re.search(r"^(.*?)\s+R([\d\.,]+)$", raw_type, re.IGNORECASE)
+        if match:
+            return match.group(1).strip(), f"R{match.group(2).replace(',', '.')}"[:6]
+
+        return raw_type, ""
+
     def setup_shank_controls(self, parent_frame, default_shank="10.0"):
         """
         Buduje kontrolki średnicy chwytu: pole tekstowe oraz checkbox
@@ -393,6 +458,14 @@ class BaseToolModule(ctk.CTkFrame):
         if "qty" in item_data and hasattr(self, "qty_entry"):
             self.qty_entry.delete(0, "end")
             self.qty_entry.insert(0, str(item_data["qty"]))
+
+        if "tag" in item_data:
+            tag_val = str(item_data.get("tag") or "")
+            if hasattr(self, "tag_var"):
+                self.tag_var.set(tag_val)
+            elif hasattr(self, "tag_entry"):
+                self.tag_entry.delete(0, "end")
+                self.tag_entry.insert(0, tag_val)
 
         if "shank_override" in item_data:
             self.shank_override.set(bool(item_data["shank_override"]))

@@ -81,7 +81,7 @@ System został zaprojektowany w oparciu o zasady separacji odpowiedzialności (*
 |                    WARSTWA PREZENTACJI (UI)                          |
 |  - OstrzomatApp (main_window.py): zarządca layoutu, menu boczne       |
 |  - BaseToolModule (base_module.py): polimorficzna baza kalkulatorów   |
-|  - FrezModule / DrillModule / SpecialModule: kalkulatory dedykowane   |
+|  - FrezModule / DrillModule / OtherModule / SpecialModule             |
 |  - CartTable / CartFooter: koszyk, rabaty, podsumowania               |
 |  - ClientSelectionModal: książka adresowa / CRM                       |
 |  - ExportReportModal: konfigurator eksportu PDF/Word                  |
@@ -138,30 +138,40 @@ Zamiast zmuszać użytkownika do operowania na tabelach SQLite lub tworzenia sko
 # 3. SZCZEGÓŁOWY OPIS MODUŁÓW FUNKCJONALNYCH
 
 ### 3.1. Moduł kalkulacji frezów (`ui/calc_modules/frez_module.py`)
-Obsługuje frezy węglikowe walcowo-czołowe, frezy z promieniem naroża (*bull nose*) oraz frezy kuliste (*ball nose*). 
+Obsługuje frezy węglikowe (proste, promieniowe, kuliste, stożkowe itp.).
 - Pozwala na wybór geometrii z dynamicznej listy pobieranej z bazy danych.
+- Posiada stałe pole identyfikacji / oznaczenia (tag maks. 6 znaków, np. `R0.5`, `ALU`), które automatycznie dołącza się do opisu narzędzia w koszyku i na wycenie.
 - Obsługuje liczbę ostrzy od 1 do 8 (w tym zakresy znormalizowane: ostrza 1-4 oraz 5-99).
-- Integruje wyliczanie naddatku za ponadnormatywne wykruszenia czoła.
+- Integruje wyliczanie naddatku za ponadnormatywne wykruszenia czoła (+5%).
 
 ### 3.2. Moduł kalkulacji wierteł (`ui/calc_modules/drill_module.py`)
-Dedykowany narzędziom otworowym (wiertła kręte, wiertła ze stopniem, wiertła z chłodzeniem wewnętrznym).
+Dedykowany narzędziom otworowym (wiertła standardowe oraz wiertła stopniowe z wyborem 2, 3 lub 4 stopni).
 - W odróżnieniu od frezów, zgodnie ze standardami technologicznymi wierteł monolitycznych, system **sztywno wymusza liczbę ostrzy $Z=2$** w zapytaniach SQL do bazy cennika.
-- Zawiera dodatkowe selektory specyficzne dla wierteł: kąt wierzchołkowy (np. $118^\circ$, $135^\circ$, $140^\circ$) oraz rodzaj węglika/chłodzenia.
+- Zawiera stałe pole krótkiej identyfikacji narzędzia (tag maks. 6 znaków).
+- Dla wierteł stopniowych dynamicznie generuje pola wprowadzania średnic $d_1 \dots d_4$ i wyznacza chwyt z największego stopnia.
 
-### 3.3. Moduł narzędzi specjalnych (`ui/calc_modules/special_module.py`)
-Umożliwia kalkulację narzędzi o geometrii niestandardowej (rozwiertaki, pogłębiacze, frezy profilowe, narzędzia stopniowe złożone).
-- Elastyczny wybór parametrów z możliwością ręcznego zdefiniowania niestandardowych operacji ostrzenia.
+### 3.3. Moduł kategorii Inne (`ui/calc_modules/other_module.py`)
+Obsługuje dodatkową kategorię narzędzi zintegrowaną z cennikiem Excel (m.in. fazowniki, frezy z promieniem wewnętrznym).
+- Pobiera listę typów narzędzi z bazy danych (`category = 'Inne'`).
+- Posiada stałe pole identyfikacji (np. `K90`, `R1.0`), ułatwiające rozróżnienie wariantów narzędzia.
+- Wycenia ostrzenie na podstawie średnicy roboczej, liczby ostrzy $Z$ oraz progów rabatowych z cennika.
 
-### 3.4. Wspólna klasa bazowa `BaseToolModule` (`ui/calc_modules/base_module.py`)
+### 3.4. Moduł narzędzi specjalnych (`ui/calc_modules/special_module.py`)
+Umożliwia kalkulację narzędzi o geometrii niestandardowej (rozwiertaki, pogłębiacze, narzędzia profilowe).
+- Pozwala na wpisanie dowolnej nazwy narzędzia oraz oznaczenia wariantowego.
+- Umożliwia manualne podanie ceny jednostkowej ostrzenia ze wsparciem dla powłok, usług dodatkowych i narzutu zużycia.
+
+### 3.5. Wspólna klasa bazowa `BaseToolModule` (`ui/calc_modules/base_module.py`)
 Zaprojektowana w procesie refaktoryzacji zgodnie ze wzorcem projektowym *Template Method* i zasadą DRY (*Don't Repeat Yourself*):
 - Zawiera uniwersalny, dwukolumnowy układ siatki (*grid*).
+- **Uniwersalne pole identyfikacji narzędzia (Tag):** Stała kontrolka `setup_tag_control` o rygorystycznym limicie 6 znaków z automatycznym obcinaniem nadmiarowych znaków i dwukierunkową synchronizacją z opisem pozycji (`parse_type_and_tag`, `format_tool_type_with_tag`).
 - Enkapsuluje kontrolki średnicy chwytu z logiką zaokrągleń inżynierskich:
   $$\text{Chwyt} = \lceil D \rceil \quad (\text{dla typowych typoszeregów DIN})$$
 - Centralizuje logikę wyboru powłok: dynamicznie filtruje dostępne długości powlekania z bazy danych w oparciu o wybraną powłokę i średnicę.
 - Zarządza listą usług dodatkowych: cięcie czoła, zaniżenie średnicy z mnożnikiem krotności (np. zaniżenie o 1 stopień vs zaniżenie o 3 stopnie), polerowanie rowka, zużycie.
 - Automatycznie synchronizuje wpisaną liczbę sztuk narzędzia z polami ilościowymi w usługach dodatkowych.
 
-### 3.5. Obsługa powłok technicznych (PVD/CVD) i usług dodatkowych
+### 3.6. Obsługa powłok technicznych (PVD/CVD) i usług dodatkowych
 Nałożenie powłoki przeciwzużyciowej (np. AlTiN, TiSiN) wyceniane jest w oparciu o dwuwymiarową matrycę geometryczną:
 - Średnica maksymalna $D_{max}$ (narzędzia klasyfikowane są w przedziałach średnic, np. do 6 mm, do 10 mm, do 16 mm, do 25 mm).
 - Długość całkowita / strefa grzania w reaktorze próżniowym $L$.

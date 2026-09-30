@@ -19,12 +19,17 @@ class SpecialModule(BaseToolModule):
         super().__init__(parent, update_callback, settings)
 
         # ================= KOLUMNA LEWA: PARAMETRY NARZĘDZIA =================
-        # 1. Typ / nazwa narzędzia specjalnego
-        self.add_label(self.left_col, "Typ narzędzia:", AppStyle.get_bold_font())
-        self.type_entry = ctk.CTkEntry(self.left_col, width=300, **AppStyle.get_entry_style())
+        # 1. Typ / nazwa narzędzia specjalnego oraz stałe pole oznaczenia
+        self.add_label(self.left_col, "Typ narzędzia / Oznaczenie (max 6 znaków):", AppStyle.get_bold_font())
+        type_row = ctk.CTkFrame(self.left_col, fg_color="transparent")
+        type_row.pack(fill="x", pady=self.py_small, padx=self.px)
+
+        self.type_entry = ctk.CTkEntry(type_row, width=215, **AppStyle.get_entry_style())
         self.type_entry.insert(0, settings.get("last_special_type", "Specjalne"))
-        self.type_entry.pack(pady=self.py_small, padx=self.px, anchor="w")
+        self.type_entry.pack(side="left")
         self.type_entry.bind("<KeyRelease>", lambda e: self.update_callback())
+
+        self.setup_tag_control(type_row, width=75)
 
         # 2. Liczba ostrzy
         self.add_label(self.left_col, "Liczba ostrzy:", AppStyle.get_bold_font())
@@ -69,8 +74,16 @@ class SpecialModule(BaseToolModule):
         if not item_data:
             return
 
+        raw_type = item_data.get("type", "Specjalne")
+        clean_type, tag = self.parse_type_and_tag(
+            raw_type,
+            explicit_tag=item_data.get("tag"),
+        )
         self.type_entry.delete(0, "end")
-        self.type_entry.insert(0, item_data.get("type", "Specjalne"))
+        self.type_entry.insert(0, clean_type)
+
+        if hasattr(self, "tag_var"):
+            self.tag_var.set(tag)
 
         if "z" in item_data:
             self.blades_entry.delete(0, "end")
@@ -155,8 +168,12 @@ class SpecialModule(BaseToolModule):
                 "last_special_unit_price": unit_price_raw,
             })
 
+            tag = self.tag_var.get().strip() if hasattr(self, "tag_var") else ""
+            display_type = self.format_tool_type_with_tag(t_type)
+
             return {
-                "type": t_type,
+                "type": display_type,
+                "tag": tag,
                 "tool_category": "Specjalne",
                 "diam": diam,
                 "shank_diam": shank,

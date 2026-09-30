@@ -168,17 +168,25 @@ def get_tool_price(tool_type, blades_key, diam, qty):
         d_val = float(diam)
         q_val = int(qty)
         
-        # Wyczyszczenie nazwy typu z przedrostków (np. 'Frez promieniowy R0.5' -> 'Frez promieniowy')
-        clean_type = str(tool_type).split(" R")[0].strip()
-        
+        ensure_schema_ready()
+        conn = get_connection()
+        cursor = conn.cursor()
+
+        # Wyczyszczenie nazwy typu z dopisanego oznaczenia/taga (np. 'Fazownik K90' -> 'Fazownik')
+        clean_type = str(tool_type or "").strip()
+        cursor.execute("SELECT DISTINCT tool_type FROM pricelist_tools")
+        known_types = sorted([r[0] for r in cursor.fetchall() if r[0]], key=len, reverse=True)
+        for kt in known_types:
+            if clean_type == kt or clean_type.startswith(kt + " "):
+                clean_type = kt
+                break
+        else:
+            clean_type = clean_type.split(" R")[0].strip()
+
         # Zgodnie z założeniem: dla wierteł zawsze wymuszamy liczbę ostrzy Z = 2
         wiertla_typy = ["Wiertla", "Wiertła", "Wiertlo", "Wiertło", "Wiertła stopniowe", "Wiertło stopniowe"]
         if any(w.lower() in clean_type.lower() for w in wiertla_typy):
             blades_key = "2"
-        
-        ensure_schema_ready()
-        conn = get_connection()
-        cursor = conn.cursor()
 
         # Sprawdzenie obecności kolumny price_base lub starszej price_1
         columns = {row[1] for row in cursor.execute("PRAGMA table_info(pricelist_tools)")}
