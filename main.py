@@ -8,6 +8,16 @@ from pathlib import Path
 if getattr(sys, 'frozen', False):
     os.chdir(Path(sys.executable).resolve().parent)
 
+# Nadanie procesowi unikalnego AppUserModelID w systemie Windows,
+# dzięki czemu pasek zadań Windows przypisuje ikonie dedykowaną tożsamość aplikacji
+# i nie zastępuje jej domyślną ikoną procesu hosta przy minimalizacji.
+if sys.platform == 'win32':
+    try:
+        import ctypes
+        ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID('ostrzomat.cad.v02')
+    except Exception:
+        pass
+
 from ui.main_window import OstrzomatApp
 
 if __name__ == "__main__":

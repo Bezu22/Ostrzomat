@@ -30,9 +30,9 @@ Aplikacja działa w modelu lokalnym (baza danych i cennik znajdują się na stan
 | Plik / Katalog | Opis i przeznaczenie |
 | :--- | :--- |
 | `Ostrzomat.exe` (lub `main.py`) | Główny plik uruchomieniowy programu. |
-| `icon.ico` | Ikona aplikacji wyświetlana w systemie i na pasku zadań. |
+| `icon.ico` | Ikona aplikacji (wersja wielorozdzielcza od 16x16 do 256x256 px). |
 | `data/` | **Kluczowy katalog danych.** Musi znajdować się w tym samym folderze co plik wykonywalny! |
-| `data/cennik.xlsx` | Arkusz kalkulacyjny ze stawkami ostrzenia, powłok i usług. Użytkownik ma pełną swobodę jego edycji. |
+| `data/cennik.xlsx` | Arkusz kalkulacyjny ze stawkami ostrzenia, powłok, usług i rabatów. Użytkownik ma pełną swobodę jego edycji. |
 | `data/ostrzomat.db` | Baza SQLite przechowująca zindeksowany cennik, bazę klientów i historię. |
 | `data/cart_state.json` | Automatycznie zapisywany stan bieżącego koszyka (zapobiega utracie danych przy przypadkowym zamknięciu). |
 
@@ -40,38 +40,44 @@ Aplikacja działa w modelu lokalnym (baza danych i cennik znajdują się na stan
 
 ## 2. Interfejs użytkownika i obsługa wyceny
 
-Ekran programu podzielony jest na dwa współpracujące obszary:
-1. **Pasek boczny (Sidebar)** — menu wyboru modułów narzędziowych oraz operacji globalnych.
-2. **Tabela wyceny (Koszyk)** — centralny obszar roboczy prezentujący aktualnie skalkulowane pozycje i podsumowanie finansowe.
+Ekran programu podzielony jest na logiczne obszary robocze:
+1. **Pasek boczny (Sidebar)** — menu wyboru modułów kalkulacyjnych oraz narzędzia zarządzania plikiem cennika.
+2. **Pasek górny (Nagłówek kontrahenta)** — wybór i podgląd aktywnego klienta.
+3. **Tabela wyceny (Koszyk)** — centralny obszar roboczy prezentujący listę wycenianych pozycji.
+4. **Stopka koszyka (Pasek akcji)** — operacje na zaznaczonych pozycjach, zapis/czyszczenie koszyka, eksport dokumentów i podsumowanie finansowe.
 
-### 2.1. Przyciski paska bocznego (Sidebar)
-* **[👤 Klient: ...]**: Otwiera okno wyboru kontrahenta z bazy danych. Wyszukiwarka pozwala na filtrowanie po nazwie, NIP lub mieście, a także dodanie nowej firmy do bazy.
-* **[Frezy]**: Otwiera moduł wyceny frezów walcowo-czołowych, z czołem kulistym, promieniowych i zgrubnych.
-* **[Wiertła]**: Otwiera moduł wyceny wierteł krętych monolitycznych oraz wierteł wielostopniowych (2, 3 lub 4 stopnie).
-* **[Inne]**: Moduł narzędzi uzupełniających: fazowniki, pogłębiacze, frezy z promieniem wewnętrznym (wklęsłym).
-* **[Specjale]**: Moduł kalkulacji narzędzi niestandardowych, modyfikacji i prototypów z ręcznie wprowadzaną stawką jednostkową.
-* **[📊 Edytuj cennik]**: Bezpośrednio otwiera plik `data/cennik.xlsx` w programie Microsoft Excel.
-* **[🗑️ Nowy koszyk]**: Czyści listę narzędzi i zeruje kalkulację po uprzednim potwierdzeniu.
-* **[📄 Generuj ofertę]**: Uruchamia kreator generowania gotowej oferty handlowej (PDF / DOCX).
+### 2.1. Pasek boczny (Sidebar)
+* **[➕ DODAJ FREZ]**: Otwiera kalkulator dedykowany frezom walcowo-czołowym, z czołem kulistym, promieniowym oraz frezom zgrubnym.
+* **[➕ DODAJ WIERTŁO]**: Otwiera kalkulator wierteł krętych monolitycznych oraz wierteł wielostopniowych (od 2 do 4 stopni średnic).
+* **[➕ DODAJ INNE]**: Moduł dedykowany fazownikom, pogłębiaczom stożkowym i frezom z promieniem wewnętrznym (wklęsłym).
+* **[➕ DODAJ SPECJALNE]**: Umożliwia wycenę narzędzi niestandardowych, zmodyfikowanych i prototypów z ręcznym określeniem stawki jednostkowej.
+* **[⚙ CENNIK]**: Bezpośrednio otwiera plik `data/cennik.xlsx` w programie Microsoft Excel w celu edycji stawek.
+* **[↻ SPRAWDŹ I PRZEŁADUJ CENNIK]**: Ręczne wymuszenie ponownej walidacji i załadowania cennika do pamięci podręcznej programu.
 
-### 2.2. Zarządzanie pozycjami w koszyku
-* **Edycja pozycji:** Kliknij dwukrotnie (**Double-Click**) lewym przyciskiem myszy na wierszu w tabeli. Dane pozycji zostaną automatycznie załadowane do formularza modułu, umożliwiając zmianę ilości, parametrów lub usług.
-* **Usuwanie pozycji:** Kliknij czerwoną ikonę usuwania na końcu wybranego wiersza.
-* **Dodawanie uwag technicznych [📝 Uwagi]:** Zaznacz pozycję i kliknij przycisk uwag, aby dopisać wytyczne technologiczne (np. *"Skrócić część roboczą o 3mm"*, *"Promień R0.5"*, *"Powlekać tylko do połowy rowka"*). Uwagi te trafią bezpośrednio do generowanego dokumentu.
-* **Pasek podsumowania (Stopka):** W czasie rzeczywistym aktualizuje wartość netto zlecenia, stawkę VAT (23%), kwotę brutto oraz sumaryczną liczbę narzędzi.
+### 2.2. Pasek górny (Wybór kontrahenta)
+* **Przycisk [👤 Klient: ...]**: Znajduje się w górnej belce nad tabelą koszyka. Kliknięcie otwiera wyszukiwarkę kontrahentów z bazy danych z możliwością natychmiastowego dodania nowej firmy (Nazwa, NIP, Adres, Telefon, E-mail).
+
+### 2.3. Tabela wyceny i operacje w stopce (Koszyk pozycji)
+Tabela w centralnej części okna prezentuje listę wszystkich skalkulowanych narzędzi. Każdy wiersz zawiera dokładne rozbicie kosztów: cenę jednostkową i łączną za ostrzenie, powłokę oraz usługi dodatkowe.
+
+**Zasady obsługi pozycji w koszyku:**
+1. **Edycja pozycji:** Aby edytować pozycję, zaznacz dany wiersz w tabeli (klikając na niego), a następnie kliknij przycisk **[Edytuj pozycję]** znajdujący się w stopce pod tabelą. Wszystkie parametry narzędzia zostaną załadowane z powrotem do formularza kalkulatora.
+2. **Usuwanie pozycji:** Zaznacz pozycję i kliknij przycisk **[Usuń zaznaczone]** lub czerwoną ikonę usuwania na końcu wiersza.
+3. **Uwagi techniczne [📝 Uwagi]:** Zaznacz pozycję i kliknij przycisk uwag, aby wprowadzić uwagi technologiczne. Wprowadzone uwagi znajdą się bezpośrednio na raporcie końcowym obok nazwy pozycji.
+4. **Zarządzanie koszykiem:** W stopce dostępne są przyciski **[Nowy koszyk]** (czyszczenie aktualnej kalkulacji) oraz **[Zapisz koszyk]** (zapis bieżącego stanu).
+5. **Pasek podsumowania (Stopka):** Na dole ekranu wyświetla w czasie rzeczywistym łączną wartość netto, naliczony podatek VAT (23%), kwotę brutto oraz sumaryczną liczbę sztuk w zleceniu.
 
 ---
 
 ## 3. Moduły kalkulacyjne narzędzi — Parametry i funkcje
 
-### 3.1. Uniwersalne pole identyfikatora / taga (max 6 znaków)
-W każdym module obok listy wyboru typu narzędzia znajduje się uniwersalne pole tekstowe z limitem **6 znaków**. Pozwala ono na szybką i trwałą identyfikację detalu:
-* **Dla fazowników:** określenie kąta stożka, np. `K90`, `K60`, `K120`.
-* **Dla frezów promieniowych:** określenie promienia naroża, np. `R0.5`, `R1.0`, `R2.5`.
-* **Dla przeznaczenia materiałowego:** np. `ALU`, `INOX`, `STAL`, `GRAF`.
-* **Dla narzędzi specjalnych:** np. `KORP1`, `MOD02`.
-
-Wartość taga jest automatycznie łączona z typem narzędzia w tabeli koszyka oraz na wydruku oferty (np. *„Fazownik K90”*, *„Frez walcowo-czołowy ALU”*).
+### 3.1. Pole identyfikatora / taga (max 6 znaków)
+> **Wskazówka:** W każdym module obok wyboru typu narzędzia znajduje się kompaktowe pole tekstowe o stałym limicie 6 znaków. Umożliwia ono natychmiastowe spersonalizowanie i rozróżnienie pozycji:
+> * **Dla fazowników:** określenie kąta stożka, np. `K90`, `K60`, `K120`.
+> * **Dla frezów promieniowych:** określenie promienia naroża, np. `R0.5`, `R1.0`, `R2.5`.
+> * **Dla rozróżnienia przeznaczenia materiałowego:** np. `ALU`, `INOX`, `STAL`, `GRAF`.
+> * **Dla narzędzi specjalnych:** np. `KORP1`, `MOD02`.  
+> Wartość wpisana w tagu automatycznie łączy się z nazwą narzędzia w koszyku i na wydruku raportu (np. *„Fazownik K90”*, *„Frez walcowo-czołowy ALU”*).
 
 ### 3.2. Reguła parzystości chwytu
 * Program automatycznie zaokrągla średnicę chwytu ($D$) w górę do najbliższej **parzystej liczby całkowitej** względem średnicy roboczej ($d$):
@@ -82,19 +88,18 @@ Wartość taga jest automatycznie łączona z typem narzędzia w tabeli koszyka 
 * Jeśli narzędzie posiada nietypowy chwyt (np. redukowany), zaznacz pole nadpisania i wpisz pożądaną wartość.
 
 ### 3.3. Wiertła wielostopniowe
-Po zaznaczeniu opcji *„Wiertło stopniowe”* w module wierteł użytkownik wskazuje liczbę stopni (od 2 do 4) oraz wpisuje poszczególne średnice ($d_1, d_2, d_3, d_4$). Program automatycznie odnajduje największą średnicę ($d_{max}$), która staje się bazą kalkulacji chwytu, ostrzenia i strefy powlekania.
+Po wybraniu w module wierteł opcji *„Wiertło stopniowe”* pojawia się wybór liczby stopni (2, 3 lub 4) oraz dynamiczne pola średnic ($d_1..d_4$). Program automatycznie wyznacza największą średnicę ($d_{max}$), która stanowi bazę do kalkulacji powłoki, chwytu i ostrzenia.
 
 ### 3.4. Powłoki PVD i strefy powlekania
-Użytkownik wybiera rodzaj powłoki (np. *TiN*, *TiAlN*, *AlTiN*, *DLC*) oraz długość strefy powlekania (*50 mm*, *100 mm*, *150 mm*, *200 mm*). Koszt nakładania powłoki kalkulowany jest precyzyjnie na podstawie średnicy i wybranej długości.
+Użytkownik wybiera rodzaj powłoki (np. *TiN*, *TiAlN*, *AlTiN*, *DLC*) oraz długość strefy powlekania (*50 mm*, *100 mm*, *150 mm*, *200 mm*). Koszt powłoki wyliczany jest precyzyjnie na podstawie średnicy chwytu i długości strefy.
 
-### 3.5. Niezależne ilości dla usług dodatkowych
-Każda operacja dodatkowa posiada własne, niezależne pole ilości sztuk:
-* **Cięcie / odcinanie zniszczonego czoła**
-* **Opuszczenie średnicy / podszlifowanie szyjki** (wraz z mnożnikiem skomplikowania od $1\times$ do $5\times$)
-* **Ciężkie zużycie / regeneracja wykruszeń**
-* **Korekta geometrii czoła / promienia**
+### 3.5. Usługi dodatkowe i mnożnik opuszczenia szyjki
+Każda usługa dodatkowa (Cięcie, Opuszczenie średnicy / podszlifowanie szyjki, Ciężkie zużycie, Korekta czoła) posiada **własne, niezależne pole ilości sztuk**. Pozwala to przypisać daną operację tylko do części partii.
 
-Dzięki temu w partii 10 sztuk narzędzi można przypisać np. cięcie tylko dla 2 najbardziej zużytych sztuk, a opuszczenie szyjki dla 5 sztuk.
+**Zasada działania mnożnika opuszczenia szyjki (1x .. 5x):**
+* Mnożnik dotyczy **liczby wcięć / wejść szlifierskich**.
+* Klient płaci stawkę bazową za jedno wejście szlifierskie (głębokość opuszczenia do 10 mm).
+* Każde kolejne wejście (np. 20 mm, 30 mm) jest dodatkowo płatne jako kolejna wielokrotność stawki bazowej.
 
 ---
 
@@ -102,74 +107,71 @@ Dzięki temu w partii 10 sztuk narzędzi można przypisać np. cięcie tylko dla
 
 ### 4.1. Dostęp do pliku
 Plik znajduje się w katalogu: `data/cennik.xlsx`.  
-Można go otworzyć bezpośrednio z poziomu aplikacji klikając przycisk **[📊 Edytuj cennik]** w menu bocznym.
+Można go otworzyć bezpośrednio z poziomu aplikacji klikając przycisk **[⚙ CENNIK]** w menu bocznym.
 
 ### 4.2. Automatyczne wykrywanie zmian (Auto-Reload)
 Program Ostrzomat monitoruje plik Excel w czasie rzeczywistym. **Nie trzeba restartować programu po zmianie cen!**
-1. Otwórz plik w programie Excel.
-2. Zmień wartości, dodaj nowe pozycje lub zmień progi ilościowe.
-3. Kliknij **Zapisz** (`Ctrl + S`) w Excelu.
-4. Program w tle zweryfikuje poprawność pliku, zaktualizuje pamięć podręczną RAM i natychmiast przeliczy pozycje w otwartym koszyku!
+1. Otwórz plik w programie Excel (klikając `⚙ CENNIK`).
+2. Wprowadź zmiany i naciśnij **Zapisz** (`Ctrl + S`) w Excelu.
+3. Program w tle zweryfikuje poprawność pliku, zaktualizuje pamięć podręczną RAM i natychmiast przeliczy pozycje w otwartym koszyku.
 
 ### 4.3. Struktura arkuszy
 
-#### Arkusz 1: `Narzedzia`
-Definiuje stawki bazowe za ostrzenie narzędzi.
+#### Arkusz 1: `Narzędzia`
+Definiuje stawki bazowe za ostrzenie narzędzi. Przedziały ilościowe zostały wydzielone do osobnego arkusza rabatów!
 
 | Kolumna | Typ danych | Przykładowa wartość | Opis |
 | :--- | :--- | :--- | :--- |
 | `Kategoria` | Tekst | `Frezy`, `Wiertla`, `Inne` | Określa moduł, w którym pojawi się narzędzie. |
-| `Typ` | Tekst | `Frez walcowo-czołowy`, `Fazownik` | Nazwa narzędzia widoczna na listach wyboru. |
-| `Srednica_od` | Liczba | `1.0` | Początek przedziału średnicy roboczej (włącznie). |
-| `Srednica_do` | Liczba | `6.0` | Koniec przedziału średnicy roboczej (włącznie). |
-| `Ilosc_od` | Liczba całkowita | `1` | Minimalna liczba sztuk w przedziale ilościowym. |
-| `Ilosc_do` | Liczba całkowita | `3` | Maksymalna liczba sztuk (dla ostatniego wpisz np. `9999`). |
-| `Zeby` | Liczba / Tekst | `2`, `4`, `ALL` lub puste | Liczba ostrzy. Wpisz `ALL` lub zostaw puste, jeśli cena nie zależy od zębów. |
-| `Cena` | Liczba (PLN) | `35.00` | Stawka netto za sztukę w danym przedziale. |
+| `Typ narzędzia` | Tekst | `Frez walcowo-czołowy`, `Fazownik` | Dokładna nazwa narzędzia widoczna na listach wyboru. |
+| `Ostrza min` | Liczba | `1`, `2`, `4` | Dolny zakres liczby ostrzy (włącznie). |
+| `Ostrza max` | Liczba | `2`, `4`, `99` | Górny zakres liczby ostrzy (dla narzędzi uniwersalnych np. `99`). |
+| `Średnica min` | Liczba | `1.0` | Początek przedziału średnicy roboczej (włącznie). |
+| `Średnica max` | Liczba | `6.0` | Koniec przedziału średnicy roboczej (włącznie). |
+| `Cena bazowa` | Liczba (PLN) | `35.00` | Stawka bazowa netto za sztukę w danym przedziale średnic. |
 
-#### Arkusz 2: `Powloki`
-Definiuje stawki za nakładanie powłok ochronnych PVD.
+#### Arkusz 2: `Rabaty ilościowe`
+Centralna tabela progów rabatowych pozwalająca definiować zniżki procentowe dla łącznej partii zamawianych narzędzi.
 
 | Kolumna | Typ danych | Przykładowa wartość | Opis |
 | :--- | :--- | :--- | :--- |
-| `Nazwa_powloki` | Tekst | `TiAlN`, `DLC`, `AlTiN` | Nazwa handlowa powłoki widoczna na liście. |
-| `Srednica_od` | Liczba | `1.0` | Początek przedziału średnicy chwytu. |
-| `Srednica_do` | Liczba | `12.0` | Koniec przedziału średnicy chwytu. |
-| `Dlugosc_od` | Liczba | `0` | Minimalna długość powlekania. |
-| `Dlugosc_do` | Liczba | `100` | Maksymalna długość powlekania (np. 100 mm). |
+| `Ilość min` | Liczba całkowita | `1`, `4`, `11` | Dolny próg ilości sztuk w partii. |
+| `Ilość max` | Liczba całkowita | `3`, `10`, `999` | Górny próg ilości sztuk (dla ostatniego wpisz np. `999`). |
+| `Rabat %` | Liczba (%) | `0.0`, `5.0`, `10.0` | Procentowy upust od ceny bazowej za sztukę. |
+
+#### Arkusz 3: `Powłoki`
+Definiuje stawki za nakładanie powłok ochronnych PVD w zależności od średnicy i długości strefy.
+
+| Kolumna | Typ danych | Przykładowa wartość | Opis |
+| :--- | :--- | :--- | :--- |
+| `Nazwa powłoki` | Tekst | `TiAlN`, `DLC`, `AlTiN` | Nazwa handlowa powłoki. |
+| `Średnica max` | Liczba | `12.0` | Górna granica średnicy chwytu. |
+| `Długość` | Liczba | `100` | Maksymalna długość strefy powlekania (50, 100, 150, 200 mm). |
 | `Cena` | Liczba (PLN) | `22.50` | Stawka netto za powlekanie jednej sztuki. |
 
-#### Arkusz 3: `Uslugi`
+#### Arkusz 4: `Usługi`
 Definiuje stawki operacji dodatkowych.
 
 | Kolumna | Typ danych | Przykładowa wartość | Opis |
 | :--- | :--- | :--- | :--- |
-| `Nazwa_uslugi` | Tekst | `Cięcie`, `Opuszczenie szyjki` | Identyfikator operacji technologicznej. |
-| `Srednica_od` | Liczba | `1.0` | Dolna granica średnicy. |
-| `Srednica_do` | Liczba | `32.0` | Górna granica średnicy. |
-| `Cena_baza` | Liczba (PLN) | `15.00` | Stawka bazowa za wykonanie operacji. |
-
-#### Arkusz 4: `Rabaty_Ilosciowe`
-Tabela upustów procentowych naliczanych dla dużych zamówień.
-
-| Kolumna | Opis |
-| :--- | :--- |
-| `Ilosc_od` / `Ilosc_do` | Przedział sumarycznej liczby narzędzi w zleceniu. |
-| `Rabat_Procent` | Wartość zniżki (np. `5` dla 5%, `10` dla 10%). |
+| `Nazwa usługi` | Tekst | `Cięcie`, `Opuszczenie średnicy` | Identyfikator operacji technologicznej. |
+| `Parametr min` | Liczba | `1.0` | Dolna granica średnicy roboczej. |
+| `Parametr max` | Liczba | `32.0` | Górna granica średnicy roboczej. |
+| `Cena` | Liczba (PLN) | `15.00` | Stawka bazowa za wykonanie operacji. |
 
 ### 4.4. Odporność na błędy i zachowanie w przypadku luk (Fallback)
-* **Co się stanie w przypadku dziury w przedziałach ilościowych lub średnic?**  
-  Program Ostrzomat posiada inteligentny mechanizm fallbacków. Jeśli wprowadzono np. 8 sztuk narzędzia, a cennik zawiera jedynie przedziały 1–5 oraz 10–20, system automatycznie przypisze cenę z najbliższego niższego progu. Aplikacja nigdy nie zawiesza się z powodu braku dokładnego rekordu.
+* **Co się stanie w przypadku luki w cenniku?**  
+  Program Ostrzomat posiada inteligentny mechanizm fallbacków. Jeśli wprowadzono parametry niepokrywające się idealnie z żadnym przedziałem, system automatycznie dobierze stawkę z najbliższego niższego progu. Aplikacja nigdy nie zawiesza się z powodu braku dokładnego rekordu.
 * **Co się stanie w przypadku błędnego formatu danych w Excelu?**  
-  Jeśli w komórce z ceną wpisany zostanie tekst (np. *„brak”*), usunięty zostanie nagłówek kolumny lub komórka kluczowa pozostanie pusta, program wyświetli okno dialogowe z dokładnym numerem wiersza i nazwą błędnej kolumny. Baza programu nie zostanie nadpisana uszkodzonymi danymi — system kontynuuje pracę na ostatnich poprawnych stawkach.
+  Jeśli w komórce z ceną wpisany zostanie tekst, usunięty zostanie nagłówek kolumny lub komórka kluczowa pozostanie pusta, program wyświetli okno dialogowe z dokładnym numerem wiersza i nazwą błędnej kolumny. Baza programu nie zostanie uszkodzona — system kontynuuje pracę na ostatnich poprawnych stawkach.
 
 ---
 
 ## 5. Generowanie ofert i eksport dokumentów
 
-Kliknięcie przycisku **[📄 Generuj ofertę]** w menu bocznym otwiera kreator eksportu:
-1. **Format PDF:** Tworzy elegancki, gotowy do druku i wysłania dokument ofertowy z pełnym formatowaniem graficznym, tabelarycznym rozbiciem kosztów oraz stopką z miejscem na podpis.
-2. **Format Word (.docx):** Tworzy edytowalny dokument, umożliwiający dopisanie dodatkowych klauzul handlowych, terminów realizacji czy indywidualnych warunków gwarancyjnych.
+Kliknięcie przycisku **[Generuj wycenę (PDF)]** lub **[Generuj wycenę (Word)]** w stopce koszyka uruchamia eksport:
+1. **Format PDF:** Tworzy gotowy do druku i wysłania dokument ofertowy z pełnym formatowaniem graficznym, tabelarycznym rozbiciem kosztów oraz stopką z miejscem na podpis.
+2. **Format Word (.docx):** Tworzy edytowalny dokument, umożliwiający dopisanie dodatkowych klauzul handlowych, terminów realizacji czy indywidualnych ustaleń.
 
 ---
 
@@ -179,13 +181,13 @@ Kliknięcie przycisku **[📄 Generuj ofertę]** w menu bocznym otwiera kreator 
 **A:** Nie. Ostrzomat automatycznie wykrywa moment zapisania pliku `cennik.xlsx` i przeładowuje cennik w pamięci programu w ułamku sekundy.
 
 **Q: Jak dodać do programu zupełnie nowy typ narzędzia?**  
-**A:** Wystarczy otworzyć `data/cennik.xlsx`, w arkuszu `Narzedzia` dopisać wiersz z kategorią (np. `Frezy`), nową nazwą w kolumnie `Typ` (np. *„Frez baryłkowy”*) oraz stawkami. Po zapisaniu pliku nowy typ od razu pojawi się w programie.
+**A:** Wystarczy otworzyć `data/cennik.xlsx`, w arkuszu `Narzędzia` dopisać wiersz z kategorią (np. `Frezy`), nową nazwą w kolumnie `Typ narzędzia` (np. *„Frez baryłkowy”*) oraz stawkami. Po zapisaniu pliku nowy typ od razu pojawi się w programie.
 
 **Q: Jak przenieść program na inny komputer?**  
-**A:** Wystarczy skopiować cały folder z plikiem `Ostrzomat.exe` oraz podfolderem `data/`. Program jest w pełni przenośny (portable) i nie wymaga praw administratora.
+**A:** Wystarczy skopiować cały folder z plikiem `Ostrzomat.exe` oraz podfolderem `data/`. Program jest w pełni przenośny (portable) i nie wymaga instalacji żadnych dodatkowych bibliotek ani praw administratora.
 
 **Q: Gdzie zapisywane są dane klientów?**  
-**A:** W pliku bazy danych SQLite `data/ostrzomat.db`. Można go bezpiecznie archiwizować lub przenosić między stanowiskami.
+**A:** W pliku bazy danych SQLite `data/ostrzomat.db`. Można go bezpiecznie archiwizować lub kopiować między stanowiskami.
 
 ---
 *Dokumentacja opracowana dla systemu Ostrzomat v0.2. Wszelkie prawa zastrzeżone.*

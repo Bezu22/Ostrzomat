@@ -28,14 +28,22 @@ class OstrzomatApp(ctk.CTk):
         self.title("Ostrzomat v0.2")
         self.configure(fg_color=AppStyle.COLOR_BG_DARK)
 
-        # Ustawienie ikony okna i paska zadań
+        # Ustawienie ikony okna i paska zadań (obsługa wielu formatów i DPI)
         icon_path = Path("icon.ico")
         if not icon_path.exists() and getattr(sys, "frozen", False):
             base_dir = getattr(sys, "_MEIPASS", Path(sys.executable).parent)
             icon_path = Path(base_dir) / "icon.ico"
         if icon_path.exists():
             try:
+                self.iconbitmap(default=str(icon_path))
                 self.iconbitmap(str(icon_path))
+            except Exception:
+                pass
+            try:
+                from PIL import Image, ImageTk
+                ico_img = Image.open(str(icon_path))
+                self._app_icon_photo = ImageTk.PhotoImage(ico_img)
+                self.iconphoto(False, self._app_icon_photo)
             except Exception:
                 pass
 

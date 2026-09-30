@@ -353,33 +353,41 @@ def build_manual_pdf(output_path: str):
     story.append(HRFlowable(width="100%", thickness=1, color=colors.HexColor("#93C5FD"), spaceAfter=8))
     story.append(Paragraph(
         "Układ graficzny programu został zaprojektowany z zachowaniem zasad ergonomii pracy biurowej i warsztatowej. "
-        "Ekran podzielony jest na dwa kluczowe obszary: <b>Panel nawigacyjny (Sidebar)</b> po lewej stronie oraz "
-        "<b>Obszar tabeli wyceny (Koszyk)</b> po prawej stronie.",
+        "Ekran podzielony jest na logiczne obszary robocze: <b>Panel boczny (Sidebar)</b> po lewej stronie, "
+        "<b>Górny pasek kontrahenta</b>, <b>Obszar tabeli wyceny (Koszyk)</b> oraz <b>Stopkę koszyka z przyciskami akcji</b>.",
         body_style
     ))
 
-    story.append(Paragraph("Nawigacja w menu bocznym (Sidebar):", h2_style))
-    story.append(Paragraph("• <b>Wybór kontrahenta [👤 Klient]:</b> Umożliwia przypisanie wyceny do konkretnego klienta. Kliknięcie otwiera wyszukiwarkę z bazy danych z możliwością natychmiastowego dodania nowej firmy (Nazwa, NIP, Adres, Telefon, E-mail).", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [Frezy]:</b> Otwiera kalkulator dedykowany frezom walcowo-czołowym, z czołem kulistym, promieniowym oraz frezom zgrubnym.", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [Wiertła]:</b> Otwiera kalkulator wierteł krętych monolitycznych oraz wierteł wielostopniowych (od 2 do 4 stopni średnic).", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [Inne]:</b> Moduł dedykowany fazownikom, pogłębiaczom stożkowym i frezom z promieniem wewnętrznym (wklęsłym).", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [Specjale]:</b> Umożliwia wycenę narzędzi niestandardowych, zmodyfikowanych i prototypów z ręcznym określeniem stawki.", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [📊 Edytuj cennik]:</b> Bezpośrednio otwiera plik <code>data/cennik.xlsx</code> w domyślnym programie (np. Microsoft Excel) w celu aktualizacji stawek.", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [🗑️ Nowy koszyk]:</b> Czyści aktualną kalkulację po uprzednim monicie potwierdzenia użytkownika.", bullet_style))
-    story.append(Paragraph("• <b>Przycisk [📄 Generuj ofertę]:</b> Otwiera kreator eksportu gotowej oferty do formatu PDF lub Microsoft Word (.docx).", bullet_style))
+    story.append(Paragraph("Panel boczny (Sidebar):", h2_style))
+    story.append(Paragraph("• <b>[➕ DODAJ FREZ]:</b> Otwiera kalkulator dedykowany frezom walcowo-czołowym, z czołem kulistym, promieniowym oraz frezom zgrubnym.", bullet_style))
+    story.append(Paragraph("• <b>[➕ DODAJ WIERTŁO]:</b> Otwiera kalkulator wierteł krętych monolitycznych oraz wierteł wielostopniowych (od 2 do 4 stopni średnic).", bullet_style))
+    story.append(Paragraph("• <b>[➕ DODAJ INNE]:</b> Moduł dedykowany fazownikom, pogłębiaczom stożkowym i frezom z promieniem wewnętrznym (wklęsłym).", bullet_style))
+    story.append(Paragraph("• <b>[➕ DODAJ SPECJALNE]:</b> Umożliwia wycenę narzędzi niestandardowych, zmodyfikowanych i prototypów z ręcznym określeniem stawki jednostkowej.", bullet_style))
+    story.append(Paragraph("• <b>[⚙ CENNIK]:</b> Bezpośrednio otwiera plik <code>data/cennik.xlsx</code> w domyślnym programie (np. Microsoft Excel) w celu aktualizacji stawek.", bullet_style))
+    story.append(Paragraph("• <b>[↻ SPRAWDŹ I PRZEŁADUJ CENNIK]:</b> Ręczne wymuszenie ponownej walidacji i załadowania cennika do pamięci podręcznej programu.", bullet_style))
 
-    story.append(Spacer(1, 6))
-    story.append(Paragraph("Obsługa tabeli wyceny (Koszyk pozycji):", h2_style))
+    story.append(Spacer(1, 4))
+    story.append(Paragraph("Pasek górny (Wybór kontrahenta):", h2_style))
     story.append(Paragraph(
-        "Tabela w centralnej części okna prezentuje listę wszystkich skalkulowanych narzędzi. Każdy wiersz zawiera "
-        "dokładne rozbicie kosztów: cenę jednostkową i łączną za ostrzenie, powłokę oraz usługi dodatkowe.",
+        "Przycisk <b>[👤 Klient: ...]</b> znajduje się w górnym pasku bezpośrednio nad tabelą koszyka. "
+        "Kliknięcie otwiera wyszukiwarkę kontrahentów z bazy danych z możliwością filtrowania oraz natychmiastowego "
+        "dodania nowej firmy (Nazwa, NIP, Adres, Telefon, E-mail).",
         body_style
     ))
-    story.append(Paragraph("<b>Najważniejsze operacje na tabeli:</b>", body_style))
-    story.append(Paragraph("1. <b>Edycja pozycji:</b> Podwójne kliknięcie (Double-Click) na dowolnym wierszu tabeli lub zaznaczenie wiersza i ponowne kliknięcie odpowiedniego modułu powoduje załadowanie wszystkich parametrów do okna edycyjnego.", bullet_style))
-    story.append(Paragraph("2. <b>Usuwanie pozycji:</b> Kliknięcie czerwonej ikony usuwania (krzyżyka) w danym wierszu natychmiast usuwa narzędzie z wyceny i aktualizuje sumy.", bullet_style))
-    story.append(Paragraph("3. <b>Dodawanie uwag technicznych [📝 Uwagi]:</b> Pozwala przypisać do danej pozycji specyficzne wytyczne technologiczne (np. <i>'Ostrzyć tylko czoło', 'Zeszlifować wykruszenie na rowku 2mm', 'Długość strefy L=40mm'</i>). Uwagi te trafią bezpośrednio do drukowanego raportu.", bullet_style))
-    story.append(Paragraph("4. <b>Pasek podsumowania (Stopka):</b> Na dole ekranu wyświetla w czasie rzeczywistym łączną wartość netto, naliczony podatek VAT (23%), kwotę brutto oraz sumaryczną liczbę sztuk w zleceniu.", bullet_style))
+
+    story.append(Spacer(1, 4))
+    story.append(Paragraph("Obsługa tabeli wyceny i operacje w stopce (Koszyk pozycji):", h2_style))
+    story.append(Paragraph(
+        "Tabela w centralnej części okna prezentuje listę wszystkich skalkulowanych narzędzi z dokładnym rozbiciem kosztów: "
+        "ceną jednostkową i łączną za ostrzenie, powłokę oraz usługi dodatkowe.",
+        body_style
+    ))
+    story.append(Paragraph("<b>Obsługa pozycji w koszyku:</b>", body_style))
+    story.append(Paragraph("1. <b>Edycja pozycji:</b> Zaznacz pozycję w tabeli (klikając lewym przyciskiem myszy na wierszu), a następnie kliknij przycisk <b>[Edytuj pozycję]</b> znajdujący się w stopce pod tabelą. Parametry narzędzia zostaną załadowane do formularza modułu.", bullet_style))
+    story.append(Paragraph("2. <b>Usuwanie pozycji:</b> Zaznacz pozycję i kliknij przycisk <b>[Usuń zaznaczone]</b> lub czerwoną ikonę usuwania na końcu wiersza.", bullet_style))
+    story.append(Paragraph("3. <b>Uwagi techniczne [📝 Uwagi]:</b> Zaznacz pozycję i kliknij przycisk uwag, aby wprowadzić uwagi technologiczne. Wprowadzone uwagi znajdą się bezpośrednio na raporcie końcowym obok nazwy pozycji.", bullet_style))
+    story.append(Paragraph("4. <b>Zarządzanie koszykiem:</b> W stopce dostępne są przyciski <b>[Nowy koszyk]</b> (czyszczenie aktualnej kalkulacji) oraz <b>[Zapisz koszyk]</b> (zapis bieżącego stanu).", bullet_style))
+    story.append(Paragraph("5. <b>Pasek podsumowania:</b> Na dole ekranu wyświetla w czasie rzeczywistym łączną wartość netto, naliczony podatek VAT (23%), kwotę brutto oraz sumaryczną liczbę sztuk w zleceniu.", bullet_style))
 
     story.append(Spacer(1, 10))
 
@@ -395,24 +403,24 @@ def build_manual_pdf(output_path: str):
     ))
 
     story.append(create_callout(
-        "<b>NOWOŚĆ — Uniwersalne pole identyfikatora / taga (max 6 znaków):</b><br/>"
+        "<b>Pole identyfikatora / taga (max 6 znaków):</b><br/>"
         "W każdym module obok wyboru typu narzędzia znajduje się kompaktowe pole tekstowe o stałym limicie 6 znaków. "
-        "Umożliwia ono natychmiastowe spersonalizowanie pozycji, np.:<br/>"
-        "• Dla fazowników: wpisanie kąta ostrza: <code>K90</code>, <code>K60</code>, <code>K120</code>.<br/>"
+        "Umożliwia ono natychmiastowe spersonalizowanie i rozróżnienie pozycji:<br/>"
+        "• Dla fazowników: określenie kąta ostrza: <code>K90</code>, <code>K60</code>, <code>K120</code>.<br/>"
         "• Dla frezów promieniowych: oznaczenie promienia naroża: <code>R0.5</code>, <code>R1.0</code>, <code>R2.5</code>.<br/>"
         "• Dla rozróżnienia przeznaczenia materiałowego: <code>ALU</code>, <code>INOX</code>, <code>STAL</code>, <code>GRAFIT</code>.<br/>"
-        "Wartość wpisana w tagu automatycznie łączy się z nazwą narzędzia w koszyku i na wydruku (np. <i>'Fazownik K90'</i>, <i>'Frez walcowo-czołowy ALU'</i>).",
+        "Wartość wpisana w tagu automatycznie łączy się z nazwą narzędzia w koszyku i na wydruku raportu (np. <i>'Fazownik K90'</i>, <i>'Frez walcowo-czołowy ALU'</i>).",
         body_style,
         kind="tip"
     ))
     story.append(Spacer(1, 8))
 
     story.append(Paragraph("Zasady doboru parametrów:", h2_style))
-    story.append(Paragraph("• <b>Średnica robocza (d) a średnica chwytu (D):</b> Program automatycznie oblicza i zaokrągla średnicę chwytu w górę do najbliższej <b>parzystej wartości</b> (np. frez d=5.0 mm otrzymuje chwyt D=6 mm; frez d=6.2 mm otrzymuje chwyt D=8 mm). Jeżeli narzędzie posiada chwyt nietypowy (np. redukowany lub stożkowy), użytkownik może zaznaczyć pole nadpisania i wpisać dowolną średnicę chwytu.", bullet_style))
+    story.append(Paragraph("• <b>Średnica robocza (d) a średnica chwytu (D):</b> Program automatycznie oblicza i zaokrągla średnicę chwytu w górę do najbliższej <b>parzystej wartości</b> (np. frez d=5.0 mm otrzymuje chwyt D=6 mm; frez d=6.2 mm otrzymuje chwyt D=8 mm). Jeżeli narzędzie posiada chwyt nietypowy (np. redukowany), użytkownik może zaznaczyć pole nadpisania i wpisać dowolną średnicę chwytu.", bullet_style))
     story.append(Paragraph("• <b>Wiertła wielostopniowe (d1, d2, d3, d4):</b> Po wybraniu w module wierteł opcji <i>'Wiertło stopniowe'</i> pojawia się wybór liczby stopni (2, 3 lub 4) oraz dynamiczne pola średnic. Program automatycznie wyznacza największą średnicę (d_max), która stanowi bazę do kalkulacji powłoki, chwytu i ostrzenia.", bullet_style))
     story.append(Paragraph("• <b>Strefa powlekania PVD:</b> Po wyborze rodzaju powłoki (np. TiN, TiAlN, AlTiN, DLC) użytkownik określa długość strefy powlekania (50, 100, 150 lub 200 mm). Koszt powłoki wyliczany jest precyzyjnie na podstawie średnicy chwytu i długości strefy.", bullet_style))
-    story.append(Paragraph("• <b>Usługi dodatkowe z osobnymi ilościami:</b> Każda usługa (Cięcie, Opuszczenie średnicy / szyjki, Szlifowanie czoła, Ciężkie zużycie) posiada własne pole ilości sztuk. Pozwala to np. w partii 10 narzędzi skasować wykruszenie (cięcie) tylko na 2 sztukach, a opuszczenie szyjki zastosować dla 4 sztuk!", bullet_style))
-    story.append(Paragraph("• <b>Mnożnik opuszczenia szyjki (x1 .. x5):</b> Wycena operacji podszlifowania szyjki uwzględnia stopień skomplikowania i głębokość podszlifu za pomocą dedykowanego suwaka/selektora mnożnika.", bullet_style))
+    story.append(Paragraph("• <b>Usługi dodatkowe z osobnymi ilościami:</b> Każda usługa (Cięcie, Opuszczenie średnicy / szyjki, Szlifowanie czoła, Ciężkie zużycie) posiada własne pole ilości sztuk. Pozwala to przypisać daną operację tylko do wybranej liczby sztuk z partii.", bullet_style))
+    story.append(Paragraph("• <b>Mnożnik opuszczenia szyjki (x1 .. x5):</b> Dotyczy <b>liczby wcięć / wejść szlifierskich</b>. Klient płaci stawkę bazową za jedno wejście szlifierskie (głębokość opuszczenia do 10 mm), natomiast każde kolejne wejście (np. 20 mm, 30 mm) jest dodatkowo płatne zgodnie z wybranym mnożnikiem.", bullet_style))
 
     story.append(Spacer(1, 10))
 
@@ -444,24 +452,24 @@ def build_manual_pdf(output_path: str):
     excel_sheets_data = [
         [Paragraph("<b>Arkusz</b>", table_header), Paragraph("<b>Wymagane kolumny</b>", table_header), Paragraph("<b>Opis zawartości i przeznaczenie</b>", table_header)],
         [
-            Paragraph("<b>Narzedzia</b>", table_cell),
-            Paragraph("<code>Kategoria, Typ, Srednica_od, Srednica_do, Ilosc_od, Ilosc_do, Zeby, Cena</code>", table_cell),
-            Paragraph("Główny arkusz stawek ostrzenia. Definiuje widełki średnic (np. 1-6 mm), przedziały ilościowe (np. 1-3 szt., 4-10 szt.), liczbę zębów (Z) oraz stawkę netto PLN.", table_cell)
+            Paragraph("<b>Narzędzia</b>", table_cell),
+            Paragraph("<code>Kategoria, Typ narzędzia, Ostrza min, Ostrza max, Średnica min, Średnica max, Cena bazowa</code>", table_cell),
+            Paragraph("Główny arkusz stawek bazowych za ostrzenie. Definiuje widełki średnic (np. 1–6 mm), zakresy liczby ostrzy oraz stawkę bazową netto w PLN. Przedziały ilościowe wydzielono do osobnego arkusza rabatów!", table_cell)
         ],
         [
-            Paragraph("<b>Powloki</b>", table_cell),
-            Paragraph("<code>Nazwa_powloki, Srednica_od, Srednica_do, Dlugosc_od, Dlugosc_do, Cena</code>", table_cell),
+            Paragraph("<b>Rabaty ilościowe</b>", table_cell),
+            Paragraph("<code>Ilość min, Ilość max, Rabat %</code>", table_cell),
+            Paragraph("Centralna tabela progów rabatowych pozwalająca definiować zniżki procentowe dla partii zamawianych narzędzi.", table_cell)
+        ],
+        [
+            Paragraph("<b>Powłoki</b>", table_cell),
+            Paragraph("<code>Nazwa powłoki, Średnica max, Długość, Cena</code>", table_cell),
             Paragraph("Tabela stawek za nakładanie powłok ochronnych (TiN, TiAlN, DLC itp.) w zależności od średnicy narzędzia i długości roboczej powlekania.", table_cell)
         ],
         [
-            Paragraph("<b>Uslugi</b>", table_cell),
-            Paragraph("<code>Nazwa_uslugi, Srednica_od, Srednica_do, Cena_baza</code>", table_cell),
+            Paragraph("<b>Usługi</b>", table_cell),
+            Paragraph("<code>Nazwa usługi, Parametr min, Parametr max, Cena</code>", table_cell),
             Paragraph("Stawki za operacje regeneracyjne i dodatkowe: Cięcie, Opuszczenie średnicy/szyjki, Ciężkie zużycie, Korekta czoła.", table_cell)
-        ],
-        [
-            Paragraph("<b>Rabaty_Ilosciowe</b>", table_cell),
-            Paragraph("<code>Ilosc_od, Ilosc_do, Rabat_Procent</code>", table_cell),
-            Paragraph("Centralna tabela progów rabatowych pozwalająca definiować zniżki procentowe dla dużych partii ostrzonych narzędzi.", table_cell)
         ]
     ]
     t_excel = Table(excel_sheets_data, colWidths=[95, 175, 245])
@@ -479,25 +487,24 @@ def build_manual_pdf(output_path: str):
 
     story.append(Paragraph("Zasady definiowania przedziałów i odporność na luki:", h2_style))
     story.append(Paragraph(
-        "1. <b>Kolumny Kategoria i Typ:</b> Wartość w kolumnie <i>Kategoria</i> musi odpowiadać jednemu z modułów programu: "
-        "<code>Frezy</code>, <code>Wiertla</code> lub <code>Inne</code>. W kolumnie <i>Typ</i> wpisujemy dokładną nazwę narzędzia.",
+        "1. <b>Kolumny Kategoria i Typ narzędzia:</b> Wartość w kolumnie <i>Kategoria</i> musi odpowiadać jednemu z modułów programu: "
+        "<code>Frezy</code>, <code>Wiertla</code> lub <code>Inne</code>. W kolumnie <i>Typ narzędzia</i> wpisujemy dokładną nazwę narzędzia.",
         bullet_style
     ))
     story.append(Paragraph(
-        "2. <b>Kolumna Zęby (Z):</b> Jeśli dane narzędzie ma tę samą cenę bez względu na liczbę ostrzy (np. wiertła lub fazowniki), "
-        "w kolumnie <i>Zeby</i> można wpisać wartość <code>ALL</code> lub pozostawić komórkę pustą. Jeśli cena zależy od liczby ostrzy, "
-        "definiujemy osobne wiersze dla Z=2, Z=3, Z=4 itd.",
+        "2. <b>Kolumny Ostrza min / Ostrza max:</b> Definiują zakres zębów narzędzia. Jeśli narzędzie ma stałą cenę niezależnie od liczby zębów "
+        "(np. wiertła lub fazowniki), wpisujemy Ostrza min=1, Ostrza max=99.",
         bullet_style
     ))
     story.append(Paragraph(
-        "3. <b>Przedziały średnic i ilości sztuk:</b> Przedziały powinny być ciągłe (np. Średnica_od=1, Średnica_do=6; kolejny wiersz Średnica_od=6.01, Średnica_do=10). "
-        "Dla ostatniego przedziału ilościowego warto wpisać dużą wartość końcową, np. Ilosc_od=21, Ilosc_do=9999.",
+        "3. <b>Przedziały średnic i rabatowanie:</b> Przedziały średnic powinny być ciągłe (np. Średnica min=1, Średnica max=6; kolejny wiersz Średnica min=6.01, Średnica max=10). "
+        "Wszelkie zniżki ilościowe konfiguruje się w arkuszu <i>Rabaty ilościowe</i>.",
         bullet_style
     ))
     story.append(Paragraph(
         "4. <b>Co się stanie w przypadku 'dziury' w cenniku?</b> System Ostrzomat wyposażony jest w <i>inteligentny mechanizm fallbacku</i>. "
-        "Gdy użytkownik wprowadzi np. ilość 7 sztuk, a w cenniku zdefiniowano jedynie przedziały 1-5 oraz 10-20, program <b>nie ulegnie awarii</b>, "
-        "lecz automatycznie dobierze stawkę z najbliższego niższego progu ilościowego (lub najbliższego przedziału średnicy).",
+        "Gdy wprowadzona zostanie średnica lub liczba ostrzy niewystępująca w tabeli, program <b>nie ulegnie awarii</b>, "
+        "lecz automatycznie dobierze stawkę z najbliższego pasującego przedziału.",
         bullet_style
     ))
 
