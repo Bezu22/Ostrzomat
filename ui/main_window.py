@@ -1,3 +1,5 @@
+import sys
+from pathlib import Path
 import customtkinter as ctk
 import os
 import re
@@ -25,6 +27,17 @@ class OstrzomatApp(ctk.CTk):
 
         self.title("Ostrzomat v0.2")
         self.configure(fg_color=AppStyle.COLOR_BG_DARK)
+
+        # Ustawienie ikony okna i paska zadań
+        icon_path = Path("icon.ico")
+        if not icon_path.exists() and getattr(sys, "frozen", False):
+            base_dir = getattr(sys, "_MEIPASS", Path(sys.executable).parent)
+            icon_path = Path(base_dir) / "icon.ico"
+        if icon_path.exists():
+            try:
+                self.iconbitmap(str(icon_path))
+            except Exception:
+                pass
 
         # 1. Inicjalizacja bazy klientów, bazy cennika oraz centralnej pamięci RAM (cache_manager)
         clients_db.init_clients_db()
