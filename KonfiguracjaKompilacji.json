@@ -1,0 +1,133 @@
+{
+ "version": "auto-py-to-exe-configuration_v1",
+ "pyinstallerOptions": [
+  {
+   "optionDest": "noconfirm",
+   "value": true
+  },
+  {
+   "optionDest": "filenames",
+   "value": "C:/Users/User/Documents/Repository/Ostrzomat/main.py"
+  },
+  {
+   "optionDest": "onefile",
+   "value": false
+  },
+  {
+   "optionDest": "console",
+   "value": false
+  },
+  {
+   "optionDest": "icon_file",
+   "value": "C:/Users/User/Documents/Repository/Ostrzomat/icon.ico"
+  },
+  {
+   "optionDest": "name",
+   "value": "Ostrzomat"
+  },
+  {
+   "optionDest": "clean_build",
+   "value": false
+  },
+  {
+   "optionDest": "strip",
+   "value": false
+  },
+  {
+   "optionDest": "noupx",
+   "value": false
+  },
+  {
+   "optionDest": "disable_windowed_traceback",
+   "value": false
+  },
+  {
+   "optionDest": "uac_admin",
+   "value": false
+  },
+  {
+   "optionDest": "uac_uiaccess",
+   "value": false
+  },
+  {
+   "optionDest": "argv_emulation",
+   "value": false
+  },
+  {
+   "optionDest": "bootloader_ignore_signals",
+   "value": false
+  },
+  {
+   "optionDest": "datas",
+   "value": "C:/Users/User/Documents/Repository/Ostrzomat/icon.ico;."
+  },
+  {
+   "optionDest": "collect_data",
+   "value": "customtkinter"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "weasyprint"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "pytest"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "bottle"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "eel"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "gevent"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "greenlet"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "request"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "urllib3"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "unittest"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "pydoc"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "fonttools"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "numpy"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "matplotlib"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "pandas"
+  },
+  {
+   "optionDest": "excludes",
+   "value": "scipy"
+  }
+ ],
+ "nonPyinstallerOptions": {
+  "increaseRecursionLimit": true,
+  "manualArguments": ""
+ }
+}

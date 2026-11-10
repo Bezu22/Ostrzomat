@@ -11,6 +11,7 @@ __pycache__/
 build/
 develop-eggs/
 dist/
+output/
 downloads/
 eggs/
 .eggs/
@@ -221,3 +222,4 @@ __marimo__/
 data/cart_cache*.json
 data/user_settings*
 user_settings*
+~$*
